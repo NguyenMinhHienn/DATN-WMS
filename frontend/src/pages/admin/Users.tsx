@@ -160,8 +160,15 @@ const Users: React.FC = () => {
                                     </td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center justify-center gap-2">
-                                            <button onClick={() => handleEdit(user)} className="p-2 hover:bg-slate-100 rounded-lg">✏️</button>
-                                            <button onClick={() => handleDelete(user)} className="p-2 hover:bg-slate-100 rounded-lg">🗑️</button>
+                                            {/* Hide Edit/Delete buttons for admin users */}
+                                            {!user.roles.some(r => r.name === 'admin') ? (
+                                                <>
+                                                    <button onClick={() => handleEdit(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Edit">✏️</button>
+                                                    <button onClick={() => handleDelete(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Delete">🗑️</button>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">Protected</span>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

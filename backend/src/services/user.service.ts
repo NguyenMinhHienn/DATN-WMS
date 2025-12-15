@@ -51,6 +51,12 @@ export class UserService {
             throw new AppError('User not found', 404);
         }
 
+        // SECURITY: Prevent modifying admin account
+        const isAdmin = existingUser.roles.some(role => role.name === 'admin');
+        if (isAdmin) {
+            throw new AppError('Cannot modify admin account', 403);
+        }
+
         // Check if email is being changed and already in use
         if (dto.email && dto.email !== existingUser.email) {
             const existingEmail = await userRepository.findByEmail(dto.email);
@@ -75,6 +81,12 @@ export class UserService {
         const existingUser = await userRepository.findById(id);
         if (!existingUser) {
             throw new AppError('User not found', 404);
+        }
+
+        // SECURITY: Prevent deleting admin account
+        const isAdmin = existingUser.roles.some(role => role.name === 'admin');
+        if (isAdmin) {
+            throw new AppError('Cannot delete admin account', 403);
         }
 
         const deleted = await userRepository.delete(id);
