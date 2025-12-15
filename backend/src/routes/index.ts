@@ -1,0 +1,79 @@
+import { Router } from 'express';
+import { authenticate } from '../middlewares/auth.middleware';
+import { isAdmin, isWarehouseManager, isStaff, isViewer } from '../middlewares/role.middleware';
+
+// Import controllers
+import * as authController from '../controllers/auth.controller';
+import * as userController from '../controllers/user.controller';
+import * as productController from '../controllers/product.controller';
+import * as warehouseController from '../controllers/warehouse.controller';
+import * as inventoryController from '../controllers/inventory.controller';
+import * as goodsReceiptController from '../controllers/goods-receipt.controller';
+import * as goodsIssueController from '../controllers/goods-issue.controller';
+import * as reportController from '../controllers/report.controller';
+
+const router = Router();
+
+// ==================== AUTH ROUTES ====================
+router.post('/auth/register', authController.register);
+router.post('/auth/login', authController.login);
+router.post('/auth/logout', authenticate, authController.logout);
+router.get('/auth/me', authenticate, authController.getCurrentUser);
+
+// ==================== USER ROUTES ====================
+router.get('/users', authenticate, isAdmin, userController.getAllUsers);
+router.get('/users/:id', authenticate, isAdmin, userController.getUserById);
+router.post('/users', authenticate, isAdmin, userController.createUser);
+router.put('/users/:id', authenticate, isAdmin, userController.updateUser);
+router.delete('/users/:id', authenticate, isAdmin, userController.deleteUser);
+router.get('/roles', authenticate, isAdmin, userController.getAllRoles);
+
+// ==================== PRODUCT ROUTES ====================
+router.get('/products', authenticate, isViewer, productController.getAllProducts);
+router.get('/products/:id', authenticate, isViewer, productController.getProductById);
+router.post('/products', authenticate, isWarehouseManager, productController.createProduct);
+router.put('/products/:id', authenticate, isWarehouseManager, productController.updateProduct);
+router.delete('/products/:id', authenticate, isAdmin, productController.deleteProduct);
+router.get('/categories', authenticate, isViewer, productController.getCategories);
+router.get('/units', authenticate, isViewer, productController.getUnits);
+
+// ==================== WAREHOUSE ROUTES ====================
+router.get('/warehouses', authenticate, isViewer, warehouseController.getAllWarehouses);
+router.get('/warehouses/:id', authenticate, isViewer, warehouseController.getWarehouseById);
+router.post('/warehouses', authenticate, isAdmin, warehouseController.createWarehouse);
+router.put('/warehouses/:id', authenticate, isAdmin, warehouseController.updateWarehouse);
+router.delete('/warehouses/:id', authenticate, isAdmin, warehouseController.deleteWarehouse);
+router.get('/warehouses/:id/locations', authenticate, isViewer, warehouseController.getWarehouseLocations);
+router.post('/warehouses/:id/locations', authenticate, isWarehouseManager, warehouseController.createWarehouseLocation);
+
+// ==================== INVENTORY ROUTES ====================
+router.get('/inventory', authenticate, isViewer, inventoryController.getAllInventory);
+router.get('/inventory/low-stock', authenticate, isViewer, inventoryController.getLowStockItems);
+router.get('/inventory/movements', authenticate, isViewer, inventoryController.getMovementLogs);
+router.get('/inventory/:id', authenticate, isViewer, inventoryController.getInventoryById);
+router.post('/inventory/adjust', authenticate, isStaff, inventoryController.adjustInventory);
+
+// ==================== GOODS RECEIPT (STOCK IN) ROUTES ====================
+router.get('/goods-receipts', authenticate, isViewer, goodsReceiptController.getAllReceipts);
+router.get('/goods-receipts/:id', authenticate, isViewer, goodsReceiptController.getReceiptById);
+router.post('/goods-receipts', authenticate, isStaff, goodsReceiptController.createReceipt);
+router.put('/goods-receipts/:id/status', authenticate, isStaff, goodsReceiptController.updateReceiptStatus);
+router.post('/goods-receipts/:id/complete', authenticate, isWarehouseManager, goodsReceiptController.completeReceipt);
+router.delete('/goods-receipts/:id', authenticate, isWarehouseManager, goodsReceiptController.deleteReceipt);
+
+// ==================== GOODS ISSUE (STOCK OUT) ROUTES ====================
+router.get('/goods-issues', authenticate, isViewer, goodsIssueController.getAllIssues);
+router.get('/goods-issues/:id', authenticate, isViewer, goodsIssueController.getIssueById);
+router.post('/goods-issues', authenticate, isStaff, goodsIssueController.createIssue);
+router.put('/goods-issues/:id/status', authenticate, isStaff, goodsIssueController.updateIssueStatus);
+router.post('/goods-issues/:id/ship', authenticate, isWarehouseManager, goodsIssueController.shipIssue);
+router.delete('/goods-issues/:id', authenticate, isWarehouseManager, goodsIssueController.deleteIssue);
+
+// ==================== REPORT ROUTES ====================
+router.get('/reports/dashboard', authenticate, isViewer, reportController.getDashboardStats);
+router.get('/reports/inventory', authenticate, isViewer, reportController.getInventoryReport);
+router.get('/reports/movements', authenticate, isViewer, reportController.getMovementReport);
+router.get('/reports/stock-value', authenticate, isViewer, reportController.getStockValueReport);
+router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
+
+export default router;
