@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useLocation } from 'react-router-dom';
+import { authService } from '../../services/authService';
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -8,11 +8,10 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const { login } = useAuth();
-    const navigate = useNavigate();
     const location = useLocation();
 
-    const from = (location.state as any)?.from?.pathname || '/admin';
+    // Các vai trò được phép truy cập trang admin
+    const adminRoles = ['admin', 'manager', 'warehouse_staff'];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,8 +19,36 @@ const Login: React.FC = () => {
         setLoading(true);
 
         try {
-            await login(username, password);
-            navigate(from, { replace: true });
+            // Login và lấy thông tin user
+            const response = await authService.login(username, password);
+            const userRoles = response.user.roles.map((r: any) => r.name);
+
+            // Lưu token và user vào localStorage (sẽ được AuthContext cập nhật)
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('user', JSON.stringify(response.user));
+
+            // Kiểm tra xem có đường dẫn trước đó không
+            const from = (location.state as any)?.from?.pathname;
+
+            // Xác định đích đến dựa trên vai trò
+            let redirectTo = '/products'; // Mặc định cho customer
+
+            if (from && from !== '/login') {
+                // Nếu có đường dẫn cũ và user có quyền truy cập
+                if (from.startsWith('/admin') && userRoles.some((role: string) => adminRoles.includes(role))) {
+                    redirectTo = from;
+                } else if (!from.startsWith('/admin')) {
+                    redirectTo = from;
+                }
+            } else {
+                // Không có đường dẫn cũ, điều hướng theo vai trò
+                if (userRoles.some((role: string) => adminRoles.includes(role))) {
+                    redirectTo = '/admin/dashboard';
+                }
+            }
+
+            // Refresh trang để AuthContext load lại user
+            window.location.href = redirectTo;
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
