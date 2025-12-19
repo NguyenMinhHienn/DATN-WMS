@@ -1156,5 +1156,465 @@ INSERT INTO system_settings (setting_key, setting_value, setting_type, category,
 ('lockout_duration_minutes', '30', 'number', 'security', 'Account lockout duration in minutes');
 
 -- ============================================================
+-- 10. ORDER STATUS MANAGEMENT (CUSTOMER ORDERS)
+-- ============================================================
+-- Quy tắc:
+-- - Admin: Được cập nhật trạng thái (chỉ tiến, không lùi, có thể nhảy đến cancelled)
+-- - Staff: Không được chỉnh sửa trạng thái
+-- - User: Chỉ được xem trạng thái đơn hàng
+
+-- Bảng định nghĩa các trạng thái đơn hàng
+CREATE TABLE order_statuses (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã trạng thái: pending, confirmed, processing...',
+    name_vi VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị tiếng Việt',
+    name_en VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị tiếng Anh',
+    description TEXT NULL COMMENT 'Mô tả chi tiết',
+    color VARCHAR(20) NOT NULL DEFAULT '#6B7280' COMMENT 'Màu hiển thị hex code',
+    icon VARCHAR(50) NULL COMMENT 'Tên icon hiển thị',
+    sort_order INT UNSIGNED NOT NULL COMMENT 'Thứ tự trạng thái (dùng để kiểm tra tiến/lùi)',
+    is_final TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Trạng thái kết thúc (không chuyển được nữa)',
+    is_cancellable TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Có thể hủy từ trạng thái này không',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_order_statuses_code (code),
+    INDEX idx_order_statuses_sort_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Định nghĩa các trạng thái đơn hàng';
+
+-- Bảng đơn hàng của khách hàng (User đặt hàng)
+CREATE TABLE customer_orders (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_number VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã đơn hàng: ORD-2024-000001',
+    
+    -- Thông tin khách hàng (User)
+    user_id INT UNSIGNED NOT NULL COMMENT 'User đặt hàng',
+    
+    -- Thông tin giao hàng
+    shipping_name VARCHAR(255) NOT NULL COMMENT 'Tên người nhận',
+    shipping_phone VARCHAR(20) NOT NULL COMMENT 'SĐT người nhận',
+    shipping_email VARCHAR(100) NULL,
+    shipping_address TEXT NOT NULL COMMENT 'Địa chỉ giao hàng',
+    shipping_city VARCHAR(100) NULL,
+    shipping_district VARCHAR(100) NULL,
+    shipping_ward VARCHAR(100) NULL,
+    shipping_postal_code VARCHAR(20) NULL,
+    
+    -- Thời gian
+    order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Ngày đặt hàng',
+    confirmed_at TIMESTAMP NULL COMMENT 'Ngày xác nhận',
+    processing_at TIMESTAMP NULL COMMENT 'Ngày bắt đầu xử lý',
+    shipped_at TIMESTAMP NULL COMMENT 'Ngày giao cho vận chuyển',
+    delivered_at TIMESTAMP NULL COMMENT 'Ngày giao thành công',
+    cancelled_at TIMESTAMP NULL COMMENT 'Ngày hủy',
+    expected_delivery_date DATE NULL COMMENT 'Ngày giao dự kiến',
+    
+    -- Tổng tiền
+    total_items INT UNSIGNED NOT NULL DEFAULT 0,
+    total_quantity INT NOT NULL DEFAULT 0,
+    subtotal DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    shipping_fee DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    discount_amount DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    tax_amount DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    total_amount DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    currency VARCHAR(3) NOT NULL DEFAULT 'VND',
+    
+    -- Trạng thái
+    status_id INT UNSIGNED NOT NULL COMMENT 'FK đến order_statuses',
+    status_code VARCHAR(50) NOT NULL DEFAULT 'pending' COMMENT 'Mã trạng thái hiện tại',
+    
+    -- Kho xử lý
+    warehouse_id INT UNSIGNED NULL COMMENT 'Kho xử lý đơn hàng',
+    goods_issue_id INT UNSIGNED NULL COMMENT 'Liên kết với phiếu xuất kho',
+    
+    -- Vận chuyển
+    shipping_method VARCHAR(100) NULL,
+    carrier_name VARCHAR(100) NULL,
+    tracking_number VARCHAR(100) NULL,
+    
+    -- Thanh toán
+    payment_method VARCHAR(50) NULL COMMENT 'cod, bank_transfer, credit_card...',
+    payment_status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+    paid_at TIMESTAMP NULL,
+    
+    -- Ghi chú
+    customer_notes TEXT NULL COMMENT 'Ghi chú từ khách hàng',
+    internal_notes TEXT NULL COMMENT 'Ghi chú nội bộ',
+    cancellation_reason TEXT NULL COMMENT 'Lý do hủy đơn',
+    
+    -- Audit
+    confirmed_by INT UNSIGNED NULL COMMENT 'Admin xác nhận',
+    processed_by INT UNSIGNED NULL COMMENT 'Admin/Staff xử lý',
+    shipped_by INT UNSIGNED NULL COMMENT 'Người giao hàng',
+    cancelled_by INT UNSIGNED NULL COMMENT 'Người hủy đơn',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    
+    INDEX idx_customer_orders_number (order_number),
+    INDEX idx_customer_orders_user_id (user_id),
+    INDEX idx_customer_orders_status (status_id, status_code),
+    INDEX idx_customer_orders_order_date (order_date),
+    INDEX idx_customer_orders_warehouse_id (warehouse_id),
+    INDEX idx_customer_orders_payment_status (payment_status),
+    INDEX idx_customer_orders_deleted_at (deleted_at),
+    
+    CONSTRAINT fk_customer_orders_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_status FOREIGN KEY (status_id) 
+        REFERENCES order_statuses(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_warehouse FOREIGN KEY (warehouse_id) 
+        REFERENCES warehouses(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_goods_issue FOREIGN KEY (goods_issue_id) 
+        REFERENCES goods_issues(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_confirmed_by FOREIGN KEY (confirmed_by) 
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_processed_by FOREIGN KEY (processed_by) 
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_orders_cancelled_by FOREIGN KEY (cancelled_by) 
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Đơn hàng của khách hàng (User)';
+
+-- Chi tiết đơn hàng
+CREATE TABLE customer_order_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    
+    quantity INT NOT NULL DEFAULT 0,
+    unit_id INT UNSIGNED NULL,
+    
+    unit_price DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    discount_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    discount_amount DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    line_total DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    
+    notes TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_customer_order_items_order_id (order_id),
+    INDEX idx_customer_order_items_product_id (product_id),
+    
+    CONSTRAINT fk_customer_order_items_order FOREIGN KEY (order_id) 
+        REFERENCES customer_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_order_items_product FOREIGN KEY (product_id) 
+        REFERENCES products(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_order_items_unit FOREIGN KEY (unit_id) 
+        REFERENCES units(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Chi tiết đơn hàng';
+
+-- Lịch sử thay đổi trạng thái đơn hàng
+CREATE TABLE order_status_history (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    
+    from_status_id INT UNSIGNED NULL COMMENT 'Trạng thái trước (NULL nếu là đầu)',
+    from_status_code VARCHAR(50) NULL,
+    to_status_id INT UNSIGNED NOT NULL COMMENT 'Trạng thái sau',
+    to_status_code VARCHAR(50) NOT NULL,
+    
+    reason TEXT NULL COMMENT 'Lý do thay đổi',
+    notes TEXT NULL,
+    
+    changed_by INT UNSIGNED NOT NULL COMMENT 'Admin thay đổi',
+    changed_by_role VARCHAR(50) NOT NULL COMMENT 'Role của người thay đổi',
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
+    
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_order_status_history_order_id (order_id),
+    INDEX idx_order_status_history_created_at (created_at),
+    
+    CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id) 
+        REFERENCES customer_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_order_status_history_from_status FOREIGN KEY (from_status_id) 
+        REFERENCES order_statuses(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_order_status_history_to_status FOREIGN KEY (to_status_id) 
+        REFERENCES order_statuses(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_order_status_history_changed_by FOREIGN KEY (changed_by) 
+        REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Lịch sử thay đổi trạng thái đơn hàng';
+
+-- Quy tắc chuyển trạng thái (chỉ Admin mới được chuyển)
+CREATE TABLE order_status_transitions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    from_status_id INT UNSIGNED NOT NULL COMMENT 'Trạng thái nguồn',
+    to_status_id INT UNSIGNED NOT NULL COMMENT 'Trạng thái đích',
+    allowed_roles JSON NOT NULL COMMENT 'Danh sách role được phép: ["admin"]',
+    requires_reason TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Bắt buộc nhập lý do',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_status_transition (from_status_id, to_status_id),
+    INDEX idx_status_transitions_from (from_status_id),
+    INDEX idx_status_transitions_to (to_status_id),
+    
+    CONSTRAINT fk_status_transitions_from FOREIGN KEY (from_status_id) 
+        REFERENCES order_statuses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_status_transitions_to FOREIGN KEY (to_status_id) 
+        REFERENCES order_statuses(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Quy tắc chuyển đổi trạng thái';
+
+-- Insert trạng thái đơn hàng mặc định
+INSERT INTO order_statuses (code, name_vi, name_en, description, color, icon, sort_order, is_final, is_cancellable) VALUES
+('pending', 'Chờ xác nhận', 'Pending', 'Đơn hàng mới, chờ Admin xác nhận', '#F59E0B', 'clock', 1, 0, 1),
+('confirmed', 'Đã xác nhận', 'Confirmed', 'Admin đã xác nhận đơn hàng', '#3B82F6', 'check-circle', 2, 0, 1),
+('processing', 'Đang xử lý', 'Processing', 'Đang chuẩn bị hàng tại kho', '#8B5CF6', 'cog', 3, 0, 1),
+('ready_to_ship', 'Sẵn sàng giao', 'Ready to Ship', 'Hàng đã đóng gói, chờ giao', '#06B6D4', 'package', 4, 0, 1),
+('shipping', 'Đang giao hàng', 'Shipping', 'Hàng đang được vận chuyển', '#10B981', 'truck', 5, 0, 0),
+('delivered', 'Đã giao hàng', 'Delivered', 'Khách đã nhận hàng thành công', '#22C55E', 'check-badge', 6, 1, 0),
+('cancelled', 'Đã hủy', 'Cancelled', 'Đơn hàng đã bị hủy', '#EF4444', 'x-circle', 99, 1, 0);
+
+-- Insert quy tắc chuyển trạng thái (chỉ Admin, chỉ tiến không lùi, có thể nhảy đến cancelled)
+INSERT INTO order_status_transitions (from_status_id, to_status_id, allowed_roles, requires_reason)
+SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'pending'),
+    (SELECT id FROM order_statuses WHERE code = 'confirmed'),
+    '["admin"]', 0
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'pending'),
+    (SELECT id FROM order_statuses WHERE code = 'cancelled'),
+    '["admin"]', 1
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'confirmed'),
+    (SELECT id FROM order_statuses WHERE code = 'processing'),
+    '["admin"]', 0
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'confirmed'),
+    (SELECT id FROM order_statuses WHERE code = 'cancelled'),
+    '["admin"]', 1
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'processing'),
+    (SELECT id FROM order_statuses WHERE code = 'ready_to_ship'),
+    '["admin"]', 0
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'processing'),
+    (SELECT id FROM order_statuses WHERE code = 'cancelled'),
+    '["admin"]', 1
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'ready_to_ship'),
+    (SELECT id FROM order_statuses WHERE code = 'shipping'),
+    '["admin"]', 0
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'ready_to_ship'),
+    (SELECT id FROM order_statuses WHERE code = 'cancelled'),
+    '["admin"]', 1
+UNION ALL SELECT 
+    (SELECT id FROM order_statuses WHERE code = 'shipping'),
+    (SELECT id FROM order_statuses WHERE code = 'delivered'),
+    '["admin"]', 0;
+
+-- Insert document sequence cho đơn hàng
+INSERT INTO document_sequences (document_type, prefix, current_number, number_length, reset_period) VALUES
+('customer_order', 'ORD-', 0, 6, 'yearly');
+
+-- ============================================================
+-- 11. STORED PROCEDURES, VIEWS & FUNCTIONS FOR ORDER STATUS
+-- ============================================================
+
+DELIMITER //
+
+-- Procedure kiểm tra quyền và cập nhật trạng thái đơn hàng
+-- Chỉ Admin mới được phép cập nhật, không được lùi, chỉ nhảy đến cancelled
+CREATE PROCEDURE sp_update_order_status(
+    IN p_order_id INT UNSIGNED,
+    IN p_new_status_code VARCHAR(50),
+    IN p_user_id INT UNSIGNED,
+    IN p_user_role VARCHAR(50),
+    IN p_reason TEXT,
+    IN p_ip_address VARCHAR(45),
+    IN p_user_agent VARCHAR(500),
+    OUT p_success TINYINT(1),
+    OUT p_message VARCHAR(255)
+)
+BEGIN
+    DECLARE v_current_status_id INT UNSIGNED;
+    DECLARE v_current_status_code VARCHAR(50);
+    DECLARE v_current_sort_order INT;
+    DECLARE v_new_status_id INT UNSIGNED;
+    DECLARE v_new_sort_order INT;
+    DECLARE v_is_final TINYINT(1);
+    DECLARE v_transition_allowed TINYINT(1) DEFAULT 0;
+    DECLARE v_requires_reason TINYINT(1);
+    
+    SET p_success = 0;
+    SET p_message = '';
+    
+    -- Kiểm tra role (chỉ Admin)
+    IF p_user_role != 'admin' THEN
+        SET p_message = 'Chỉ Admin mới được phép cập nhật trạng thái đơn hàng';
+        LEAVE;
+    END IF;
+    
+    -- Lấy trạng thái hiện tại
+    SELECT co.status_id, co.status_code, os.sort_order, os.is_final
+    INTO v_current_status_id, v_current_status_code, v_current_sort_order, v_is_final
+    FROM customer_orders co
+    JOIN order_statuses os ON co.status_id = os.id
+    WHERE co.id = p_order_id AND co.deleted_at IS NULL;
+    
+    IF v_current_status_id IS NULL THEN
+        SET p_message = 'Không tìm thấy đơn hàng';
+        LEAVE;
+    END IF;
+    
+    IF v_is_final = 1 THEN
+        SET p_message = 'Đơn hàng đã ở trạng thái cuối, không thể thay đổi';
+        LEAVE;
+    END IF;
+    
+    -- Lấy trạng thái mới
+    SELECT id, sort_order INTO v_new_status_id, v_new_sort_order
+    FROM order_statuses WHERE code = p_new_status_code AND is_active = 1;
+    
+    IF v_new_status_id IS NULL THEN
+        SET p_message = 'Trạng thái mới không hợp lệ';
+        LEAVE;
+    END IF;
+    
+    -- Kiểm tra quy tắc chuyển trạng thái
+    SELECT 1, ost.requires_reason INTO v_transition_allowed, v_requires_reason
+    FROM order_status_transitions ost
+    WHERE ost.from_status_id = v_current_status_id 
+      AND ost.to_status_id = v_new_status_id
+      AND ost.is_active = 1
+      AND JSON_CONTAINS(ost.allowed_roles, CONCAT('"', p_user_role, '"'));
+    
+    IF v_transition_allowed != 1 THEN
+        SET p_message = 'Không được phép chuyển từ trạng thái hiện tại sang trạng thái này';
+        LEAVE;
+    END IF;
+    
+    IF v_requires_reason = 1 AND (p_reason IS NULL OR TRIM(p_reason) = '') THEN
+        SET p_message = 'Bắt buộc nhập lý do khi chuyển sang trạng thái này';
+        LEAVE;
+    END IF;
+    
+    START TRANSACTION;
+    
+    -- Cập nhật trạng thái
+    UPDATE customer_orders
+    SET status_id = v_new_status_id,
+        status_code = p_new_status_code,
+        confirmed_at = CASE WHEN p_new_status_code = 'confirmed' THEN NOW() ELSE confirmed_at END,
+        processing_at = CASE WHEN p_new_status_code = 'processing' THEN NOW() ELSE processing_at END,
+        shipped_at = CASE WHEN p_new_status_code = 'shipping' THEN NOW() ELSE shipped_at END,
+        delivered_at = CASE WHEN p_new_status_code = 'delivered' THEN NOW() ELSE delivered_at END,
+        cancelled_at = CASE WHEN p_new_status_code = 'cancelled' THEN NOW() ELSE cancelled_at END,
+        cancellation_reason = CASE WHEN p_new_status_code = 'cancelled' THEN p_reason ELSE cancellation_reason END,
+        confirmed_by = CASE WHEN p_new_status_code = 'confirmed' THEN p_user_id ELSE confirmed_by END,
+        cancelled_by = CASE WHEN p_new_status_code = 'cancelled' THEN p_user_id ELSE cancelled_by END,
+        updated_at = NOW()
+    WHERE id = p_order_id;
+    
+    -- Ghi lịch sử
+    INSERT INTO order_status_history (
+        order_id, from_status_id, from_status_code, to_status_id, to_status_code, 
+        reason, changed_by, changed_by_role, ip_address, user_agent
+    ) VALUES (
+        p_order_id, v_current_status_id, v_current_status_code,
+        v_new_status_id, p_new_status_code, p_reason, p_user_id, p_user_role,
+        p_ip_address, p_user_agent
+    );
+    
+    COMMIT;
+    SET p_success = 1;
+    SET p_message = 'Cập nhật trạng thái thành công';
+END //
+
+-- Function lấy trạng thái tiếp theo được phép
+CREATE FUNCTION fn_get_next_statuses(p_order_id INT UNSIGNED, p_user_role VARCHAR(50))
+RETURNS JSON
+DETERMINISTIC
+BEGIN
+    DECLARE v_current_status_id INT UNSIGNED;
+    DECLARE v_result JSON;
+    
+    SELECT status_id INTO v_current_status_id
+    FROM customer_orders WHERE id = p_order_id AND deleted_at IS NULL;
+    
+    IF v_current_status_id IS NULL THEN
+        RETURN JSON_ARRAY();
+    END IF;
+    
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'status_id', os.id, 'code', os.code,
+            'name_vi', os.name_vi, 'name_en', os.name_en,
+            'color', os.color, 'icon', os.icon,
+            'requires_reason', ost.requires_reason
+        )
+    ) INTO v_result
+    FROM order_status_transitions ost
+    JOIN order_statuses os ON ost.to_status_id = os.id
+    WHERE ost.from_status_id = v_current_status_id
+      AND ost.is_active = 1 AND os.is_active = 1
+      AND JSON_CONTAINS(ost.allowed_roles, CONCAT('"', p_user_role, '"'));
+    
+    RETURN COALESCE(v_result, JSON_ARRAY());
+END //
+
+DELIMITER ;
+
+-- View cho User xem đơn hàng của mình
+CREATE OR REPLACE VIEW v_user_orders AS
+SELECT 
+    co.id, co.order_number, co.user_id,
+    co.shipping_name, co.shipping_phone, co.shipping_address,
+    co.order_date, co.expected_delivery_date,
+    co.total_items, co.total_quantity, co.total_amount, co.currency,
+    co.status_code,
+    os.name_vi AS status_name_vi, os.name_en AS status_name_en,
+    os.color AS status_color, os.icon AS status_icon,
+    os.sort_order AS status_order, os.is_final AS status_is_final,
+    co.payment_method, co.payment_status,
+    co.shipping_method, co.carrier_name, co.tracking_number,
+    co.confirmed_at, co.processing_at, co.shipped_at, co.delivered_at,
+    co.cancelled_at, co.cancellation_reason, co.customer_notes,
+    co.created_at, co.updated_at
+FROM customer_orders co
+JOIN order_statuses os ON co.status_id = os.id
+WHERE co.deleted_at IS NULL;
+
+-- View cho Admin xem tất cả đơn hàng
+CREATE OR REPLACE VIEW v_admin_orders AS
+SELECT 
+    co.*,
+    os.name_vi AS status_name_vi, os.name_en AS status_name_en,
+    os.color AS status_color, os.icon AS status_icon,
+    os.sort_order AS status_order, os.is_final AS status_is_final, os.is_cancellable,
+    u.full_name AS customer_name, u.email AS customer_email, u.phone AS customer_phone_account,
+    w.name AS warehouse_name,
+    confirmed_user.full_name AS confirmed_by_name,
+    cancelled_user.full_name AS cancelled_by_name
+FROM customer_orders co
+JOIN order_statuses os ON co.status_id = os.id
+JOIN users u ON co.user_id = u.id
+LEFT JOIN warehouses w ON co.warehouse_id = w.id
+LEFT JOIN users confirmed_user ON co.confirmed_by = confirmed_user.id
+LEFT JOIN users cancelled_user ON co.cancelled_by = cancelled_user.id
+WHERE co.deleted_at IS NULL;
+
+-- View các trạng thái có thể chuyển đến
+CREATE OR REPLACE VIEW v_available_transitions AS
+SELECT 
+    ost.from_status_id, os_from.code AS from_status_code, os_from.name_vi AS from_status_name,
+    ost.to_status_id, os_to.code AS to_status_code, os_to.name_vi AS to_status_name,
+    os_to.color AS to_status_color, os_to.icon AS to_status_icon,
+    ost.allowed_roles, ost.requires_reason
+FROM order_status_transitions ost
+JOIN order_statuses os_from ON ost.from_status_id = os_from.id
+JOIN order_statuses os_to ON ost.to_status_id = os_to.id
+WHERE ost.is_active = 1 AND os_from.is_active = 1 AND os_to.is_active = 1;
+
+-- ============================================================
 -- END OF SCHEMA
 -- ============================================================
