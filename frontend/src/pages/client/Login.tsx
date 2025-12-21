@@ -23,9 +23,9 @@ const Login: React.FC = () => {
             const response = await authService.login(username, password);
             const userRoles = response.user.roles.map((r: any) => r.name);
 
-            // Lưu token và user vào localStorage (sẽ được AuthContext cập nhật)
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('user', JSON.stringify(response.user));
+            // Lưu token và user vào sessionStorage (sẽ được AuthContext cập nhật)
+            sessionStorage.setItem('token', response.token);
+            sessionStorage.setItem('user', JSON.stringify(response.user));
 
             // Kiểm tra xem có đường dẫn trước đó không
             const from = (location.state as any)?.from?.pathname;
