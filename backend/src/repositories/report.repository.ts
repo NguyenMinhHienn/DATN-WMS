@@ -3,21 +3,23 @@ import { DashboardStats, InventoryReport, MovementReport } from '../types';
 import { RowDataPacket } from 'mysql2';
 
 export class ReportRepository {
-    async getDashboardStats(): Promise<DashboardStats> {
-        const [productCount] = await pool.query<RowDataPacket[]>(`
+  async getDashboardStats(): Promise<DashboardStats> {
+    const [productCount] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(*) as count FROM products WHERE deleted_at IS NULL AND status = 'active'
     `);
 
-        const [warehouseCount] = await pool.query<RowDataPacket[]>(`
+    const [warehouseCount] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(*) as count FROM warehouses WHERE deleted_at IS NULL AND status = 'active'
     `);
 
-        const [inventoryValue] = await pool.query<RowDataPacket[]>(`
-      SELECT COALESCE(SUM(quantity_on_hand * COALESCE(unit_cost, 0)), 0) as total_value
-      FROM inventories
+    const [inventoryValue] = await pool.query<RowDataPacket[]>(`
+      SELECT COALESCE(SUM(i.quantity_on_hand * COALESCE(i.unit_cost, p.cost_price, p.selling_price, 0)), 0) as total_value
+      FROM inventories i
+      INNER JOIN products p ON i.product_id = p.id
+      WHERE p.deleted_at IS NULL
     `);
 
-        const [lowStock] = await pool.query<RowDataPacket[]>(`
+    const [lowStock] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(DISTINCT p.id) as count
       FROM products p
       LEFT JOIN (
@@ -30,17 +32,17 @@ export class ReportRepository {
         AND (COALESCE(inv.total_qty, 0) <= p.reorder_point OR COALESCE(inv.total_qty, 0) <= p.min_stock_level)
     `);
 
-        const [pendingReceipts] = await pool.query<RowDataPacket[]>(`
+    const [pendingReceipts] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(*) as count FROM goods_receipts 
       WHERE deleted_at IS NULL AND status IN ('draft', 'pending')
     `);
 
-        const [pendingIssues] = await pool.query<RowDataPacket[]>(`
+    const [pendingIssues] = await pool.query<RowDataPacket[]>(`
       SELECT COUNT(*) as count FROM goods_issues 
       WHERE deleted_at IS NULL AND status IN ('draft', 'pending', 'picking')
     `);
 
-        const [recentMovements] = await pool.query<RowDataPacket[]>(`
+    const [recentMovements] = await pool.query<RowDataPacket[]>(`
       SELECT il.*, p.name as product_name, w.name as warehouse_name
       FROM inventory_logs il
       INNER JOIN products p ON il.product_id = p.id
@@ -49,19 +51,19 @@ export class ReportRepository {
       LIMIT 10
     `);
 
-        return {
-            totalProducts: productCount[0].count,
-            totalWarehouses: warehouseCount[0].count,
-            totalInventoryValue: parseFloat(inventoryValue[0].total_value) || 0,
-            lowStockItems: lowStock[0].count,
-            pendingReceipts: pendingReceipts[0].count,
-            pendingIssues: pendingIssues[0].count,
-            recentMovements: recentMovements as any[],
-        };
-    }
+    return {
+      totalProducts: productCount[0].count,
+      totalWarehouses: warehouseCount[0].count,
+      totalInventoryValue: parseFloat(inventoryValue[0].total_value) || 0,
+      lowStockItems: lowStock[0].count,
+      pendingReceipts: pendingReceipts[0].count,
+      pendingIssues: pendingIssues[0].count,
+      recentMovements: recentMovements as any[],
+    };
+  }
 
-    async getInventoryReport(warehouseId?: number): Promise<InventoryReport[]> {
-        let query = `
+  async getInventoryReport(warehouseId?: number): Promise<InventoryReport[]> {
+    let query = `
       SELECT 
         p.id as product_id,
         p.name as product_name,
@@ -77,25 +79,25 @@ export class ReportRepository {
       WHERE p.deleted_at IS NULL AND w.deleted_at IS NULL
     `;
 
-        const params: any[] = [];
-        if (warehouseId) {
-            query += ' AND w.id = ?';
-            params.push(warehouseId);
-        }
-
-        query += ' ORDER BY p.name, w.name';
-
-        const [rows] = await pool.query<RowDataPacket[]>(query, params);
-        return rows as InventoryReport[];
+    const params: any[] = [];
+    if (warehouseId) {
+      query += ' AND w.id = ?';
+      params.push(warehouseId);
     }
 
-    async getMovementReport(
-        startDate: string,
-        endDate: string,
-        warehouseId?: number,
-        movementType?: string
-    ): Promise<MovementReport[]> {
-        let query = `
+    query += ' ORDER BY p.name, w.name';
+
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
+    return rows as InventoryReport[];
+  }
+
+  async getMovementReport(
+    startDate: string,
+    endDate: string,
+    warehouseId?: number,
+    movementType?: string
+  ): Promise<MovementReport[]> {
+    let query = `
       SELECT 
         DATE(il.created_at) as date,
         il.movement_type,
@@ -111,43 +113,44 @@ export class ReportRepository {
       WHERE il.created_at BETWEEN ? AND ?
     `;
 
-        const params: any[] = [startDate, endDate + ' 23:59:59'];
+    const params: any[] = [startDate, endDate + ' 23:59:59'];
 
-        if (warehouseId) {
-            query += ' AND il.warehouse_id = ?';
-            params.push(warehouseId);
-        }
-
-        if (movementType) {
-            query += ' AND il.movement_type = ?';
-            params.push(movementType);
-        }
-
-        query += ' ORDER BY il.created_at DESC';
-
-        const [rows] = await pool.query<RowDataPacket[]>(query, params);
-        return rows as MovementReport[];
+    if (warehouseId) {
+      query += ' AND il.warehouse_id = ?';
+      params.push(warehouseId);
     }
 
-    async getStockValueReport(): Promise<any[]> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
+    if (movementType) {
+      query += ' AND il.movement_type = ?';
+      params.push(movementType);
+    }
+
+    query += ' ORDER BY il.created_at DESC';
+
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
+    return rows as MovementReport[];
+  }
+
+  async getStockValueReport(): Promise<any[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT 
         w.id as warehouse_id,
         w.name as warehouse_name,
         COUNT(DISTINCT i.product_id) as product_count,
         SUM(i.quantity_on_hand) as total_quantity,
-        SUM(i.quantity_on_hand * COALESCE(i.unit_cost, 0)) as total_value
+        SUM(i.quantity_on_hand * COALESCE(i.unit_cost, p.cost_price, p.selling_price, 0)) as total_value
       FROM warehouses w
       LEFT JOIN inventories i ON w.id = i.warehouse_id
+      LEFT JOIN products p ON i.product_id = p.id AND p.deleted_at IS NULL
       WHERE w.deleted_at IS NULL AND w.status = 'active'
       GROUP BY w.id, w.name
       ORDER BY total_value DESC
     `);
-        return rows;
-    }
+    return rows;
+  }
 
-    async getProductStockSummary(productId: number): Promise<any[]> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
+  async getProductStockSummary(productId: number): Promise<any[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT 
         w.name as warehouse_name,
         sl.code as location_code,
@@ -164,8 +167,8 @@ export class ReportRepository {
       WHERE i.product_id = ?
       ORDER BY w.name, sl.code
     `, [productId]);
-        return rows;
-    }
+    return rows;
+  }
 }
 
 export const reportRepository = new ReportRepository();
