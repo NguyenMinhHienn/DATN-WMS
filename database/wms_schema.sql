@@ -1919,7 +1919,80 @@ ADD CONSTRAINT fk_customer_orders_goods_issue FOREIGN KEY (goods_issue_id)
     REFERENCES goods_issues(id) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ============================================================
+-- SECTION 18: SAMPLE DATA FOR DEMO
+-- ============================================================
+
+-- 18.1 Sample Warehouses
+INSERT INTO warehouses (code, name, description, address, city, status) VALUES
+('WH-001', 'Kho Chính HCM', 'Kho hàng chính tại TP.HCM', '123 Nguyễn Văn Linh, Quận 7', 'TP. Hồ Chí Minh', 'active'),
+('WH-002', 'Kho Hà Nội', 'Kho hàng tại Hà Nội', '456 Phạm Hùng, Cầu Giấy', 'Hà Nội', 'active');
+
+-- 18.2 Sample Categories
+INSERT INTO categories (code, name, description, level, is_active) VALUES
+('CAT-001', 'Điện tử', 'Các sản phẩm điện tử, công nghệ', 0, 1),
+('CAT-002', 'Thời trang', 'Quần áo, phụ kiện thời trang', 0, 1),
+('CAT-003', 'Đồ gia dụng', 'Đồ dùng gia đình', 0, 1),
+('CAT-004', 'Thực phẩm', 'Thực phẩm khô, đóng hộp', 0, 1),
+('CAT-005', 'Văn phòng phẩm', 'Dụng cụ văn phòng', 0, 1);
+
+-- 18.3 Sample Suppliers
+INSERT INTO suppliers (code, name, contact_person, email, phone, address, city, status) VALUES
+('SUP-0001', 'Công ty TNHH Điện Tử ABC', 'Nguyễn Văn A', 'contact@abc-electronics.vn', '0281234567', '100 Lê Lợi, Quận 1', 'TP. Hồ Chí Minh', 'active'),
+('SUP-0002', 'Công ty CP Thời Trang XYZ', 'Trần Thị B', 'info@xyz-fashion.vn', '0282345678', '200 Trần Hưng Đạo, Quận 5', 'TP. Hồ Chí Minh', 'active'),
+('SUP-0003', 'Nhà phân phối Gia Dụng 123', 'Lê Văn C', 'sales@giadung123.vn', '0243456789', '300 Láng Hạ, Đống Đa', 'Hà Nội', 'active');
+
+-- 18.4 Sample Products
+INSERT INTO products (sku, barcode, name, description, category_id, unit_id, supplier_id, cost_price, selling_price, min_stock_level, reorder_point, reorder_quantity, status, image_url) VALUES
+-- Điện tử (category_id = 1)
+('PRD-000001', '8934561234567', 'Tai nghe Bluetooth Pro', 'Tai nghe không dây chất lượng cao, pin 20h', 1, 1, 1, 350000, 599000, 10, 20, 50, 'active', 'https://picsum.photos/seed/headphone/400/400'),
+('PRD-000002', '8934561234568', 'Chuột Gaming RGB', 'Chuột gaming 7 nút, LED RGB, DPI 16000', 1, 1, 1, 280000, 450000, 15, 25, 40, 'active', 'https://picsum.photos/seed/mouse/400/400'),
+('PRD-000003', '8934561234569', 'Bàn phím cơ TKL', 'Bàn phím cơ 87 phím, switch Blue', 1, 1, 1, 650000, 990000, 10, 15, 30, 'active', 'https://picsum.photos/seed/keyboard/400/400'),
+('PRD-000004', '8934561234570', 'Sạc nhanh 65W GaN', 'Củ sạc nhanh GaN 65W, 3 cổng', 1, 1, 1, 320000, 550000, 20, 30, 50, 'active', 'https://picsum.photos/seed/charger/400/400'),
+('PRD-000005', '8934561234571', 'Webcam Full HD 1080p', 'Camera họp online, full HD, tự động lấy nét', 1, 1, 1, 450000, 750000, 8, 15, 25, 'active', 'https://picsum.photos/seed/webcam/400/400'),
+-- Thời trang (category_id = 2)
+('PRD-000006', '8934562234567', 'Áo thun nam basic', 'Áo thun cotton 100%, nhiều màu', 2, 1, 2, 85000, 159000, 50, 80, 100, 'active', 'https://picsum.photos/seed/tshirt/400/400'),
+('PRD-000007', '8934562234568', 'Quần jean nam slim fit', 'Quần jean co giãn, form slim fit', 2, 1, 2, 250000, 450000, 30, 50, 80, 'active', 'https://picsum.photos/seed/jeans/400/400'),
+('PRD-000008', '8934562234569', 'Áo khoác hoodie unisex', 'Áo hoodie nỉ bông, oversize', 2, 1, 2, 180000, 350000, 40, 60, 100, 'active', 'https://picsum.photos/seed/hoodie/400/400'),
+('PRD-000009', '8934562234570', 'Giày sneaker trắng', 'Giày thể thao nam nữ, đế cao su', 2, 1, 2, 380000, 650000, 25, 40, 60, 'active', 'https://picsum.photos/seed/sneaker/400/400'),
+('PRD-000010', '8934562234571', 'Balo laptop 15.6 inch', 'Balo đựng laptop chống nước', 2, 1, 2, 220000, 399000, 20, 35, 50, 'active', 'https://picsum.photos/seed/backpack/400/400'),
+-- Đồ gia dụng (category_id = 3)
+('PRD-000011', '8934563234567', 'Nồi chiên không dầu 5L', 'Air fryer 5L, điều khiển điện tử', 3, 1, 3, 850000, 1450000, 10, 15, 20, 'active', 'https://picsum.photos/seed/airfryer/400/400'),
+('PRD-000012', '8934563234568', 'Máy xay sinh tố đa năng', 'Máy xay 1000W, 2 cối xay', 3, 1, 3, 450000, 750000, 12, 20, 30, 'active', 'https://picsum.photos/seed/blender/400/400'),
+('PRD-000013', '8934563234569', 'Bộ nồi inox 5 món', 'Bộ nồi inox 3 đáy, 5 kích thước', 3, 2, 3, 650000, 1100000, 8, 12, 20, 'active', 'https://picsum.photos/seed/pots/400/400'),
+('PRD-000014', '8934563234570', 'Quạt điều hòa mini', 'Quạt hơi nước để bàn, 3 tốc độ', 3, 1, 3, 280000, 490000, 15, 25, 40, 'active', 'https://picsum.photos/seed/fan/400/400'),
+('PRD-000015', '8934563234571', 'Đèn LED thông minh', 'Bóng đèn LED điều khiển app, RGB', 3, 1, 3, 120000, 220000, 30, 50, 80, 'active', 'https://picsum.photos/seed/led/400/400');
+
+-- 18.5 Sample Inventory (Warehouse 1)
+INSERT INTO inventories (product_id, warehouse_id, quantity_on_hand, unit_cost, status) VALUES
+(1, 1, 120, 350000, 'available'),
+(2, 1, 85, 280000, 'available'),
+(3, 1, 45, 650000, 'available'),
+(4, 1, 150, 320000, 'available'),
+(5, 1, 60, 450000, 'available'),
+(6, 1, 200, 85000, 'available'),
+(7, 1, 100, 250000, 'available'),
+(8, 1, 150, 180000, 'available'),
+(9, 1, 80, 380000, 'available'),
+(10, 1, 95, 220000, 'available'),
+(11, 1, 35, 850000, 'available'),
+(12, 1, 50, 450000, 'available'),
+(13, 1, 25, 650000, 'available'),
+(14, 1, 70, 280000, 'available'),
+(15, 1, 120, 120000, 'available');
+
+-- 18.6 Sample Inventory (Warehouse 2)
+INSERT INTO inventories (product_id, warehouse_id, quantity_on_hand, unit_cost, status) VALUES
+(1, 2, 50, 350000, 'available'),
+(2, 2, 40, 280000, 'available'),
+(3, 2, 20, 650000, 'available'),
+(6, 2, 100, 85000, 'available'),
+(7, 2, 60, 250000, 'available'),
+(11, 2, 15, 850000, 'available'),
+(12, 2, 25, 450000, 'available');
+
+-- ============================================================
 -- END OF STOCKFLOW WMS DATABASE SCHEMA
 -- Version: 2.0.0
 -- Total Tables: 37
 -- ============================================================
+

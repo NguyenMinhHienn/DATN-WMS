@@ -91,10 +91,10 @@ export class AuthService {
         // Hash password
         const passwordHash = await this.hashPassword(data.password);
 
-        // Get default role (viewer)
+        // Get default role (user)
         const roles = await userRepository.getAllRoles();
-        const viewerRole = roles.find(r => r.name === 'viewer');
-        const roleIds = viewerRole ? [viewerRole.id] : [];
+        const userRole = roles.find(r => r.name === 'user');
+        const roleIds = userRole ? [userRole.id] : [];
 
         // Create user
         const userId = await userRepository.create({
