@@ -17,14 +17,14 @@ const ROLES = [
     { name: 'admin', description: 'Full system access - manage users, warehouses, products, and all operations' },
     { name: 'warehouse_manager', description: 'Manage warehouses and products, approve stock operations' },
     { name: 'staff', description: 'Handle daily warehouse operations - stock in, stock out, inventory' },
-    { name: 'viewer', description: 'View-only access to products and reports' },
+    { name: 'user', description: 'Customer - Browse products, create orders, view own data' },
 ];
 
 const USERS = [
     { username: 'admin', email: 'admin@wms.vn', password: 'admin123', full_name: 'System Administrator', phone: '0901234567', roles: ['admin'] },
     { username: 'manager', email: 'manager@wms.vn', password: 'manager123', full_name: 'Warehouse Manager', phone: '0901234568', roles: ['warehouse_manager'] },
     { username: 'staff', email: 'staff@wms.vn', password: 'staff123', full_name: 'Warehouse Staff', phone: '0901234569', roles: ['staff'] },
-    { username: 'viewer', email: 'viewer@wms.vn', password: 'viewer123', full_name: 'Report Viewer', phone: '0901234570', roles: ['viewer'] },
+    { username: 'user', email: 'user@wms.vn', password: 'user123', full_name: 'Regular User', phone: '0901234570', roles: ['user'] },
 ];
 
 const CATEGORIES = [
@@ -374,7 +374,7 @@ async function seed() {
         console.log('   │ admin      │ admin123    │ admin                │');
         console.log('   │ manager    │ manager123  │ warehouse_manager    │');
         console.log('   │ staff      │ staff123    │ staff                │');
-        console.log('   │ viewer     │ viewer123   │ viewer               │');
+        console.log('   │ user       │ user123     │ user                 │');
         console.log('   └────────────┴─────────────┴──────────────────────┘\n');
 
     } catch (error) {

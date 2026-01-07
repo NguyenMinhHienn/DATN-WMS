@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
                     <div className="flex items-center gap-4">
                         {isAuthenticated ? (
                             <>
-                                {hasAnyRole(['admin', 'warehouse_manager', 'staff', 'viewer']) && (
+                                {hasAnyRole(['admin', 'warehouse_manager', 'staff', 'user']) && (
                                     <Link to="/admin" className="btn btn-secondary text-sm">
                                         Dashboard
                                     </Link>

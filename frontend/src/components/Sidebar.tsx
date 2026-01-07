@@ -8,14 +8,14 @@ interface SidebarProps {
 }
 
 const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: '📊', roles: ['admin', 'warehouse_manager', 'staff', 'viewer'] },
+    { path: '/admin', label: 'Dashboard', icon: '📊', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
     { path: '/admin/users', label: 'Users', icon: '👥', roles: ['admin'] },
-    { path: '/admin/products', label: 'Products', icon: '📦', roles: ['admin', 'warehouse_manager', 'staff', 'viewer'] },
-    { path: '/admin/warehouses', label: 'Warehouses', icon: '🏭', roles: ['admin', 'warehouse_manager', 'staff', 'viewer'] },
-    { path: '/admin/inventory', label: 'Inventory', icon: '📋', roles: ['admin', 'warehouse_manager', 'staff', 'viewer'] },
+    { path: '/admin/products', label: 'Products', icon: '📦', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
+    { path: '/admin/warehouses', label: 'Warehouses', icon: '🏭', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
+    { path: '/admin/inventory', label: 'Inventory', icon: '📋', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
     { path: '/admin/stock-in', label: 'Stock In', icon: '📥', roles: ['admin', 'warehouse_manager', 'staff'] },
     { path: '/admin/stock-out', label: 'Stock Out', icon: '📤', roles: ['admin', 'warehouse_manager', 'staff'] },
-    { path: '/admin/reports', label: 'Reports', icon: '📈', roles: ['admin', 'warehouse_manager', 'staff', 'viewer'] },
+    { path: '/admin/reports', label: 'Reports', icon: '📈', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {

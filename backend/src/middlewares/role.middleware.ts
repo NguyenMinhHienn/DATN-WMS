@@ -23,4 +23,7 @@ export const authorize = (...allowedRoles: string[]) => {
 export const isAdmin = authorize('admin');
 export const isWarehouseManager = authorize('admin', 'warehouse_manager');
 export const isStaff = authorize('admin', 'warehouse_manager', 'staff');
-export const isViewer = authorize('admin', 'warehouse_manager', 'staff', 'viewer');
+export const isUser = authorize('admin', 'warehouse_manager', 'staff', 'user');
+// Alias for backward compatibility
+export const isViewer = isUser;
+

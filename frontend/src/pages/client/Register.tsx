@@ -4,7 +4,7 @@ import { authService } from '../../services/authService';
 
 /**
  * Register Page Component
- * Allows new users to create an account with default viewer role
+ * Allows new users to create an account with default user role
  */
 const Register: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -193,7 +193,7 @@ const Register: React.FC = () => {
                     </div>
 
                     <div className="mt-4 text-center text-xs text-slate-400">
-                        <p>By registering, you'll get a viewer account.</p>
+                        <p>By registering, you'll get a user account.</p>
                         <p>Contact admin for additional permissions.</p>
                     </div>
                 </div>
