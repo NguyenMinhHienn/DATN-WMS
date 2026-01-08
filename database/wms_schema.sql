@@ -855,6 +855,7 @@ COMMENT='Goods issue line items';
 CREATE TABLE stock_transfers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     transfer_number VARCHAR(50) NOT NULL UNIQUE COMMENT 'TR number: TR-2024-000001',
+    transfer_type ENUM('IMPORT', 'EXPORT', 'TRANSFER') NOT NULL DEFAULT 'IMPORT' COMMENT 'Type: IMPORT (nhập kho), EXPORT (xuất kho), TRANSFER (chuyển kho)',
     
     -- Locations
     source_warehouse_id INT UNSIGNED NOT NULL,
