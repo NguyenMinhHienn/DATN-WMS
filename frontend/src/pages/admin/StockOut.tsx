@@ -68,8 +68,8 @@ const StockOut: React.FC = () => {
         <div className="animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Stock Out (Goods Issues)</h1>
-                    <p className="text-slate-600">Manage outgoing stock</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Phiếu xuất kho</h1>
+                    <p className="text-slate-600">Quản lý xuất hàng</p>
                 </div>
             </div>
 
@@ -77,16 +77,16 @@ const StockOut: React.FC = () => {
             <div className="card mb-6">
                 <div className="flex flex-wrap gap-4">
                     <select value={selectedWarehouse || ''} onChange={(e) => { setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : undefined); setPagination(p => ({ ...p, page: 1 })); }} className="input max-w-xs">
-                        <option value="">All Warehouses</option>
+                        <option value="">Tất cả các kho</option>
                         {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
                     <select value={selectedStatus} onChange={(e) => { setSelectedStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} className="input max-w-xs">
-                        <option value="">All Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="pending">Pending</option>
-                        <option value="picking">Picking</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="draft">Nháp</option>
+                        <option value="pending">Chờ duyệt</option>
+                        <option value="picking">Đang lấy hàng</option>
+                        <option value="shipped">Đã gửi</option>
+                        <option value="delivered">Đã giao</option>
                     </select>
                 </div>
             </div>
@@ -102,14 +102,14 @@ const StockOut: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Issue #</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Type</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Customer</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Date</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Priority</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Status</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã phiếu</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Loại</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Khách hàng</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Ngày</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Ưu tiên</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -128,13 +128,13 @@ const StockOut: React.FC = () => {
                                         </td>
                                         <td className="py-3 px-4 text-center">
                                             {(issue.status === 'draft' || issue.status === 'pending' || issue.status === 'picking') && (
-                                                <button onClick={() => handleShip(issue.id)} className="btn btn-primary text-xs px-3 py-1">Ship</button>
+                                                <button onClick={() => handleShip(issue.id)} className="btn btn-primary text-xs px-3 py-1">Xuất kho</button>
                                             )}
                                         </td>
                                     </tr>
                                 ))}
                                 {issues.length === 0 && (
-                                    <tr><td colSpan={8} className="py-12 text-center text-slate-500">No issues found</td></tr>
+                                    <tr><td colSpan={8} className="py-12 text-center text-slate-500">Không tìm thấy phiếu xuất</td></tr>
                                 )}
                             </tbody>
                         </table>

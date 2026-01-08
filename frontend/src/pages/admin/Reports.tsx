@@ -54,16 +54,16 @@ const Reports: React.FC = () => {
     return (
         <div className="animate-fadeIn">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Reports</h1>
-                <p className="text-slate-600">Generate and view reports</p>
+                <h1 className="text-2xl font-bold text-slate-800">Báo cáo</h1>
+                <p className="text-slate-600">Tạo và xem báo cáo</p>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-2 mb-6">
                 {[
-                    { key: 'inventory', label: '📋 Inventory Report' },
-                    { key: 'movements', label: '📊 Movement Report' },
-                    { key: 'stockValue', label: '💰 Stock Value' },
+                    { key: 'inventory', label: '📋 Báo cáo tồn kho' },
+                    { key: 'movements', label: '📊 Báo cáo biến động' },
+                    { key: 'stockValue', label: '💰 Giá trị tồn kho' },
                 ].map(tab => (
                     <button
                         key={tab.key}
@@ -81,9 +81,9 @@ const Reports: React.FC = () => {
                 <div className="flex flex-wrap gap-4 items-end">
                     {activeTab !== 'stockValue' && (
                         <div>
-                            <label className="label">Warehouse</label>
+                            <label className="label">Kho</label>
                             <select value={selectedWarehouse || ''} onChange={(e) => setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : undefined)} className="input">
-                                <option value="">All Warehouses</option>
+                                <option value="">Tất cả các kho</option>
                                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                             </select>
                         </div>
@@ -91,16 +91,16 @@ const Reports: React.FC = () => {
                     {activeTab === 'movements' && (
                         <>
                             <div>
-                                <label className="label">Start Date</label>
+                                <label className="label">Từ ngày</label>
                                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="input" />
                             </div>
                             <div>
-                                <label className="label">End Date</label>
+                                <label className="label">Đến ngày</label>
                                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="input" />
                             </div>
                         </>
                     )}
-                    <button onClick={loadReport} className="btn btn-primary">Generate Report</button>
+                    <button onClick={loadReport} className="btn btn-primary">Tạo báo cáo</button>
                 </div>
             </div>
 
@@ -112,7 +112,7 @@ const Reports: React.FC = () => {
                     </div>
                 ) : reportData.length === 0 ? (
                     <div className="py-12 text-center text-slate-500">
-                        Click "Generate Report" to view data
+                        Nhấn "Tạo báo cáo" để xem dữ liệu
                     </div>
                 ) : (
                     <table className="w-full">
@@ -120,28 +120,28 @@ const Reports: React.FC = () => {
                             <tr>
                                 {activeTab === 'inventory' && (
                                     <>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Product</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">SKU</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Qty</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Value</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã SKU</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">SL</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Giá trị</th>
                                     </>
                                 )}
                                 {activeTab === 'movements' && (
                                     <>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Date</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Product</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Type</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Change</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Ngày</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Loại</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Thay đổi</th>
                                     </>
                                 )}
                                 {activeTab === 'stockValue' && (
                                     <>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Products</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Total Qty</th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Total Value</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Số sản phẩm</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Tổng SL</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Tổng giá trị</th>
                                     </>
                                 )}
                             </tr>

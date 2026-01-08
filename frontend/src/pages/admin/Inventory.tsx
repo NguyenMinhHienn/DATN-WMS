@@ -49,15 +49,15 @@ const InventoryPage: React.FC = () => {
     return (
         <div className="animate-fadeIn">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Inventory</h1>
-                <p className="text-slate-600">Track stock levels across warehouses</p>
+                <h1 className="text-2xl font-bold text-slate-800">Tồn kho</h1>
+                <p className="text-slate-600">Theo dõi tồn kho tại các kho hàng</p>
             </div>
 
             {/* Low Stock Alert */}
             {lowStock.length > 0 && (
                 <div className="card mb-6 border-l-4 border-red-500 bg-red-50">
-                    <h3 className="font-semibold text-red-800 mb-2">⚠️ Low Stock Alert</h3>
-                    <p className="text-sm text-red-700">{lowStock.length} item(s) below reorder point</p>
+                    <h3 className="font-semibold text-red-800 mb-2">⚠️ Cảnh báo sắp hết hàng</h3>
+                    <p className="text-sm text-red-700">{lowStock.length} sản phẩm dưới mức đặt hàng lại</p>
                 </div>
             )}
 
@@ -69,7 +69,7 @@ const InventoryPage: React.FC = () => {
                         onChange={(e) => { setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : undefined); setPagination(p => ({ ...p, page: 1 })); }}
                         className="input max-w-xs"
                     >
-                        <option value="">All Warehouses</option>
+                        <option value="">Tất cả các kho</option>
                         {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
                 </div>
@@ -86,12 +86,12 @@ const InventoryPage: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Product</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">On Hand</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Reserved</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Available</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Status</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Tồn kho</th>
+                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Đã giữ</th>
+                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Có sẵn</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -107,13 +107,13 @@ const InventoryPage: React.FC = () => {
                                         <td className="py-3 px-4 text-sm text-right font-bold text-primary-600">{item.quantity_available}</td>
                                         <td className="py-3 px-4 text-center">
                                             <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'available' ? 'bg-emerald-100 text-emerald-700' :
-                                                    item.status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                                                item.status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
                                                 }`}>{item.status}</span>
                                         </td>
                                     </tr>
                                 ))}
                                 {inventory.length === 0 && (
-                                    <tr><td colSpan={6} className="py-12 text-center text-slate-500">No inventory records</td></tr>
+                                    <tr><td colSpan={6} className="py-12 text-center text-slate-500">Không có dữ liệu tồn kho</td></tr>
                                 )}
                             </tbody>
                         </table>

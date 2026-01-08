@@ -1,8 +1,14 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Route Guards
+import { AdminRoute } from './components/AdminRoute';
+import { StaffRoute } from './components/StaffRoute';
+
+// Layouts
 import { AdminLayout } from './layout/AdminLayout';
+import { StaffLayout } from './layout/StaffLayout';
 
 // Admin Pages
 import Dashboard from './pages/admin/Dashboard';
@@ -11,35 +17,60 @@ import Warehouses from './pages/admin/Warehouses';
 import Inventory from './pages/admin/Inventory';
 import StockIn from './pages/admin/StockIn';
 import StockOut from './pages/admin/StockOut';
+import StockTransfers from './pages/admin/StockTransfers';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 
-// Client Pages
+// Staff Pages
+import StaffDashboard from './pages/staff/StaffDashboard';
+import CreateTransfer from './pages/staff/CreateTransfer';
+import MyTransfers from './pages/staff/MyTransfers';
+
+// Client/Public Pages
 import Home from './pages/client/Home';
 import Login from './pages/client/Login';
 import Register from './pages/client/Register';
 import ProductList from './pages/client/ProductList';
 import ProductDetail from './pages/client/ProductDetail';
+import AccessDenied from './pages/client/AccessDenied';
 
+/**
+ * App Routing Structure:
+ * 
+ * ADMIN (/admin/*):
+ *   - Dashboard admin, duyệt phiếu, quản lý tồn kho, quản lý users
+ *   - Chỉ role 'admin' được truy cập
+ * 
+ * STAFF (/staff/*):
+ *   - Tạo phiếu, xem phiếu đã tạo
+ *   - Chỉ role 'staff' được truy cập
+ *   - KHÔNG có chức năng duyệt phiếu
+ * 
+ * CLIENT (/):
+ *   - Xem sản phẩm, trang chủ
+ *   - Mọi người đều truy cập được
+ */
 const App: React.FC = () => {
     return (
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    {/* Public Routes */}
+                    {/* ==================== PUBLIC ROUTES ==================== */}
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/products" element={<ProductList />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/403" element={<AccessDenied />} />
 
-                    {/* Admin Routes - Protected */}
+                    {/* ==================== ADMIN ROUTES ==================== */}
+                    {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
                     <Route
                         path="/admin"
                         element={
-                            <ProtectedRoute allowedRoles={['admin', 'manager', 'warehouse_staff']}>
+                            <AdminRoute>
                                 <AdminLayout />
-                            </ProtectedRoute>
+                            </AdminRoute>
                         }
                     >
                         <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -49,11 +80,28 @@ const App: React.FC = () => {
                         <Route path="inventory" element={<Inventory />} />
                         <Route path="stock-in" element={<StockIn />} />
                         <Route path="stock-out" element={<StockOut />} />
+                        <Route path="stock-transfers" element={<StockTransfers />} />
                         <Route path="users" element={<Users />} />
                         <Route path="reports" element={<Reports />} />
                     </Route>
 
-                    {/* Catch all - redirect to home */}
+                    {/* ==================== STAFF ROUTES ==================== */}
+                    {/* Chỉ role 'staff' - Tạo phiếu, xem phiếu đã tạo */}
+                    <Route
+                        path="/staff"
+                        element={
+                            <StaffRoute>
+                                <StaffLayout />
+                            </StaffRoute>
+                        }
+                    >
+                        <Route index element={<Navigate to="/staff/dashboard" replace />} />
+                        <Route path="dashboard" element={<StaffDashboard />} />
+                        <Route path="create-transfer" element={<CreateTransfer />} />
+                        <Route path="my-transfers" element={<MyTransfers />} />
+                    </Route>
+
+                    {/* ==================== FALLBACK ==================== */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>

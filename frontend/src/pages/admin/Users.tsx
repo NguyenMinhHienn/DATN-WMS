@@ -108,10 +108,10 @@ const Users: React.FC = () => {
         <div className="animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Users</h1>
-                    <p className="text-slate-600">Manage user accounts and roles</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Quản lý người dùng</h1>
+                    <p className="text-slate-600">Quản lý tài khoản và phân quyền</p>
                 </div>
-                <button onClick={handleCreate} className="btn btn-primary">+ Add User</button>
+                <button onClick={handleCreate} className="btn btn-primary">+ Thêm người dùng</button>
             </div>
 
             <div className="table-container">
@@ -123,11 +123,11 @@ const Users: React.FC = () => {
                     <table className="w-full">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">User</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Người dùng</th>
                                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Email</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Roles</th>
-                                <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Status</th>
-                                <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Vai trò</th>
+                                <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
+                                <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -163,11 +163,11 @@ const Users: React.FC = () => {
                                             {/* Hide Edit/Delete buttons for admin users */}
                                             {!user.roles.some(r => r.name === 'admin') ? (
                                                 <>
-                                                    <button onClick={() => handleEdit(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Edit">✏️</button>
-                                                    <button onClick={() => handleDelete(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Delete">🗑️</button>
+                                                    <button onClick={() => handleEdit(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Sửa">✏️</button>
+                                                    <button onClick={() => handleDelete(user)} className="p-2 hover:bg-slate-100 rounded-lg" title="Xóa">🗑️</button>
                                                 </>
                                             ) : (
-                                                <span className="text-xs text-slate-400 italic">Protected</span>
+                                                <span className="text-xs text-slate-400 italic">Được bảo vệ</span>
                                             )}
                                         </div>
                                     </td>
@@ -178,18 +178,18 @@ const Users: React.FC = () => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Edit User' : 'Add User'}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Sửa người dùng' : 'Thêm người dùng'}>
                 <form onSubmit={handleSubmit}>
                     {formError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{formError}</div>}
                     <div className="space-y-4">
                         {!editingUser && (
                             <div>
-                                <label className="label">Username *</label>
+                                <label className="label">Tên đăng nhập *</label>
                                 <input type="text" name="username" value={formData.username} onChange={handleInputChange} className="input" required />
                             </div>
                         )}
                         <div>
-                            <label className="label">Full Name *</label>
+                            <label className="label">Họ và tên *</label>
                             <input type="text" name="full_name" value={formData.full_name} onChange={handleInputChange} className="input" required />
                         </div>
                         <div>
@@ -198,16 +198,16 @@ const Users: React.FC = () => {
                         </div>
                         {!editingUser && (
                             <div>
-                                <label className="label">Password *</label>
+                                <label className="label">Mật khẩu *</label>
                                 <input type="password" name="password" value={formData.password} onChange={handleInputChange} className="input" required />
                             </div>
                         )}
                         <div>
-                            <label className="label">Phone</label>
+                            <label className="label">Số điện thoại</label>
                             <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="input" />
                         </div>
                         <div>
-                            <label className="label">Roles</label>
+                            <label className="label">Vai trò</label>
                             <div className="flex flex-wrap gap-2">
                                 {roles.map(role => (
                                     <label key={role.id} className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-slate-50">
@@ -223,9 +223,9 @@ const Users: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Cancel</button>
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>
                         <button type="submit" disabled={formLoading} className="btn btn-primary">
-                            {formLoading ? 'Saving...' : (editingUser ? 'Update' : 'Create')}
+                            {formLoading ? 'Đang lưu...' : (editingUser ? 'Cập nhật' : 'Thêm mới')}
                         </button>
                     </div>
                 </form>

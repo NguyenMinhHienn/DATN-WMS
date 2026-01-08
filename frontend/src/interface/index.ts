@@ -277,3 +277,46 @@ export interface UserFormData {
     phone?: string;
     role_ids: number[];
 }
+
+// Stock Transfer types
+export interface StockTransfer {
+    id: number;
+    transfer_number: string;
+    transfer_type: 'IMPORT' | 'EXPORT' | 'TRANSFER';
+    source_warehouse_id?: number;
+    source_warehouse_name?: string;
+    destination_warehouse_id?: number;
+    destination_warehouse_name?: string;
+    transfer_date: string;
+    expected_arrival_date?: string;
+    total_items: number;
+    total_quantity: number;
+    total_value: number;
+    status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
+    reason?: string;
+    notes?: string;
+    rejection_reason?: string;
+    approved_by_name?: string;
+    approved_at?: string;
+    rejected_by_name?: string;
+    rejected_at?: string;
+    created_by?: number;
+    created_by_name?: string;
+    created_at: string;
+    items?: StockTransferItem[];
+}
+
+export interface StockTransferItem {
+    id: number;
+    stock_transfer_id: number;
+    product_id: number;
+    product_name?: string;
+    sku?: string;
+    quantity_requested: number;
+    quantity_received: number;
+    unit_cost: number;
+    line_total: number;
+    batch_number?: string;
+    expiry_date?: string;
+    status: string;
+}
