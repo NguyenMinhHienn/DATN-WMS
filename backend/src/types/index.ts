@@ -518,3 +518,98 @@ export interface MovementReport {
     reference_number?: string;
     performed_by?: string;
 }
+
+// Stock Transfer types
+export interface StockTransfer {
+    id: number;
+    transfer_number: string;
+    transfer_type: 'IMPORT' | 'EXPORT' | 'TRANSFER';
+    source_warehouse_id?: number;
+    source_warehouse_name?: string;
+    destination_warehouse_id?: number;
+    destination_warehouse_name?: string;
+    transfer_date: Date;
+    expected_arrival_date?: Date;
+    actual_arrival_date?: Date;
+    total_items: number;
+    total_quantity: number;
+    total_value: number;
+    status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'partial_received' | 'completed' | 'cancelled';
+    shipping_method?: string;
+    tracking_number?: string;
+    carrier_name?: string;
+    reason?: string;
+    notes?: string;
+    rejection_reason?: string;
+    requested_by?: number;
+    approved_by?: number;
+    approved_by_name?: string;
+    approved_at?: Date;
+    rejected_by?: number;
+    rejected_by_name?: string;
+    rejected_at?: Date;
+    created_by?: number;
+    created_by_name?: string;
+    created_at: Date;
+    updated_at: Date;
+    deleted_at?: Date;
+}
+
+export interface StockTransferItem {
+    id: number;
+    stock_transfer_id: number;
+    product_id: number;
+    product_name?: string;
+    sku?: string;
+    source_inventory_id?: number;
+    destination_inventory_id?: number;
+    quantity_requested: number;
+    quantity_shipped: number;
+    quantity_received: number;
+    quantity_damaged: number;
+    unit_id?: number;
+    unit_cost: number;
+    line_total: number;
+    batch_number?: string;
+    serial_numbers?: string[];
+    expiry_date?: Date;
+    status: 'pending' | 'shipped' | 'received' | 'partial' | 'cancelled';
+    notes?: string;
+    created_at: Date;
+    updated_at: Date;
+}
+
+export interface CreateStockTransferDto {
+    transfer_type?: 'IMPORT' | 'EXPORT' | 'TRANSFER';
+    type?: 'IMPORT' | 'EXPORT' | 'TRANSFER'; // Alias cho transfer_type
+    source_warehouse_id?: number;
+    destination_warehouse_id?: number;
+    transfer_date?: string;
+    expected_arrival_date?: string;
+    reason?: string;
+    notes?: string;
+    items: CreateStockTransferItemDto[];
+}
+
+export interface CreateStockTransferItemDto {
+    // Có thể chọn product_id (sản phẩm có sẵn) HOẶC nhập thông tin mới
+    product_id?: number;
+
+    // NHẬP MỚI: Thông tin sản phẩm mới (cho phiếu nhập kho)  
+    product_name?: string;
+    product_sku?: string;
+    product_image_url?: string;
+
+    // Số lượng và giá
+    quantity?: number;
+    quantity_requested?: number;
+    unit_price?: number;
+    unit_cost?: number;
+
+    // Thông tin bổ sung
+    batch_number?: string;
+    expiry_date?: string;
+    notes?: string;
+}
+
+

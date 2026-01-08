@@ -11,6 +11,7 @@ import * as inventoryController from '../controllers/inventory.controller';
 import * as goodsReceiptController from '../controllers/goods-receipt.controller';
 import * as goodsIssueController from '../controllers/goods-issue.controller';
 import * as reportController from '../controllers/report.controller';
+import * as stockTransferController from '../controllers/stock-transfer.controller';
 
 const router = Router();
 
@@ -69,6 +70,18 @@ router.put('/goods-issues/:id/status', authenticate, isStaff, goodsIssueControll
 router.post('/goods-issues/:id/ship', authenticate, isWarehouseManager, goodsIssueController.shipIssue);
 router.delete('/goods-issues/:id', authenticate, isWarehouseManager, goodsIssueController.deleteIssue);
 
+// ==================== STOCK TRANSFER ROUTES ====================
+// QUY TẮC NGHIỆP VỤ:
+// - STAFF: Tạo phiếu (PENDING), xem phiếu của mình
+// - ADMIN: Xem tất cả, duyệt/từ chối phiếu
+// - CLIENT: KHÔNG được truy cập (isStaff chặn user thường)
+router.post('/stock-transfers', authenticate, isStaff, stockTransferController.createTransfer);
+router.get('/stock-transfers', authenticate, isStaff, stockTransferController.getAllTransfers);
+router.get('/stock-transfers/:id', authenticate, isStaff, stockTransferController.getTransferById);
+router.put('/stock-transfers/:id/approve', authenticate, isAdmin, stockTransferController.approveTransfer);
+router.put('/stock-transfers/:id/reject', authenticate, isAdmin, stockTransferController.rejectTransfer);
+router.delete('/stock-transfers/:id', authenticate, isStaff, stockTransferController.deleteTransfer);
+
 // ==================== REPORT ROUTES ====================
 router.get('/reports/dashboard', authenticate, isViewer, reportController.getDashboardStats);
 router.get('/reports/inventory', authenticate, isViewer, reportController.getInventoryReport);
@@ -77,3 +90,4 @@ router.get('/reports/stock-value', authenticate, isViewer, reportController.getS
 router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
 
 export default router;
+
