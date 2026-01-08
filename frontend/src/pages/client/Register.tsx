@@ -26,14 +26,14 @@ const Register: React.FC = () => {
     };
 
     const validateForm = (): string | null => {
-        if (!formData.username.trim()) return 'Username is required';
-        if (formData.username.length < 3) return 'Username must be at least 3 characters';
-        if (!formData.email.trim()) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
-        if (!formData.password) return 'Password is required';
-        if (formData.password.length < 6) return 'Password must be at least 6 characters';
-        if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-        if (!formData.full_name.trim()) return 'Full name is required';
+        if (!formData.username.trim()) return 'Tên đăng nhập không được để trống';
+        if (formData.username.length < 3) return 'Tên đăng nhập phải có ít nhất 3 ký tự';
+        if (!formData.email.trim()) return 'Email không được để trống';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Định dạng email không hợp lệ';
+        if (!formData.password) return 'Mật khẩu không được để trống';
+        if (formData.password.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+        if (formData.password !== formData.confirmPassword) return 'Mật khẩu xác nhận không khớp';
+        if (!formData.full_name.trim()) return 'Họ và tên không được để trống';
         return null;
     };
 
@@ -65,7 +65,7 @@ const Register: React.FC = () => {
             // Redirect to home or dashboard
             navigate('/', { replace: true });
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed. Please try again.');
+            setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
@@ -80,8 +80,8 @@ const Register: React.FC = () => {
                         <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">
                             W
                         </div>
-                        <h1 className="text-2xl font-bold text-slate-800">Create Account</h1>
-                        <p className="text-slate-600">Join the Warehouse Management System</p>
+                        <h1 className="text-2xl font-bold text-slate-800">Tạo tài khoản</h1>
+                        <p className="text-slate-600">Tham gia Hệ thống Quản lý Kho</p>
                     </div>
 
                     {/* Error Message */}
@@ -95,26 +95,26 @@ const Register: React.FC = () => {
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="label">Username *</label>
+                                <label className="label">Tên đăng nhập *</label>
                                 <input
                                     type="text"
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
                                     className="input"
-                                    placeholder="johndoe"
+                                    placeholder="Nhập username"
                                     autoFocus
                                 />
                             </div>
                             <div>
-                                <label className="label">Full Name *</label>
+                                <label className="label">Họ và tên *</label>
                                 <input
                                     type="text"
                                     name="full_name"
                                     value={formData.full_name}
                                     onChange={handleChange}
                                     className="input"
-                                    placeholder="John Doe"
+                                    placeholder="Nguyễn Văn A"
                                 />
                             </div>
                         </div>
@@ -132,7 +132,7 @@ const Register: React.FC = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="label">Phone (Optional)</label>
+                            <label className="label">Số điện thoại (không bắt buộc)</label>
                             <input
                                 type="tel"
                                 name="phone"
@@ -145,25 +145,25 @@ const Register: React.FC = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div>
-                                <label className="label">Password *</label>
+                                <label className="label">Mật khẩu *</label>
                                 <input
                                     type="password"
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
                                     className="input"
-                                    placeholder="Min. 6 characters"
+                                    placeholder="Tối thiểu 6 ký tự"
                                 />
                             </div>
                             <div>
-                                <label className="label">Confirm Password *</label>
+                                <label className="label">Xác nhận mật khẩu *</label>
                                 <input
                                     type="password"
                                     name="confirmPassword"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     className="input"
-                                    placeholder="Confirm password"
+                                    placeholder="Nhập lại mật khẩu"
                                 />
                             </div>
                         </div>
@@ -176,25 +176,25 @@ const Register: React.FC = () => {
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Creating Account...
+                                    Đang tạo tài khoản...
                                 </span>
-                            ) : 'Create Account'}
+                            ) : 'Tạo tài khoản'}
                         </button>
                     </form>
 
                     {/* Footer */}
                     <div className="mt-6 text-center text-sm text-slate-500">
                         <p>
-                            Already have an account?{' '}
+                            Đã có tài khoản?{' '}
                             <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                                Sign in here
+                                Đăng nhập tại đây
                             </Link>
                         </p>
                     </div>
 
                     <div className="mt-4 text-center text-xs text-slate-400">
-                        <p>By registering, you'll get a user account.</p>
-                        <p>Contact admin for additional permissions.</p>
+                        <p>Sau khi đăng ký, bạn sẽ có tài khoản người dùng.</p>
+                        <p>Liên hệ admin để được cấp quyền thêm.</p>
                     </div>
                 </div>
             </div>

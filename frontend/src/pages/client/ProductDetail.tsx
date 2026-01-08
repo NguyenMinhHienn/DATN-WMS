@@ -34,8 +34,8 @@ const ProductDetail: React.FC = () => {
     if (!product) {
         return (
             <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                <h1 className="text-2xl font-bold text-slate-800 mb-4">Product Not Found</h1>
-                <Link to="/products" className="btn btn-primary">Back to Products</Link>
+                <h1 className="text-2xl font-bold text-slate-800 mb-4">Không tìm thấy sản phẩm</h1>
+                <Link to="/products" className="btn btn-primary">Quay lại danh sách</Link>
             </div>
         );
     }
@@ -45,9 +45,9 @@ const ProductDetail: React.FC = () => {
             {/* Breadcrumb */}
             <nav className="mb-6">
                 <ol className="flex items-center gap-2 text-sm text-slate-500">
-                    <li><Link to="/" className="hover:text-primary-600">Home</Link></li>
+                    <li><Link to="/" className="hover:text-primary-600">Trang chủ</Link></li>
                     <li>/</li>
-                    <li><Link to="/products" className="hover:text-primary-600">Products</Link></li>
+                    <li><Link to="/products" className="hover:text-primary-600">Sản phẩm</Link></li>
                     <li>/</li>
                     <li className="text-slate-800">{product.name}</li>
                 </ol>
@@ -82,48 +82,48 @@ const ProductDetail: React.FC = () => {
                         </span>
                         {product.wholesale_price && (
                             <span className="text-lg text-slate-500">
-                                Wholesale: {new Intl.NumberFormat('vi-VN').format(product.wholesale_price)}₫
+                                Giá sỉ: {new Intl.NumberFormat('vi-VN').format(product.wholesale_price)}₫
                             </span>
                         )}
                     </div>
 
                     {product.description && (
                         <div className="mb-6">
-                            <h2 className="text-lg font-semibold text-slate-800 mb-2">Description</h2>
+                            <h2 className="text-lg font-semibold text-slate-800 mb-2">Mô tả</h2>
                             <p className="text-slate-600 leading-relaxed">{product.description}</p>
                         </div>
                     )}
 
                     <div className="card bg-slate-50">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Specifications</h2>
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Thông số kỹ thuật</h2>
                         <dl className="grid grid-cols-2 gap-4 text-sm">
                             {product.category_name && (
                                 <>
-                                    <dt className="text-slate-500">Category</dt>
+                                    <dt className="text-slate-500">Danh mục</dt>
                                     <dd className="text-slate-800 font-medium">{product.category_name}</dd>
                                 </>
                             )}
                             {product.unit_name && (
                                 <>
-                                    <dt className="text-slate-500">Unit</dt>
+                                    <dt className="text-slate-500">Đơn vị</dt>
                                     <dd className="text-slate-800 font-medium">{product.unit_name}</dd>
                                 </>
                             )}
-                            <dt className="text-slate-500">Minimum Stock</dt>
+                            <dt className="text-slate-500">Tồn tối thiểu</dt>
                             <dd className="text-slate-800 font-medium">{product.min_stock_level}</dd>
-                            <dt className="text-slate-500">Reorder Point</dt>
+                            <dt className="text-slate-500">Mức đặt lại</dt>
                             <dd className="text-slate-800 font-medium">{product.reorder_point}</dd>
                             {product.has_expiry && (
                                 <>
-                                    <dt className="text-slate-500">Tracking</dt>
-                                    <dd className="text-slate-800 font-medium">Has Expiry Date</dd>
+                                    <dt className="text-slate-500">Theo dõi</dt>
+                                    <dd className="text-slate-800 font-medium">Có ngày hết hạn</dd>
                                 </>
                             )}
                         </dl>
                     </div>
 
                     <div className="mt-6">
-                        <Link to="/products" className="btn btn-secondary">← Back to Products</Link>
+                        <Link to="/products" className="btn btn-secondary">← Quay lại danh sách</Link>
                     </div>
                 </div>
             </div>

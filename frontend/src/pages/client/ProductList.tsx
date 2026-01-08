@@ -40,8 +40,8 @@ const ProductList: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Products</h1>
-                <p className="text-slate-600">Browse our product catalog</p>
+                <h1 className="text-3xl font-bold text-slate-800 mb-2">Sản phẩm</h1>
+                <p className="text-slate-600">Duyệt danh mục sản phẩm</p>
             </div>
 
             {/* Filters */}
@@ -49,7 +49,7 @@ const ProductList: React.FC = () => {
                 <div className="flex flex-wrap gap-4">
                     <input
                         type="text"
-                        placeholder="Search products..."
+                        placeholder="Tìm kiếm sản phẩm..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
                         className="input max-w-xs"
@@ -59,7 +59,7 @@ const ProductList: React.FC = () => {
                         onChange={(e) => { setSelectedCategory(e.target.value ? parseInt(e.target.value) : undefined); setPagination(p => ({ ...p, page: 1 })); }}
                         className="input max-w-xs"
                     >
-                        <option value="">All Categories</option>
+                        <option value="">Tất cả danh mục</option>
                         {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                     </select>
                 </div>
@@ -96,7 +96,7 @@ const ProductList: React.FC = () => {
 
                     {products.length === 0 && (
                         <div className="text-center py-12 text-slate-500">
-                            No products found
+                            Không tìm thấy sản phẩm
                         </div>
                     )}
 

@@ -183,12 +183,12 @@ const Products: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Products</h1>
-                    <p className="text-slate-600">Manage your product catalog</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Quản lý sản phẩm</h1>
+                    <p className="text-slate-600">Quản lý danh mục sản phẩm của bạn</p>
                 </div>
                 {canEdit && (
                     <button onClick={handleCreate} className="btn btn-primary">
-                        + Add Product
+                        + Thêm sản phẩm
                     </button>
                 )}
             </div>
@@ -199,7 +199,7 @@ const Products: React.FC = () => {
                     <div>
                         <input
                             type="text"
-                            placeholder="Search products..."
+                            placeholder="Tìm kiếm sản phẩm..."
                             value={search}
                             onChange={(e) => handleSearch(e.target.value)}
                             className="input"
@@ -214,7 +214,7 @@ const Products: React.FC = () => {
                             }}
                             className="input"
                         >
-                            <option value="">All Categories</option>
+                            <option value="">Tất cả danh mục</option>
                             {categories.map(cat => (
                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
@@ -229,11 +229,11 @@ const Products: React.FC = () => {
                             }}
                             className="input"
                         >
-                            <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="draft">Draft</option>
-                            <option value="discontinued">Discontinued</option>
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active">Đang bán</option>
+                            <option value="inactive">Tạm ngừng</option>
+                            <option value="draft">Nháp</option>
+                            <option value="discontinued">Ngừng kinh doanh</option>
                         </select>
                     </div>
                 </div>
@@ -250,13 +250,14 @@ const Products: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Product</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">SKU</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Category</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Cost</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Price</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Status</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã SKU</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Danh mục</th>
+                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Giá nhập</th>
+                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Giá bán</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Số lượng</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
+                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -284,10 +285,15 @@ const Products: React.FC = () => {
                                             {new Intl.NumberFormat('vi-VN').format(product.selling_price)}
                                         </td>
                                         <td className="py-3 px-4 text-center">
+                                            <span className={`text-sm font-semibold ${(product as any).total_quantity > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                {new Intl.NumberFormat('vi-VN').format((product as any).total_quantity || 0)}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
                                             <span className={`text-xs px-2 py-1 rounded-full ${product.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                                    product.status === 'inactive' ? 'bg-slate-100 text-slate-600' :
-                                                        product.status === 'draft' ? 'bg-amber-100 text-amber-700' :
-                                                            'bg-red-100 text-red-700'
+                                                product.status === 'inactive' ? 'bg-slate-100 text-slate-600' :
+                                                    product.status === 'draft' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-red-100 text-red-700'
                                                 }`}>
                                                 {product.status}
                                             </span>
@@ -318,8 +324,8 @@ const Products: React.FC = () => {
                                 ))}
                                 {products.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="py-12 text-center text-slate-500">
-                                            No products found
+                                        <td colSpan={8} className="py-12 text-center text-slate-500">
+                                            Không tìm thấy sản phẩm
                                         </td>
                                     </tr>
                                 )}
@@ -341,7 +347,7 @@ const Products: React.FC = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingProduct ? 'Edit Product' : 'Add New Product'}
+                title={editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
                 size="lg"
             >
                 <form onSubmit={handleSubmit}>
@@ -353,7 +359,7 @@ const Products: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="label">SKU *</label>
+                            <label className="label">Mã SKU *</label>
                             <input
                                 type="text"
                                 name="sku"
@@ -365,7 +371,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Name *</label>
+                            <label className="label">Tên sản phẩm *</label>
                             <input
                                 type="text"
                                 name="name"
@@ -377,7 +383,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div className="md:col-span-2">
-                            <label className="label">Description</label>
+                            <label className="label">Mô tả</label>
                             <textarea
                                 name="description"
                                 value={formData.description}
@@ -388,14 +394,14 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Category</label>
+                            <label className="label">Danh mục</label>
                             <select
                                 name="category_id"
                                 value={formData.category_id || ''}
                                 onChange={handleInputChange}
                                 className="input"
                             >
-                                <option value="">Select Category</option>
+                                <option value="">Chọn danh mục</option>
                                 {categories.map(cat => (
                                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                                 ))}
@@ -403,14 +409,14 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Unit</label>
+                            <label className="label">Đơn vị tính</label>
                             <select
                                 name="unit_id"
                                 value={formData.unit_id || ''}
                                 onChange={handleInputChange}
                                 className="input"
                             >
-                                <option value="">Select Unit</option>
+                                <option value="">Chọn đơn vị</option>
                                 {units.map(unit => (
                                     <option key={unit.id} value={unit.id}>{unit.name}</option>
                                 ))}
@@ -418,7 +424,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Brand</label>
+                            <label className="label">Thương hiệu</label>
                             <input
                                 type="text"
                                 name="brand"
@@ -429,22 +435,22 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Status</label>
+                            <label className="label">Trạng thái</label>
                             <select
                                 name="status"
                                 value={formData.status}
                                 onChange={handleInputChange}
                                 className="input"
                             >
-                                <option value="draft">Draft</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="discontinued">Discontinued</option>
+                                <option value="draft">Nháp</option>
+                                <option value="active">Đang bán</option>
+                                <option value="inactive">Tạm ngừng</option>
+                                <option value="discontinued">Ngừng kinh doanh</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="label">Cost Price *</label>
+                            <label className="label">Giá nhập *</label>
                             <input
                                 type="number"
                                 name="cost_price"
@@ -458,7 +464,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Selling Price *</label>
+                            <label className="label">Giá bán *</label>
                             <input
                                 type="number"
                                 name="selling_price"
@@ -472,7 +478,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Min Stock Level</label>
+                            <label className="label">Tồn kho tối thiểu</label>
                             <input
                                 type="number"
                                 name="min_stock_level"
@@ -484,7 +490,7 @@ const Products: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="label">Reorder Point</label>
+                            <label className="label">Mức đặt hàng lại</label>
                             <input
                                 type="number"
                                 name="reorder_point"
@@ -502,14 +508,14 @@ const Products: React.FC = () => {
                             onClick={() => setIsModalOpen(false)}
                             className="btn btn-secondary"
                         >
-                            Cancel
+                            Hủy
                         </button>
                         <button
                             type="submit"
                             disabled={formLoading}
                             className="btn btn-primary"
                         >
-                            {formLoading ? 'Saving...' : (editingProduct ? 'Update' : 'Create')}
+                            {formLoading ? 'Đang lưu...' : (editingProduct ? 'Cập nhật' : 'Thêm mới')}
                         </button>
                     </div>
                 </form>

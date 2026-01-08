@@ -32,8 +32,8 @@ const Dashboard: React.FC = () => {
     return (
         <div className="animate-fadeIn">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-                <p className="text-slate-600">Welcome to Warehouse Management System</p>
+                <h1 className="text-2xl font-bold text-slate-800">Bảng điều khiển</h1>
+                <p className="text-slate-600">Chào mừng đến với Hệ thống Quản lý Kho</p>
             </div>
 
             {/* Stats Grid */}
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Total Products</p>
+                            <p className="text-sm text-slate-500 mb-1">Tổng sản phẩm</p>
                             <p className="text-3xl font-bold text-slate-800">{stats?.totalProducts || 0}</p>
                         </div>
                         <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">
@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Warehouses</p>
+                            <p className="text-sm text-slate-500 mb-1">Số kho</p>
                             <p className="text-3xl font-bold text-slate-800">{stats?.totalWarehouses || 0}</p>
                         </div>
                         <div className="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center text-2xl">
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Inventory Value</p>
+                            <p className="text-sm text-slate-500 mb-1">Giá trị tồn kho</p>
                             <p className="text-3xl font-bold text-slate-800">
                                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats?.totalInventoryValue || 0)}
                             </p>
@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Low Stock Items</p>
+                            <p className="text-sm text-slate-500 mb-1">Sắp hết hàng</p>
                             <p className="text-3xl font-bold text-red-600">{stats?.lowStockItems || 0}</p>
                         </div>
                         <div className="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center text-2xl">
@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Pending Receipts</p>
+                            <p className="text-sm text-slate-500 mb-1">Phiếu nhập chờ duyệt</p>
                             <p className="text-3xl font-bold text-amber-600">{stats?.pendingReceipts || 0}</p>
                         </div>
                         <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center text-2xl">
@@ -103,7 +103,7 @@ const Dashboard: React.FC = () => {
                 <div className="stat-card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Pending Issues</p>
+                            <p className="text-sm text-slate-500 mb-1">Phiếu xuất chờ duyệt</p>
                             <p className="text-3xl font-bold text-orange-600">{stats?.pendingIssues || 0}</p>
                         </div>
                         <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center text-2xl">
@@ -115,16 +115,16 @@ const Dashboard: React.FC = () => {
 
             {/* Recent Movements */}
             <div className="card">
-                <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Inventory Movements</h2>
+                <h2 className="text-lg font-semibold text-slate-800 mb-4">Biến động tồn kho gần đây</h2>
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-200">
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Product</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Warehouse</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Type</th>
-                                <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Change</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Date</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Loại</th>
+                                <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Thay đổi</th>
+                                <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Ngày</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,8 +134,8 @@ const Dashboard: React.FC = () => {
                                     <td className="py-3 px-4 text-sm text-slate-600">{movement.warehouse_name}</td>
                                     <td className="py-3 px-4">
                                         <span className={`text-xs px-2 py-1 rounded-full ${movement.movement_type.includes('in') || movement.movement_type === 'goods_receipt'
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : 'bg-red-100 text-red-700'
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : 'bg-red-100 text-red-700'
                                             }`}>
                                             {movement.movement_type.replace(/_/g, ' ')}
                                         </span>
@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
                             {(!stats?.recentMovements || stats.recentMovements.length === 0) && (
                                 <tr>
                                     <td colSpan={5} className="py-8 text-center text-slate-500">
-                                        No recent movements
+                                        Chưa có biến động nào
                                     </td>
                                 </tr>
                             )}
