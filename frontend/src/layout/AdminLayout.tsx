@@ -22,10 +22,8 @@ export const AdminLayout: React.FC = () => {
                         </svg>
                     </button>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            W
-                        </div>
-                        <span className="font-bold text-slate-800">WMS</span>
+                        <img src="/src/assets/logo.png" alt="StockFlow Logo" className="h-8 w-auto" />
+                        <span className="font-bold text-slate-800">StockFlow</span>
                     </div>
                     <div className="w-10" /> {/* Spacer */}
                 </header>

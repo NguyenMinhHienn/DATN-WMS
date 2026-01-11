@@ -126,7 +126,7 @@ const Home: React.FC = () => {
             {/* Footer */}
             <footer className="bg-slate-800 text-slate-400 py-8">
                 <div className="max-w-7xl mx-auto px-4 text-center">
-                    <p>© 2026 WMS - Warehouse Management System</p>
+                    <p>© 2026 StockFlow - Smart Inventory Management</p>
                 </div>
             </footer>
         </div>

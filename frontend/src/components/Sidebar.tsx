@@ -7,19 +7,24 @@ interface SidebarProps {
     onClose: () => void;
 }
 
+/**
+ * Admin Sidebar - CHỈ DÀNH CHO ADMIN
+ * STAFF sử dụng StaffLayout với sidebar riêng
+ */
 const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: '📊', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
-    { path: '/admin/users', label: 'Users', icon: '👥', roles: ['admin'] },
-    { path: '/admin/products', label: 'Products', icon: '📦', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
-    { path: '/admin/warehouses', label: 'Warehouses', icon: '🏭', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
-    { path: '/admin/inventory', label: 'Inventory', icon: '📋', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
-    { path: '/admin/stock-in', label: 'Stock In', icon: '📥', roles: ['admin', 'warehouse_manager', 'staff'] },
-    { path: '/admin/stock-out', label: 'Stock Out', icon: '📤', roles: ['admin', 'warehouse_manager', 'staff'] },
-    { path: '/admin/reports', label: 'Reports', icon: '📈', roles: ['admin', 'warehouse_manager', 'staff', 'user'] },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/admin/users', label: 'Quản lý Users', icon: '👥' },
+    { path: '/admin/products', label: 'Sản phẩm', icon: '📦' },
+    { path: '/admin/warehouses', label: 'Kho hàng', icon: '🏭' },
+    { path: '/admin/inventory', label: 'Tồn kho', icon: '📋' },
+    { path: '/admin/stock-in', label: 'Nhập kho', icon: '📥' },
+    { path: '/admin/stock-out', label: 'Xuất kho', icon: '📤' },
+    { path: '/admin/stock-transfers', label: 'Duyệt phiếu', icon: '✅' },
+    { path: '/admin/reports', label: 'Báo cáo', icon: '📈' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-    const { user, logout, hasAnyRole } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -27,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         navigate('/login');
     };
 
-    const filteredMenuItems = menuItems.filter(item => hasAnyRole(item.roles));
+    // Admin sidebar - không cần filter roles vì đã có AdminRoute guard
 
     return (
         <>
@@ -50,19 +55,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-200">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                            W
-                        </div>
+                        <img src="/src/assets/logo.png" alt="StockFlow Logo" className="h-10 w-auto" />
                         <div>
-                            <h1 className="font-bold text-slate-800">WMS</h1>
-                            <p className="text-xs text-slate-500">Warehouse System</p>
+                            <h1 className="font-bold text-slate-800">StockFlow</h1>
+                            <p className="text-xs text-slate-500">Smart Inventory Management</p>
                         </div>
                     </div>
 
                     {/* Navigation */}
                     <nav className="flex-1 overflow-y-auto py-4 px-3">
                         <ul className="space-y-1">
-                            {filteredMenuItems.map((item) => (
+                            {menuItems.map((item) => (
                                 <li key={item.path}>
                                     <NavLink
                                         to={item.path}

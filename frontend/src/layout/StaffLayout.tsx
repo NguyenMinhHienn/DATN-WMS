@@ -43,11 +43,9 @@ export const StaffLayout: React.FC = () => {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-200 bg-emerald-600">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 font-bold text-lg">
-                            S
-                        </div>
+                        <img src="/src/assets/logo.png" alt="StockFlow Logo" className="h-10 w-auto bg-white rounded-lg p-1" />
                         <div>
-                            <h1 className="font-bold text-white">WMS Staff</h1>
+                            <h1 className="font-bold text-white">StockFlow Staff</h1>
                             <p className="text-xs text-emerald-100">Nhân viên kho</p>
                         </div>
                     </div>
@@ -108,7 +106,7 @@ export const StaffLayout: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <span className="font-bold">WMS Staff</span>
+                    <span className="font-bold">StockFlow Staff</span>
                     <div className="w-10" />
                 </header>
 
