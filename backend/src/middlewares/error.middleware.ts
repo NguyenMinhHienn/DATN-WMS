@@ -19,6 +19,13 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
+    // Log all errors
+    console.error('===== ERROR =====');
+    console.error('Path:', req.method, req.path);
+    console.error('Error:', err.message);
+    console.error('Stack:', err.stack);
+    console.error('=================');
+
     if (err instanceof AppError) {
         return res.status(err.statusCode).json({
             success: false,
@@ -27,17 +34,13 @@ export const errorHandler = (
         });
     }
 
-    // Log unexpected errors
-    console.error('Unexpected error:', err);
-
-    // Don't leak error details in production
-    const message = process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
-        : err.message;
+    // Show detailed error in development
+    const isProd = process.env.NODE_ENV === 'production';
+    const message = isProd ? 'Internal server error' : err.message;
 
     return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: message,
         error: message,
     });
 };

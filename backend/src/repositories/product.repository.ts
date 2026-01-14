@@ -12,10 +12,12 @@ export class ProductRepository {
     ): Promise<PaginatedResult<Product>> {
         let countQuery = 'SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL';
         let dataQuery = `
-      SELECT p.*, c.name as category_name, u.name as unit_name
+      SELECT p.*, c.name as category_name, u.name as unit_name,
+             COALESCE(SUM(i.quantity_on_hand), 0) as total_quantity
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN units u ON p.unit_id = u.id
+      LEFT JOIN inventories i ON p.id = i.product_id
       WHERE p.deleted_at IS NULL
     `;
         const params: any[] = [];
@@ -44,7 +46,7 @@ export class ProductRepository {
             countParams.push(status);
         }
 
-        dataQuery += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
+        dataQuery += ' GROUP BY p.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
         const offset = (page - 1) * limit;
         params.push(limit, offset);
 

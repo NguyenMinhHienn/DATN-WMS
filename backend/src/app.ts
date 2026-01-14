@@ -12,8 +12,9 @@ app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Tăng giới hạn body size để hỗ trợ upload hình base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
