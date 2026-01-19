@@ -19,6 +19,7 @@ const menuItems = [
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋' },
     { path: '/admin/stock-in', label: 'Nhập kho', icon: '📥' },
     { path: '/admin/stock-out', label: 'Xuất kho', icon: '📤' },
+    { path: '/admin/inter-warehouse-transfer', label: 'Chuyển kho', icon: '🔄' },
     { path: '/admin/stock-transfers', label: 'Duyệt phiếu', icon: '✅' },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈' },
 ];

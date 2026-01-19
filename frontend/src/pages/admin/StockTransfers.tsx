@@ -2,21 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { stockTransferService } from '../../services/stockTransferService';
 import { StockTransfer, PaginationInfo } from '../../interface';
 
-/**
- * StockTransfers - ADMIN ONLY
- * 
- * Trang duyệt phiếu cho Admin:
- * - Xem tất cả phiếu do STAFF gửi lên
- * - Duyệt hoặc từ chối phiếu
- * - KHÔNG có chức năng tạo phiếu (STAFF tạo ở /staff/create-transfer)
- * 
- * Khi duyệt phiếu → tồn kho được cập nhật tự động
- */
+
 const StockTransfers: React.FC = () => {
     const [transfers, setTransfers] = useState<StockTransfer[]>([]);
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, totalPages: 0 });
-    const [statusFilter, setStatusFilter] = useState<string>('pending'); // Mặc định chỉ xem pending
     const [typeFilter, setTypeFilter] = useState<string>('');
 
     // Modal state
@@ -27,7 +17,7 @@ const StockTransfers: React.FC = () => {
 
     useEffect(() => {
         loadTransfers();
-    }, [pagination.page, statusFilter, typeFilter]);
+    }, [pagination.page, typeFilter]);
 
     const loadTransfers = async () => {
         setLoading(true);
@@ -35,7 +25,7 @@ const StockTransfers: React.FC = () => {
             const result = await stockTransferService.getTransfers(
                 pagination.page,
                 pagination.limit,
-                statusFilter || undefined,
+                'pending',
                 typeFilter || undefined
             );
             setTransfers(result.data);
@@ -86,24 +76,6 @@ const StockTransfers: React.FC = () => {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            'approved': 'bg-green-100 text-green-800 border-green-300',
-            'rejected': 'bg-red-100 text-red-800 border-red-300',
-        };
-        const labels: Record<string, string> = {
-            'pending': '⏳ Chờ duyệt',
-            'approved': '✅ Đã duyệt',
-            'rejected': '❌ Từ chối',
-        };
-        return (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${styles[status] || 'bg-gray-100'}`}>
-                {labels[status] || status}
-            </span>
-        );
-    };
-
     const getTypeBadge = (type: string) => {
         const configs: Record<string, { bg: string; label: string }> = {
             'IMPORT': { bg: 'bg-emerald-100 text-emerald-700', label: '📥 Nhập kho' },
@@ -114,57 +86,54 @@ const StockTransfers: React.FC = () => {
         return <span className={`px-2 py-1 rounded text-sm ${config.bg}`}>{config.label}</span>;
     };
 
-    const pendingCount = transfers.filter(t => t.status === 'pending').length;
+    // Count by type
+    const importCount = transfers.filter(t => t.transfer_type === 'IMPORT').length;
+    const exportCount = transfers.filter(t => t.transfer_type === 'EXPORT').length;
+    const transferCount = transfers.filter(t => t.transfer_type === 'TRANSFER').length;
 
     return (
         <div className="p-6">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Duyệt phiếu kho</h1>
+                <h1 className="text-2xl font-bold text-gray-800">✅ Duyệt phiếu kho</h1>
                 <p className="text-gray-600">
-                    Xem và duyệt các phiếu nhập/xuất/chuyển kho do nhân viên gửi
+                    Xem và duyệt các phiếu nhập/xuất/chuyển kho đang chờ xử lý
                 </p>
             </div>
 
-            {/* Stats */}
-            {statusFilter === 'pending' && pendingCount > 0 && (
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
-                    <span className="text-3xl">📋</span>
-                    <div>
-                        <p className="font-medium text-yellow-800">
-                            Có {pendingCount} phiếu đang chờ duyệt
-                        </p>
-                        <p className="text-sm text-yellow-600">
-                            Nhấn "Duyệt" để chấp nhận hoặc "Từ chối" nếu không hợp lệ
-                        </p>
+            {/* Stats - Count pending by type */}
+            {pagination.total > 0 && (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-3xl font-bold text-yellow-700">{pagination.total}</p>
+                        <p className="text-sm text-yellow-600">Tổng phiếu chờ duyệt</p>
+                    </div>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <p className="text-2xl font-bold text-emerald-700">{importCount}</p>
+                        <p className="text-sm text-emerald-600">📥 Nhập kho</p>
+                    </div>
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-2xl font-bold text-orange-700">{exportCount}</p>
+                        <p className="text-sm text-orange-600">📤 Xuất kho</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-700">{transferCount}</p>
+                        <p className="text-sm text-purple-600">🔄 Chuyển kho</p>
                     </div>
                 </div>
             )}
 
             {/* Filters */}
             <div className="bg-white rounded-lg shadow p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                        >
-                            <option value="">Tất cả</option>
-                            <option value="pending">⏳ Chờ duyệt</option>
-                            <option value="approved">✅ Đã duyệt</option>
-                            <option value="rejected">❌ Từ chối</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loại phiếu</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Lọc theo loại phiếu</label>
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
                             className="w-full px-3 py-2 border rounded-lg"
                         >
-                            <option value="">Tất cả</option>
+                            <option value="">Tất cả loại</option>
                             <option value="IMPORT">📥 Nhập kho</option>
                             <option value="EXPORT">📤 Xuất kho</option>
                             <option value="TRANSFER">🔄 Chuyển kho</option>
@@ -172,10 +141,10 @@ const StockTransfers: React.FC = () => {
                     </div>
                     <div className="flex items-end">
                         <button
-                            onClick={() => { setStatusFilter('pending'); setTypeFilter(''); }}
+                            onClick={() => setTypeFilter('')}
                             className="px-4 py-2 text-gray-600 hover:text-gray-800"
                         >
-                            Xem phiếu chờ duyệt
+                            Xóa bộ lọc
                         </button>
                     </div>
                 </div>
@@ -191,7 +160,7 @@ const StockTransfers: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kho</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người tạo</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày tạo</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                         </tr>
                     </thead>
@@ -206,15 +175,17 @@ const StockTransfers: React.FC = () => {
                             </tr>
                         ) : transfers.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                    {statusFilter === 'pending'
-                                        ? '🎉 Không có phiếu nào đang chờ duyệt'
-                                        : 'Không có phiếu nào'}
+                                <td colSpan={7} className="px-6 py-12 text-center">
+                                    <div className="text-gray-500">
+                                        <span className="text-4xl mb-4 block">🎉</span>
+                                        <p className="text-lg font-medium">Không có phiếu nào đang chờ duyệt</p>
+                                        <p className="text-sm mt-1">Tất cả phiếu đã được xử lý!</p>
+                                    </div>
                                 </td>
                             </tr>
                         ) : (
                             transfers.map((transfer) => (
-                                <tr key={transfer.id} className={`hover:bg-gray-50 ${transfer.status === 'pending' ? 'bg-yellow-50' : ''}`}>
+                                <tr key={transfer.id} className="hover:bg-yellow-50 bg-yellow-25">
                                     <td className="px-6 py-4 font-medium text-gray-900">
                                         {transfer.transfer_number}
                                     </td>
@@ -230,7 +201,9 @@ const StockTransfers: React.FC = () => {
                                         {transfer.total_quantity} ({transfer.total_items} SP)
                                     </td>
                                     <td className="px-6 py-4 text-gray-600">{transfer.created_by_name}</td>
-                                    <td className="px-6 py-4">{getStatusBadge(transfer.status)}</td>
+                                    <td className="px-6 py-4 text-gray-600 text-sm">
+                                        {new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => handleViewDetail(transfer.id)}
@@ -238,22 +211,18 @@ const StockTransfers: React.FC = () => {
                                         >
                                             Chi tiết
                                         </button>
-                                        {transfer.status === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleApprove(transfer.id)}
-                                                    className="text-green-600 hover:text-green-800 mr-2 font-medium"
-                                                >
-                                                    ✓ Duyệt
-                                                </button>
-                                                <button
-                                                    onClick={() => { setSelectedTransfer(transfer); setShowRejectModal(true); }}
-                                                    className="text-red-600 hover:text-red-800 font-medium"
-                                                >
-                                                    ✕ Từ chối
-                                                </button>
-                                            </>
-                                        )}
+                                        <button
+                                            onClick={() => handleApprove(transfer.id)}
+                                            className="text-green-600 hover:text-green-800 mr-2 font-medium"
+                                        >
+                                            ✓ Duyệt
+                                        </button>
+                                        <button
+                                            onClick={() => { setSelectedTransfer(transfer); setShowRejectModal(true); }}
+                                            className="text-red-600 hover:text-red-800 font-medium"
+                                        >
+                                            ✕ Từ chối
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -288,6 +257,18 @@ const StockTransfers: React.FC = () => {
                 )}
             </div>
 
+            {/* Navigation hint */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-700 text-sm">
+                    💡 <strong>Mẹo:</strong> Sau khi duyệt/từ chối, bạn có thể xem lịch sử phiếu tại:
+                </p>
+                <ul className="mt-2 text-sm text-blue-600 list-disc list-inside">
+                    <li><strong>Nhập kho</strong> - Lịch sử phiếu nhập</li>
+                    <li><strong>Xuất kho</strong> - Lịch sử phiếu xuất</li>
+                    <li><strong>Chuyển kho</strong> - Lịch sử phiếu chuyển giữa các kho</li>
+                </ul>
+            </div>
+
             {/* Detail Modal */}
             {showDetailModal && selectedTransfer && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -297,7 +278,9 @@ const StockTransfers: React.FC = () => {
                                 <h2 className="text-xl font-bold">Chi tiết phiếu: {selectedTransfer.transfer_number}</h2>
                                 <div className="flex gap-2 mt-2">
                                     {getTypeBadge(selectedTransfer.transfer_type)}
-                                    {getStatusBadge(selectedTransfer.status)}
+                                    <span className="px-3 py-1 rounded-full text-sm font-medium border bg-yellow-100 text-yellow-800 border-yellow-300">
+                                        ⏳ Chờ duyệt
+                                    </span>
                                 </div>
                             </div>
                             <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
@@ -338,14 +321,6 @@ const StockTransfers: React.FC = () => {
                             )}
                         </div>
 
-                        {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-                                <p className="text-red-700">
-                                    <strong>Lý do từ chối:</strong> {selectedTransfer.rejection_reason}
-                                </p>
-                            </div>
-                        )}
-
                         {/* Items table */}
                         {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                             <div className="mb-4">
@@ -383,23 +358,21 @@ const StockTransfers: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Action buttons for pending */}
-                        {selectedTransfer.status === 'pending' && (
-                            <div className="flex justify-end gap-3 pt-4 border-t">
-                                <button
-                                    onClick={() => setShowRejectModal(true)}
-                                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                                >
-                                    ❌ Từ chối
-                                </button>
-                                <button
-                                    onClick={() => handleApprove(selectedTransfer.id)}
-                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                >
-                                    ✅ Duyệt phiếu
-                                </button>
-                            </div>
-                        )}
+                        {/* Action buttons */}
+                        <div className="flex justify-end gap-3 pt-4 border-t">
+                            <button
+                                onClick={() => setShowRejectModal(true)}
+                                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                                ❌ Từ chối
+                            </button>
+                            <button
+                                onClick={() => handleApprove(selectedTransfer.id)}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                                ✅ Duyệt phiếu
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

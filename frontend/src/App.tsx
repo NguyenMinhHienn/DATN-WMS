@@ -18,6 +18,7 @@ import Inventory from './pages/admin/Inventory';
 import StockIn from './pages/admin/StockIn';
 import StockOut from './pages/admin/StockOut';
 import StockTransfers from './pages/admin/StockTransfers';
+import InterWarehouseTransfer from './pages/admin/InterWarehouseTransfer';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 
@@ -80,6 +81,7 @@ const App: React.FC = () => {
                         <Route path="inventory" element={<Inventory />} />
                         <Route path="stock-in" element={<StockIn />} />
                         <Route path="stock-out" element={<StockOut />} />
+                        <Route path="inter-warehouse-transfer" element={<InterWarehouseTransfer />} />
                         <Route path="stock-transfers" element={<StockTransfers />} />
                         <Route path="users" element={<Users />} />
                         <Route path="reports" element={<Reports />} />

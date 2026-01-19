@@ -4,7 +4,7 @@ import { StockTransfer, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
 
-const StockIn: React.FC = () => {
+const InterWarehouseTransfer: React.FC = () => {
     const [transfers, setTransfers] = useState<StockTransfer[]>([]);
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
@@ -23,12 +23,12 @@ const StockIn: React.FC = () => {
                 pagination.page,
                 pagination.limit,
                 selectedStatus || undefined,
-                'IMPORT'
+                'TRANSFER'
             );
             setTransfers(result.data);
             setPagination(result.pagination);
         } catch (error) {
-            console.error('Failed to load imports:', error);
+            console.error('Failed to load transfers:', error);
         } finally {
             setLoading(false);
         }
@@ -70,24 +70,24 @@ const StockIn: React.FC = () => {
         <div className="animate-fadeIn p-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">📥 Phiếu Nhập Kho</h1>
-                    <p className="text-slate-600">Lịch sử và trạng thái các phiếu nhập hàng vào kho</p>
+                    <h1 className="text-2xl font-bold text-slate-800">🔄 Phiếu Chuyển Kho</h1>
+                    <p className="text-slate-600">Lịch sử và trạng thái các phiếu chuyển hàng giữa các kho</p>
                 </div>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-                    <p className="text-sm text-gray-500">Đã nhập kho</p>
+                    <p className="text-sm text-gray-500">Đã chuyển</p>
                     <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
                     <p className="text-sm text-gray-500">Chờ duyệt</p>
                     <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+                <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
                     <p className="text-sm text-gray-500">Tổng phiếu</p>
-                    <p className="text-2xl font-bold text-blue-600">{pagination.total}</p>
+                    <p className="text-2xl font-bold text-purple-600">{pagination.total}</p>
                 </div>
             </div>
 
@@ -125,10 +125,10 @@ const StockIn: React.FC = () => {
                             <thead className="bg-slate-50">
                                 <tr>
                                     <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã phiếu</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho nhập</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho nguồn</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho đích</th>
                                     <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Ngày</th>
                                     <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Số SP</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Tổng tiền</th>
                                     <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Người tạo</th>
                                     <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
                                     <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
@@ -138,10 +138,10 @@ const StockIn: React.FC = () => {
                                 {transfers.map(transfer => (
                                     <tr key={transfer.id} className={`border-b border-slate-100 hover:bg-slate-50 ${transfer.status === 'pending' ? 'bg-yellow-50' : ''}`}>
                                         <td className="py-3 px-4 font-mono text-sm font-medium text-primary-600">{transfer.transfer_number}</td>
+                                        <td className="py-3 px-4 text-sm text-slate-600">{transfer.source_warehouse_name}</td>
                                         <td className="py-3 px-4 text-sm text-slate-600">{transfer.destination_warehouse_name}</td>
                                         <td className="py-3 px-4 text-sm text-slate-600">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
                                         <td className="py-3 px-4 text-sm text-right">{transfer.total_items}</td>
-                                        <td className="py-3 px-4 text-sm text-right font-medium">{new Intl.NumberFormat('vi-VN').format(transfer.total_value)} đ</td>
                                         <td className="py-3 px-4 text-sm text-slate-600">{transfer.created_by_name}</td>
                                         <td className="py-3 px-4 text-center">
                                             {getStatusBadge(transfer.status)}
@@ -157,7 +157,7 @@ const StockIn: React.FC = () => {
                                     </tr>
                                 ))}
                                 {transfers.length === 0 && (
-                                    <tr><td colSpan={8} className="py-12 text-center text-slate-500">Không tìm thấy phiếu nhập kho</td></tr>
+                                    <tr><td colSpan={8} className="py-12 text-center text-slate-500">Không tìm thấy phiếu chuyển kho</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -174,7 +174,7 @@ const StockIn: React.FC = () => {
                     <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold">📥 Chi tiết phiếu nhập: {selectedTransfer.transfer_number}</h2>
+                                <h2 className="text-xl font-bold">🔄 Chi tiết phiếu chuyển: {selectedTransfer.transfer_number}</h2>
                                 <div className="flex gap-2 mt-2">
                                     {getStatusBadge(selectedTransfer.status)}
                                 </div>
@@ -186,7 +186,11 @@ const StockIn: React.FC = () => {
 
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                             <div>
-                                <span className="text-gray-500">Kho nhập:</span>
+                                <span className="text-gray-500">Kho nguồn:</span>
+                                <p className="font-medium">{selectedTransfer.source_warehouse_name}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Kho đích:</span>
                                 <p className="font-medium">{selectedTransfer.destination_warehouse_name}</p>
                             </div>
                             <div>
@@ -202,11 +206,26 @@ const StockIn: React.FC = () => {
                                 <p className="font-medium text-lg">{selectedTransfer.total_value.toLocaleString()} đ</p>
                             </div>
                             {selectedTransfer.reason && (
-                                <div className="col-span-2">
+                                <div>
                                     <span className="text-gray-500">Lý do:</span>
                                     <p className="font-medium">{selectedTransfer.reason}</p>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Transfer Direction Visualization */}
+                        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg mb-4">
+                            <div className="flex items-center justify-center gap-4">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-500">Kho nguồn</p>
+                                    <p className="font-bold text-purple-700">{selectedTransfer.source_warehouse_name}</p>
+                                </div>
+                                <div className="text-3xl text-purple-500">→</div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-500">Kho đích</p>
+                                    <p className="font-bold text-purple-700">{selectedTransfer.destination_warehouse_name}</p>
+                                </div>
+                            </div>
                         </div>
 
                         {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
@@ -269,4 +288,4 @@ const StockIn: React.FC = () => {
     );
 };
 
-export default StockIn;
+export default InterWarehouseTransfer;
