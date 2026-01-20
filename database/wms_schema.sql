@@ -316,6 +316,7 @@ CREATE TABLE categories (
     level INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Hierarchy level (0=root)',
     path VARCHAR(255) NULL COMMENT 'Full path: /1/5/12/ for breadcrumb',
     sort_order INT NOT NULL DEFAULT 0,
+    variant_types JSON NULL COMMENT 'Loại biến thể cho danh mục: ["color", "size", "storage"]',
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -418,6 +419,47 @@ CREATE TABLE products (
         REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Product master data';
+
+-- 4.4 Product Variants (E-commerce model - each variant is a sellable unit)
+CREATE TABLE product_variants (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL,
+    
+    -- Variant attributes (dynamic based on category.variant_types)
+    color VARCHAR(50) NULL COMMENT 'Màu sắc: red, blue, black...',
+    size VARCHAR(50) NULL COMMENT 'Kích thước: S, M, L, XL, XXL',
+    storage VARCHAR(50) NULL COMMENT 'Dung lượng: 64GB, 128GB, 256GB...',
+    ram VARCHAR(50) NULL COMMENT 'RAM: 4GB, 8GB, 16GB...',
+    material VARCHAR(50) NULL COMMENT 'Chất liệu: Gỗ, Nhựa, Kim loại...',
+    capacity VARCHAR(50) NULL COMMENT 'Công suất pin: 5000mAh...',
+    
+    -- Pricing & Stock (independent per variant)
+    sku VARCHAR(100) NOT NULL UNIQUE COMMENT 'SKU riêng cho variant: PROD-001-RED-L',
+    price DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'Giá bán của variant',
+    stock INT NOT NULL DEFAULT 0 COMMENT 'Tồn kho của variant',
+    
+    -- Media
+    image_url VARCHAR(500) NULL COMMENT 'Hình ảnh riêng cho variant',
+    
+    -- Status
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes
+    INDEX idx_variants_product_id (product_id),
+    INDEX idx_variants_color (color),
+    INDEX idx_variants_size (size),
+    INDEX idx_variants_sku (sku),
+    INDEX idx_variants_is_active (is_active),
+    
+    -- Foreign key
+    CONSTRAINT fk_variants_product FOREIGN KEY (product_id) 
+        REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Product variants - Mỗi variant là một đơn vị bán hàng độc lập';
 
 -- ============================================================
 -- SECTION 5: INVENTORY TRACKING (ĐỢT 1)
@@ -1225,16 +1267,21 @@ CREATE TABLE customer_orders (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Đơn hàng của khách hàng';
 
--- 10.3 Customer order items
+-- 10.3 Customer order items (E-commerce: đơn hàng theo variant với snapshot)
 CREATE TABLE customer_order_items (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
-    product_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL COMMENT 'Giữ lại để query nhanh',
+    product_variant_id INT UNSIGNED NULL COMMENT 'Variant đã mua (NULL nếu variant bị xóa)',
+    
+    -- Snapshot thông tin variant tại thời điểm đặt hàng
+    variant_color VARCHAR(50) NULL COMMENT 'Màu sắc tại thời điểm đặt',
+    variant_sku VARCHAR(100) NULL COMMENT 'SKU tại thời điểm đặt',
     
     quantity INT NOT NULL DEFAULT 0,
     unit_id INT UNSIGNED NULL,
     
-    unit_price DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    unit_price DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'Giá tại thời điểm đặt',
     discount_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     discount_amount DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     tax_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
@@ -1247,15 +1294,18 @@ CREATE TABLE customer_order_items (
     
     INDEX idx_customer_order_items_order_id (order_id),
     INDEX idx_customer_order_items_product_id (product_id),
+    INDEX idx_customer_order_items_variant_id (product_variant_id),
     
     CONSTRAINT fk_customer_order_items_order FOREIGN KEY (order_id) 
         REFERENCES customer_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_customer_order_items_product FOREIGN KEY (product_id) 
         REFERENCES products(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_customer_order_items_variant FOREIGN KEY (product_variant_id) 
+        REFERENCES product_variants(id) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT fk_customer_order_items_unit FOREIGN KEY (unit_id) 
         REFERENCES units(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Chi tiết đơn hàng';
+COMMENT='Chi tiết đơn hàng - Quản lý theo product variant';
 
 -- 10.4 Order status history
 CREATE TABLE order_status_history (
@@ -1344,30 +1394,35 @@ CREATE TABLE carts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Shopping cart';
 
--- 11.2 Cart items
+-- 11.2 Cart items (E-commerce: cart quản lý theo variant, không phải product)
 CREATE TABLE cart_items (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     cart_id INT UNSIGNED NOT NULL,
-    product_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL COMMENT 'Giữ lại để query nhanh',
+    product_variant_id INT UNSIGNED NOT NULL COMMENT 'Variant được chọn - BẮT BUỘC',
     
     quantity INT NOT NULL DEFAULT 1,
-    unit_price DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    unit_price DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'Giá tại thời điểm thêm vào giỏ',
     
     notes TEXT NULL,
     
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    UNIQUE KEY uk_cart_product (cart_id, product_id),
+    -- Unique: mỗi variant chỉ xuất hiện 1 lần trong giỏ
+    UNIQUE KEY uk_cart_variant (cart_id, product_variant_id),
     INDEX idx_cart_items_cart_id (cart_id),
     INDEX idx_cart_items_product_id (product_id),
+    INDEX idx_cart_items_variant_id (product_variant_id),
     
     CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) 
         REFERENCES carts(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cart_items_product FOREIGN KEY (product_id) 
-        REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE
+        REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_cart_items_variant FOREIGN KEY (product_variant_id) 
+        REFERENCES product_variants(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-COMMENT='Cart items';
+COMMENT='Cart items - Quản lý theo product variant';
 
 -- ============================================================
 -- SECTION 12: PAYMENTS (ĐỢT 2)
