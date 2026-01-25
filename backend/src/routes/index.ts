@@ -12,6 +12,9 @@ import * as goodsReceiptController from '../controllers/goods-receipt.controller
 import * as goodsIssueController from '../controllers/goods-issue.controller';
 import * as reportController from '../controllers/report.controller';
 import * as stockTransferController from '../controllers/stock-transfer.controller';
+import * as productVariantController from '../controllers/product-variant.controller';
+import * as uploadController from '../controllers/upload.controller';
+import * as attributeController from '../controllers/attribute.controller';
 
 const router = Router();
 
@@ -37,6 +40,23 @@ router.put('/products/:id', authenticate, isWarehouseManager, productController.
 router.delete('/products/:id', authenticate, isAdmin, productController.deleteProduct);
 router.get('/categories', authenticate, isViewer, productController.getCategories);
 router.get('/units', authenticate, isViewer, productController.getUnits);
+
+// ==================== PRODUCT VARIANT ROUTES ====================
+// User: View variants, find variant by attributes
+router.get('/products/:id/variants', authenticate, isViewer, productVariantController.getVariantsByProduct);
+router.get('/products/:id/detail', authenticate, isViewer, productVariantController.getProductWithVariants);
+router.get('/products/:id/colors', authenticate, isViewer, productVariantController.getAvailableColors);
+router.post('/products/:id/find-variant', authenticate, isViewer, productVariantController.findVariant);
+
+// Admin/Manager: Manage variants
+router.post('/products/:id/variants', authenticate, isWarehouseManager, productVariantController.createVariant);
+router.post('/products/:id/variants/generate', authenticate, isWarehouseManager, productVariantController.generateVariants);
+router.post('/products/:id/find-variant-by-attributes', authenticate, isViewer, productVariantController.findVariantByAttributeValues);
+router.delete('/products/:id/variants/all', authenticate, isAdmin, productVariantController.deleteAllVariants);
+router.get('/variants/:id', authenticate, isViewer, productVariantController.getVariantById);
+router.put('/variants/:id', authenticate, isWarehouseManager, productVariantController.updateVariant);
+router.delete('/variants/:id', authenticate, isAdmin, productVariantController.deleteVariant);
+router.get('/variants/:id/stock', authenticate, isViewer, productVariantController.checkStock);
 
 // ==================== WAREHOUSE ROUTES ====================
 router.get('/warehouses', authenticate, isViewer, warehouseController.getAllWarehouses);
@@ -89,5 +109,29 @@ router.get('/reports/movements', authenticate, isViewer, reportController.getMov
 router.get('/reports/stock-value', authenticate, isViewer, reportController.getStockValueReport);
 router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
 
+// ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
+// Public: Get all attributes (for product forms)
+router.get('/attributes', authenticate, isViewer, attributeController.getAllAttributes);
+router.get('/attributes/:id', authenticate, isViewer, attributeController.getAttributeById);
+router.get('/attributes/:id/values', authenticate, isViewer, attributeController.getAttributeValues);
+
+// Admin: Manage attributes
+router.post('/attributes', authenticate, isAdmin, attributeController.createAttribute);
+router.put('/attributes/:id', authenticate, isAdmin, attributeController.updateAttribute);
+router.delete('/attributes/:id', authenticate, isAdmin, attributeController.deleteAttribute);
+
+// Admin: Manage attribute values
+router.post('/attributes/:id/values', authenticate, isAdmin, attributeController.createAttributeValue);
+router.put('/attributes/:id/values/:valueId', authenticate, isAdmin, attributeController.updateAttributeValue);
+router.delete('/attributes/:id/values/:valueId', authenticate, isAdmin, attributeController.deleteAttributeValue);
+
+// Get attributes used by a product
+router.get('/products/:productId/attributes', authenticate, isViewer, attributeController.getProductAttributes);
+
+// ==================== UPLOAD ROUTES ====================
+router.post('/upload/image', authenticate, isWarehouseManager, uploadController.upload.single('image'), uploadController.uploadImage);
+router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadController.deleteImage);
+
 export default router;
+
 

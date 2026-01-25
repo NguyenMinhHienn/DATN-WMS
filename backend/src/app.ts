@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { env } from './config/env';
 import { testConnection } from './config/database';
 import routes from './routes';
@@ -15,6 +16,9 @@ app.use(cors({
 // Tăng giới hạn body size để hỗ trợ upload hình base64
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (req, res) => {

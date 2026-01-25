@@ -92,6 +92,125 @@ export interface Unit {
     is_active: boolean;
 }
 
+// Product Variant types (E-commerce model - flexible attributes)
+export interface ProductVariant {
+    id: number;
+    product_id: number;
+    sku: string;
+    price: number;
+    stock: number;
+    image_url?: string;
+    is_active: boolean;
+    created_at: Date;
+    updated_at: Date;
+    // Populated from variant_attribute_values
+    attribute_values?: VariantAttributeValue[];
+}
+
+export interface ProductWithVariants extends Product {
+    has_variants?: boolean;
+    variants?: ProductVariant[];
+    variant_count?: number;
+    min_price?: number;
+    max_price?: number;
+    total_stock?: number;
+    available_colors?: string;
+}
+
+// Flexible Attribute System Types
+export interface Attribute {
+    id: number;
+    name: string;
+    display_name: string;
+    type: 'select' | 'color' | 'text';
+    sort_order: number;
+    is_active: boolean;
+    created_at: Date;
+    updated_at: Date;
+    values?: AttributeValue[];
+}
+
+export interface AttributeValue {
+    id: number;
+    attribute_id: number;
+    value: string;
+    display_value: string;
+    color_code?: string;
+    image_url?: string;
+    sort_order: number;
+    is_active: boolean;
+    created_at: Date;
+    updated_at: Date;
+    // Populated for display
+    attribute_name?: string;
+    attribute_display_name?: string;
+}
+
+export interface VariantAttributeValue {
+    id: number;
+    variant_id: number;
+    attribute_value_id: number;
+    // Populated for display
+    attribute_id?: number;
+    attribute_name?: string;
+    attribute_display_name?: string;
+    value?: string;
+    display_value?: string;
+    color_code?: string;
+}
+
+// DTOs for Attribute operations
+export interface CreateAttributeDto {
+    name: string;
+    display_name: string;
+    type?: 'select' | 'color' | 'text';
+    sort_order?: number;
+}
+
+export interface CreateAttributeValueDto {
+    attribute_id: number;
+    value: string;
+    display_value: string;
+    color_code?: string;
+    image_url?: string;
+    sort_order?: number;
+}
+
+// DTOs for Product Variant operations (flexible)
+export interface CreateProductVariantDto {
+    product_id: number;
+    sku: string;
+    price: number;
+    stock?: number;
+    image_url?: string;
+    attribute_value_ids?: number[]; // Array of attribute_value IDs
+}
+
+export interface UpdateProductVariantDto {
+    sku?: string;
+    price?: number;
+    stock?: number;
+    image_url?: string;
+    is_active?: boolean;
+    attribute_value_ids?: number[];
+}
+
+// DTO for generating variant combinations
+export interface GenerateVariantsDto {
+    product_id: number;
+    attributes: {
+        attribute_id: number;
+        value_ids: number[];
+    }[];
+    base_price?: number;
+    base_stock?: number;
+}
+
+export interface FindVariantDto {
+    product_id: number;
+    attribute_value_ids: number[];
+}
+
 // Warehouse types
 export interface Warehouse {
     id: number;
