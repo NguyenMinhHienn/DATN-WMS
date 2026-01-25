@@ -89,11 +89,11 @@ export class ProductRepository {
     async create(dto: CreateProductDto, userId?: number): Promise<number> {
         const [result] = await pool.query<ResultSetHeader>(`
       INSERT INTO products (
-        sku, barcode, name, description, category_id, unit_id, brand, model,
-        cost_price, selling_price, wholesale_price, min_stock_level, max_stock_level,
+        sku, barcode, name, description, category_id, unit_id, brand,
+        cost_price, selling_price, min_stock_level, max_stock_level,
         reorder_point, reorder_quantity, is_serialized, is_batch_tracked, has_expiry,
-        shelf_life_days, image_url, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        image_url, status, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
             dto.sku,
             dto.barcode || null,
@@ -102,10 +102,8 @@ export class ProductRepository {
             dto.category_id || null,
             dto.unit_id || null,
             dto.brand || null,
-            dto.model || null,
             dto.cost_price,
             dto.selling_price,
-            dto.wholesale_price || null,
             dto.min_stock_level || 0,
             dto.max_stock_level || null,
             dto.reorder_point || 0,
@@ -113,7 +111,6 @@ export class ProductRepository {
             dto.is_serialized ? 1 : 0,
             dto.is_batch_tracked ? 1 : 0,
             dto.has_expiry ? 1 : 0,
-            dto.shelf_life_days || null,
             dto.image_url || null,
             dto.status || 'draft',
             userId || null,
@@ -134,10 +131,8 @@ export class ProductRepository {
             category_id: 'category_id',
             unit_id: 'unit_id',
             brand: 'brand',
-            model: 'model',
             cost_price: 'cost_price',
             selling_price: 'selling_price',
-            wholesale_price: 'wholesale_price',
             min_stock_level: 'min_stock_level',
             max_stock_level: 'max_stock_level',
             reorder_point: 'reorder_point',
@@ -145,7 +140,6 @@ export class ProductRepository {
             is_serialized: 'is_serialized',
             is_batch_tracked: 'is_batch_tracked',
             has_expiry: 'has_expiry',
-            shelf_life_days: 'shelf_life_days',
             image_url: 'image_url',
             status: 'status',
         };
