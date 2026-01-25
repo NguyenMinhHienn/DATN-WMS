@@ -21,6 +21,7 @@ import StockTransfers from './pages/admin/StockTransfers';
 import InterWarehouseTransfer from './pages/admin/InterWarehouseTransfer';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
+import ProductConfig from './pages/admin/ProductConfig';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
@@ -85,6 +86,7 @@ const App: React.FC = () => {
                         <Route path="stock-transfers" element={<StockTransfers />} />
                         <Route path="users" element={<Users />} />
                         <Route path="reports" element={<Reports />} />
+                        <Route path="product-config" element={<ProductConfig />} />
                     </Route>
 
                     {/* ==================== STAFF ROUTES ==================== */}

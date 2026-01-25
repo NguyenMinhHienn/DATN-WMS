@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productService } from '../../services/productService';
+import { uploadService } from '../../services/uploadService';
 import { Product, Category, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
@@ -75,9 +76,9 @@ const ProductList: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
                         {products.map(product => (
                             <Link key={product.id} to={`/products/${product.id}`} className="card hover:shadow-lg transition-all hover:-translate-y-1">
-                                <div className="w-full h-48 bg-slate-100 rounded-lg mb-4 flex items-center justify-center text-6xl">
+                                <div className="w-full h-48 bg-slate-100 rounded-lg mb-4 flex items-center justify-center text-6xl overflow-hidden">
                                     {product.image_url ? (
-                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+                                        <img src={uploadService.getImageUrl(product.image_url)} alt={product.name} className="w-full h-full object-cover rounded-lg" />
                                     ) : '📦'}
                                 </div>
                                 <div className="mb-2">

@@ -15,6 +15,7 @@ const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/users', label: 'Quản lý Users', icon: '👥' },
     { path: '/admin/products', label: 'Sản phẩm', icon: '📦' },
+    { path: '/admin/product-config', label: 'Cấu hình SP', icon: '⚙️' },
     { path: '/admin/warehouses', label: 'Kho hàng', icon: '🏭' },
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋' },
     { path: '/admin/stock-in', label: 'Nhập kho', icon: '📥' },

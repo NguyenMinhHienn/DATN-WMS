@@ -53,6 +53,7 @@ export interface Category {
     code: string;
     name: string;
     description?: string;
+    variant_types?: string[] | null; // ["color", "size", "storage", ...]
     is_active: boolean;
 }
 
@@ -62,6 +63,126 @@ export interface Unit {
     name: string;
     type: string;
 }
+
+// ==================== Flexible Attribute System ====================
+
+export interface Attribute {
+    id: number;
+    name: string;
+    display_name: string;
+    type: 'select' | 'color' | 'text';
+    sort_order: number;
+    is_active: boolean;
+    values?: AttributeValue[];
+}
+
+export interface AttributeValue {
+    id: number;
+    attribute_id: number;
+    value: string;
+    display_value: string;
+    color_code?: string;
+    image_url?: string;
+    sort_order: number;
+    is_active: boolean;
+    // Populated for display
+    attribute_name?: string;
+    attribute_display_name?: string;
+}
+
+export interface VariantAttributeValue {
+    id: number;
+    variant_id: number;
+    attribute_value_id: number;
+    // Populated
+    attribute_id?: number;
+    attribute_name?: string;
+    attribute_display_name?: string;
+    value?: string;
+    display_value?: string;
+    color_code?: string;
+}
+
+// Product Variant types (Flexible E-commerce model)
+export interface ProductVariant {
+    id: number;
+    product_id: number;
+    sku: string;
+    price: number;
+    stock: number;
+    image_url?: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    // Populated attribute values (new flexible system)
+    attribute_values?: VariantAttributeValue[];
+    // Legacy properties for backward compatibility
+    color?: string | null;
+    size?: string | null;
+    storage?: string | null;
+    ram?: string | null;
+    material?: string | null;
+    capacity?: string | null;
+}
+
+export interface ProductWithVariants extends Product {
+    has_variants?: boolean;
+    variants?: ProductVariant[];
+    variant_count?: number;
+    min_price?: number;
+    max_price?: number;
+    total_stock?: number;
+    available_colors?: string;
+}
+
+// DTO for generating variants
+export interface GenerateVariantsDto {
+    attributes: {
+        attribute_id: number;
+        value_ids: number[];
+    }[];
+    base_price?: number;
+    base_stock?: number;
+}
+
+export interface ProductVariantFormData {
+    sku: string;
+    price: number;
+    stock: number;
+    image_url?: string;
+    attribute_value_ids?: number[];
+    // Legacy properties for backward compatibility
+    color?: string;
+    size?: string;
+    storage?: string;
+    ram?: string;
+    material?: string;
+    capacity?: string;
+}
+
+// Legacy config - kept for backward compatibility but data now comes from API
+export type VariantTypeKey = 'color' | 'size' | 'storage' | 'ram' | 'material' | 'capacity';
+
+export interface VariantTypeConfig {
+    key: VariantTypeKey;
+    label: string;
+    options: { value: string; label: string; hex?: string }[];
+}
+
+export const VARIANT_TYPES_CONFIG: VariantTypeConfig[] = [
+    {
+        key: 'color',
+        label: 'Màu sắc',
+        options: [
+            { value: 'black', label: 'Đen', hex: '#000000' },
+            { value: 'white', label: 'Trắng', hex: '#FFFFFF' },
+            { value: 'red', label: 'Đỏ', hex: '#EF4444' },
+            { value: 'blue', label: 'Xanh dương', hex: '#3B82F6' },
+            { value: 'green', label: 'Xanh lá', hex: '#22C55E' },
+            { value: 'gray', label: 'Xám', hex: '#6B7280' },
+        ]
+    },
+];
 
 // Warehouse types
 export interface Warehouse {
