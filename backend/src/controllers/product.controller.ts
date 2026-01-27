@@ -32,6 +32,30 @@ export const getProductById = asyncHandler(async (req: AuthRequest, res: Respons
 export const createProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
     const dto: CreateProductDto = req.body;
     const userId = req.user?.userId;
+
+    // Validate required fields
+    if (!dto.name || dto.name.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Tên sản phẩm là bắt buộc',
+        } as ApiResponse);
+    }
+
+    // Validate prices
+    if (dto.selling_price !== undefined && dto.selling_price < 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Giá bán phải >= 0',
+        } as ApiResponse);
+    }
+
+    if (dto.cost_price !== undefined && dto.cost_price < 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Giá nhập phải >= 0',
+        } as ApiResponse);
+    }
+
     const product = await productService.createProduct(dto, userId);
 
     res.status(201).json({
@@ -44,6 +68,30 @@ export const createProduct = asyncHandler(async (req: AuthRequest, res: Response
 export const updateProduct = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const dto: UpdateProductDto = req.body;
+
+    // Validate name if provided
+    if (dto.name !== undefined && dto.name.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Tên sản phẩm không được để trống',
+        } as ApiResponse);
+    }
+
+    // Validate prices if provided
+    if (dto.selling_price !== undefined && dto.selling_price < 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Giá bán phải >= 0',
+        } as ApiResponse);
+    }
+
+    if (dto.cost_price !== undefined && dto.cost_price < 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Giá nhập phải >= 0',
+        } as ApiResponse);
+    }
+
     const product = await productService.updateProduct(id, dto);
 
     res.json({

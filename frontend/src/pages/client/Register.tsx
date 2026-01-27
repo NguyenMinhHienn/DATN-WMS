@@ -32,6 +32,7 @@ const Register: React.FC = () => {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Định dạng email không hợp lệ';
         if (!formData.password) return 'Mật khẩu không được để trống';
         if (formData.password.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+        if (formData.password.trim().length === 0) return 'Mật khẩu không được chỉ chứa khoảng trắng';
         if (formData.password !== formData.confirmPassword) return 'Mật khẩu xác nhận không khớp';
         if (!formData.full_name.trim()) return 'Họ và tên không được để trống';
         return null;

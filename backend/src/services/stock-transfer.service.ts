@@ -79,11 +79,20 @@ export class StockTransferService {
             // Chuẩn hóa dữ liệu
             const normalizedDto = this.normalizeCreateDto(dto);
 
-            // Validate
+            // Validate cơ bản
             const errors = this.validateCreateDto(normalizedDto);
             if (errors.length > 0) {
                 console.error('[StockTransferService] Validation errors:', errors);
                 throw new AppError(`Dữ liệu không hợp lệ: ${errors.join(', ')}`, 400);
+            }
+
+            // Kiểm tra tồn kho cho EXPORT/TRANSFER trước khi tạo phiếu
+            if (normalizedDto.transfer_type === 'EXPORT' || normalizedDto.transfer_type === 'TRANSFER') {
+                const stockErrors = await this.validateStockAvailability(normalizedDto);
+                if (stockErrors.length > 0) {
+                    console.error('[StockTransferService] Stock validation errors:', stockErrors);
+                    throw new AppError(`Không đủ tồn kho: ${stockErrors.join(', ')}`, 400);
+                }
             }
 
             // Tạo phiếu
@@ -208,6 +217,38 @@ export class StockTransferService {
                     errors.push(`Sản phẩm ${index + 1}: Đơn giá không được âm`);
                 }
             });
+        }
+
+        return errors;
+    }
+
+    /**
+     * Kiểm tra tồn kho cho EXPORT/TRANSFER
+     * Trả về mảng lỗi nếu không đủ tồn kho
+     */
+    private async validateStockAvailability(dto: CreateStockTransferDto): Promise<string[]> {
+        const errors: string[] = [];
+
+        if (!dto.source_warehouse_id) {
+            return errors; // Không có kho nguồn thì không cần check
+        }
+
+        for (let i = 0; i < dto.items.length; i++) {
+            const item = dto.items[i];
+            if (item.product_id && item.product_id > 0) {
+                const qty = item.quantity_requested ?? 0;
+                const stockCheck = await stockTransferRepository.checkSufficientStock(
+                    dto.source_warehouse_id,
+                    item.product_id,
+                    qty
+                );
+
+                if (!stockCheck.sufficient) {
+                    errors.push(
+                        `Sản phẩm ${i + 1} (ID: ${item.product_id}): Yêu cầu ${qty}, tồn kho chỉ còn ${stockCheck.available}`
+                    );
+                }
+            }
         }
 
         return errors;

@@ -79,6 +79,14 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
         } as ApiResponse);
     }
 
+    // Validate password not all whitespace
+    if (password.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mật khẩu không được chỉ chứa khoảng trắng',
+        } as ApiResponse);
+    }
+
     const result = await authService.register({
         username,
         email,

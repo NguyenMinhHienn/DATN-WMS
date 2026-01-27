@@ -15,9 +15,24 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const validateForm = (): string | null => {
+        if (!username.trim()) return 'Tên đăng nhập không được để trống';
+        if (!password) return 'Mật khẩu không được để trống';
+        if (password.trim().length === 0) return 'Mật khẩu không được chỉ chứa khoảng trắng';
+        return null;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        // Validate trước khi submit
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         setLoading(true);
 
         try {

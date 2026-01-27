@@ -199,6 +199,20 @@ export class ProductVariantRepository {
         `, [productId]);
 
         product.variants = variantRows as ProductVariant[];
+
+        // Populate attribute_values for each variant
+        for (const variant of product.variants) {
+            const [attrValRows] = await pool.query<RowDataPacket[]>(`
+                SELECT av.*, a.name as attribute_name, a.display_name as attribute_display_name
+                FROM variant_attribute_values vav
+                JOIN attribute_values av ON av.id = vav.attribute_value_id
+                JOIN attributes a ON a.id = av.attribute_id
+                WHERE vav.variant_id = ?
+                ORDER BY a.sort_order ASC
+            `, [variant.id]);
+            variant.attribute_values = attrValRows as any[];
+        }
+
         product.variant_count = product.variants.length;
 
         // Calculate price range and total stock
