@@ -25,6 +25,22 @@ export const getWarehouseById = asyncHandler(async (req: AuthRequest, res: Respo
 export const createWarehouse = asyncHandler(async (req: AuthRequest, res: Response) => {
     const dto: CreateWarehouseDto = req.body;
     const userId = req.user?.userId;
+
+    // Validate required fields
+    if (!dto.name || dto.name.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Tên kho là bắt buộc',
+        } as ApiResponse);
+    }
+
+    if (!dto.code || dto.code.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mã kho là bắt buộc',
+        } as ApiResponse);
+    }
+
     const warehouse = await warehouseService.createWarehouse(dto, userId);
 
     res.status(201).json({

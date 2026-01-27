@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { productVariantService } from '../../services/productVariantService';
 import { productService } from '../../services/productService';
 import { uploadService } from '../../services/uploadService';
+import { specificationService, ProductSpecification } from '../../services/specificationService';
 import { ProductWithVariants, ProductVariant, VARIANT_TYPES_CONFIG } from '../../interface';
 
 const ProductDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [product, setProduct] = useState<ProductWithVariants | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+    const [specifications, setSpecifications] = useState<ProductSpecification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,15 @@ const ProductDetail: React.FC = () => {
             // Auto-select first variant if available
             if (data?.variants && data.variants.length > 0) {
                 setSelectedVariant(data.variants[0]);
+            }
+
+            // Load specifications
+            try {
+                const specs = await specificationService.getByProductId(productId);
+                setSpecifications(specs);
+            } catch (specErr) {
+                console.log('No specifications found for product:', productId);
+                setSpecifications([]);
             }
         } catch (err: any) {
             console.error('Failed to load product:', err);
@@ -186,46 +197,135 @@ const ProductDetail: React.FC = () => {
                     )}
 
                     <div className="card bg-slate-50">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Thông số kỹ thuật</h2>
-                        <dl className="grid grid-cols-2 gap-4 text-sm">
-                            {product.category_name && (
-                                <>
-                                    <dt className="text-slate-500">Danh mục</dt>
-                                    <dd className="text-slate-800 font-medium">{product.category_name}</dd>
-                                </>
-                            )}
-                            {product.unit_name && (
-                                <>
-                                    <dt className="text-slate-500">Đơn vị</dt>
-                                    <dd className="text-slate-800 font-medium">{product.unit_name}</dd>
-                                </>
-                            )}
-                            {product.variant_count !== undefined && product.variant_count > 0 && (
-                                <>
-                                    <dt className="text-slate-500">Số biến thể</dt>
-                                    <dd className="text-slate-800 font-medium">{product.variant_count}</dd>
-                                </>
-                            )}
-                            {product.total_stock !== undefined && (
-                                <>
-                                    <dt className="text-slate-500">Tổng tồn kho</dt>
-                                    <dd className="text-slate-800 font-medium">{product.total_stock}</dd>
-                                </>
-                            )}
-                            {product.available_colors && (
-                                <>
-                                    <dt className="text-slate-500">Màu có sẵn</dt>
-                                    <dd className="text-slate-800 font-medium">{product.available_colors}</dd>
-                                </>
-                            )}
-                            {product.has_expiry && (
-                                <>
-                                    <dt className="text-slate-500">Theo dõi</dt>
-                                    <dd className="text-slate-800 font-medium">Có ngày hết hạn</dd>
-                                </>
-                            )}
-                        </dl>
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Thuộc tính sản phẩm</h2>
+                        <table className="w-full text-sm">
+                            <tbody>
+                                {product.category_name && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Danh mục</td>
+                                        <td className="py-2 text-slate-800 font-medium">{product.category_name}</td>
+                                    </tr>
+                                )}
+                                {product.unit_name && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Đơn vị</td>
+                                        <td className="py-2 text-slate-800 font-medium">{product.unit_name}</td>
+                                    </tr>
+                                )}
+                                {product.variant_count !== undefined && product.variant_count > 0 && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Số biến thể</td>
+                                        <td className="py-2 text-slate-800 font-medium">{product.variant_count}</td>
+                                    </tr>
+                                )}
+                                {product.total_stock !== undefined && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Tổng tồn kho</td>
+                                        <td className="py-2 text-slate-800 font-medium">{product.total_stock}</td>
+                                    </tr>
+                                )}
+                                {product.available_colors && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Màu có sẵn</td>
+                                        <td className="py-2 text-slate-800 font-medium">{product.available_colors}</td>
+                                    </tr>
+                                )}
+                                {product.has_expiry && (
+                                    <tr className="border-b border-slate-200">
+                                        <td className="py-2 text-slate-500 w-1/3">Theo dõi</td>
+                                        <td className="py-2 text-slate-800 font-medium">Có ngày hết hạn</td>
+                                    </tr>
+                                )}
+                                {/* Display selected variant's specifications */}
+                                {selectedVariant && (
+                                    <>
+                                        {/* Display flexible attribute_values (new system) */}
+                                        {selectedVariant.attribute_values && selectedVariant.attribute_values.length > 0 ? (
+                                            <>
+                                                {selectedVariant.attribute_values.map((attrVal: any) => (
+                                                    <tr key={attrVal.id} className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">{attrVal.attribute_display_name || attrVal.attribute_name}</td>
+                                                        <td className="py-2 text-slate-800 font-medium flex items-center gap-2">
+                                                            {attrVal.color_code && (
+                                                                <span
+                                                                    className="w-4 h-4 rounded-full border border-slate-300 inline-block"
+                                                                    style={{ backgroundColor: attrVal.color_code }}
+                                                                />
+                                                            )}
+                                                            {attrVal.display_value}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            /* Fallback: Display legacy columns for old products */
+                                            <>
+                                                {selectedVariant.color && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">Màu sắc</td>
+                                                        <td className="py-2 text-slate-800 font-medium flex items-center gap-2">
+                                                            <span
+                                                                className="w-4 h-4 rounded-full border border-slate-300 inline-block"
+                                                                style={{ backgroundColor: getColorHex(selectedVariant.color) }}
+                                                            />
+                                                            {getVariantOptionLabel('color', selectedVariant.color)}
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                {selectedVariant.size && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">Kích thước</td>
+                                                        <td className="py-2 text-slate-800 font-medium">{selectedVariant.size}</td>
+                                                    </tr>
+                                                )}
+                                                {selectedVariant.storage && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">Dung lượng</td>
+                                                        <td className="py-2 text-slate-800 font-medium">{selectedVariant.storage}</td>
+                                                    </tr>
+                                                )}
+                                                {selectedVariant.ram && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">RAM</td>
+                                                        <td className="py-2 text-slate-800 font-medium">{selectedVariant.ram}</td>
+                                                    </tr>
+                                                )}
+                                                {selectedVariant.material && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">Chất liệu</td>
+                                                        <td className="py-2 text-slate-800 font-medium">{selectedVariant.material}</td>
+                                                    </tr>
+                                                )}
+                                                {selectedVariant.capacity && (
+                                                    <tr className="border-b border-slate-200">
+                                                        <td className="py-2 text-slate-500 w-1/3">Dung tích</td>
+                                                        <td className="py-2 text-slate-800 font-medium">{selectedVariant.capacity}</td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
+
+                    {/* Custom Product Specifications */}
+                    {specifications.length > 0 && (
+                        <div className="card bg-white border border-slate-200 mt-4">
+                            <h2 className="text-lg font-semibold text-slate-800 mb-4">Chi tiết thuộc tính</h2>
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    {specifications.map((spec, index) => (
+                                        <tr key={spec.id} className={index % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
+                                            <td className="py-2 px-3 text-slate-500 font-medium w-1/3">{spec.spec_name}</td>
+                                            <td className="py-2 px-3 text-slate-800">{spec.spec_value}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
                     <div className="mt-6">
                         <Link to="/products" className="btn btn-secondary">← Quay lại danh sách</Link>

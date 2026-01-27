@@ -74,6 +74,8 @@ const Products: React.FC = () => {
     const [variantPrices, setVariantPrices] = useState<{ [sku: string]: number }>({});
     const [variantStocks, setVariantStocks] = useState<{ [sku: string]: number }>({});
     const [generatingVariants, setGeneratingVariants] = useState(false);
+    const [customValues, setCustomValues] = useState<{ [attr_id: number]: string }>({});
+    const [initialStock, setInitialStock] = useState(0); // Initial stock for new variants
 
     // Variants in form state (legacy - kept for existing form)
     const [formVariants, setFormVariants] = useState<TempVariant[]>([]);
@@ -201,6 +203,36 @@ const Products: React.FC = () => {
         }
     };
 
+    // Handle adding a custom attribute value
+    const handleAddCustomValue = async (attributeId: number) => {
+        const customVal = customValues[attributeId]?.trim();
+        if (!customVal) return;
+
+        try {
+            // Call API to create new attribute value
+            const newValue = await attributeService.createValue(attributeId, {
+                value: customVal.toLowerCase().replace(/\s+/g, '_'),
+                display_value: customVal
+            });
+
+            // Reload attributes to get updated list
+            await loadAttributes();
+
+            // Auto-select the new value
+            setSelectedAttributes(prev => prev.map(sa => {
+                if (sa.attribute_id !== attributeId) return sa;
+                return { ...sa, value_ids: [...sa.value_ids, newValue.id] };
+            }));
+
+            // Clear input
+            setCustomValues(prev => ({ ...prev, [attributeId]: '' }));
+            setFormError('');
+        } catch (error: any) {
+            console.error('Failed to add custom value:', error);
+            setFormError(error.response?.data?.message || 'Lỗi khi thêm giá trị mới');
+        }
+    };
+
     const loadVariants = async (productId: number) => {
         try {
             setVariantLoading(true);
@@ -241,6 +273,7 @@ const Products: React.FC = () => {
         setGeneratedVariants([]);
         setVariantPrices({});
         setVariantStocks({});
+        setInitialStock(0);
         // Legacy reset
         setFormVariants([]);
         setNewVariantData({});
@@ -252,6 +285,19 @@ const Products: React.FC = () => {
 
     // Open modal for edit
     const handleEdit = async (product: Product) => {
+        // CRITICAL: Reset ALL variant-related state FIRST to prevent data bleeding
+        setFormVariants([]);
+        setSelectedAttributes([]);
+        setCustomValues({});
+        setGeneratedVariants([]);
+        setVariantPrices({});
+        setVariantStocks({});
+        setInitialStock(0);
+        setHasVariants(false);
+        setFormStep(1);
+        setFormError('');
+
+        // Now set the new product data
         setEditingProduct(product);
         setFormData({
             sku: product.sku,
@@ -268,8 +314,10 @@ const Products: React.FC = () => {
             image_url: product.image_url,
         });
 
+        // Load variants for THIS specific product
         try {
             const existingVariants = await productVariantService.getByProduct(product.id);
+            console.log(`Loaded ${existingVariants.length} variants for product ${product.id}`);
             setFormVariants(existingVariants.map(v => ({
                 id: v.id,
                 color: v.color || undefined,
@@ -283,14 +331,18 @@ const Products: React.FC = () => {
                 stock: v.stock,
                 isNew: false
             })));
-        } catch {
+            // Set hasVariants flag if product has variants
+            if (existingVariants.length > 0) {
+                setHasVariants(true);
+            }
+        } catch (error) {
+            console.error('Failed to load variants for product:', product.id, error);
             setFormVariants([]);
         }
 
         setNewVariantData({});
         setNewVariantPrice(product.selling_price);
         setNewVariantStock(0);
-        setFormError('');
         setIsModalOpen(true);
     };
 
@@ -349,19 +401,46 @@ const Products: React.FC = () => {
         setFormVariants(updated);
     };
 
+    // Validate product form before submit
+    const validateProductForm = (): string | null => {
+        if (!formData.name || formData.name.trim().length === 0) {
+            return 'Tên sản phẩm là bắt buộc';
+        }
+        if (!formData.category_id) {
+            return 'Vui lòng chọn danh mục';
+        }
+        if (formData.selling_price < 0) {
+            return 'Giá bán phải >= 0';
+        }
+        if (formData.cost_price !== undefined && formData.cost_price < 0) {
+            return 'Giá nhập phải >= 0';
+        }
+        return null;
+    };
+
     // Handle form submit
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
         setFormError('');
 
+        // Validate trước khi submit
+        const validationError = validateProductForm();
+        if (validationError) {
+            setFormError(validationError);
+            setFormLoading(false);
+            return;
+        }
+
         try {
             let productId: number;
 
             if (editingProduct) {
+                // UPDATE existing product
                 await productService.update(editingProduct.id, formData);
                 productId = editingProduct.id;
 
+                // Update existing variants (legacy formVariants)
                 for (const variant of formVariants) {
                     if (variant.id) {
                         await productVariantService.update(variant.id, {
@@ -376,6 +455,7 @@ const Products: React.FC = () => {
                             stock: variant.stock
                         });
                     } else {
+                        // Create new variant added during edit
                         await productVariantService.create(productId, {
                             color: variant.color,
                             size: variant.size,
@@ -389,7 +469,26 @@ const Products: React.FC = () => {
                         });
                     }
                 }
+
+                // If hasVariants and selectedAttributes has data, generate new variants via API
+                if (hasVariants && selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0)) {
+                    try {
+                        console.log('Generating variants for existing product...');
+                        const generatedVariants = await productVariantService.generateVariants(productId, {
+                            attributes: selectedAttributes.map(sa => ({
+                                attribute_id: sa.attribute_id,
+                                value_ids: sa.value_ids
+                            })),
+                            base_price: formData.selling_price,
+                            base_stock: initialStock
+                        });
+                        console.log('Generated variants:', generatedVariants);
+                    } catch (genError) {
+                        console.error('Failed to generate variants:', genError);
+                    }
+                }
             } else {
+                // CREATE new product
                 // Auto-generate unique SKU
                 const categoryId = Number(formData.category_id);
                 const category = categories.find(c => c.id === categoryId);
@@ -407,34 +506,67 @@ const Products: React.FC = () => {
                 const result = await productService.create(productDataWithSku);
                 console.log('Created product result:', result);
 
-                // result is already the Product object with id
                 productId = result.id;
 
                 if (!productId) {
                     throw new Error('Không lấy được ID sản phẩm sau khi tạo');
                 }
 
-                console.log('Product ID:', productId, 'Variants to create:', formVariants.length);
+                console.log('Product ID:', productId, 'hasVariants:', hasVariants, 'selectedAttributes:', selectedAttributes);
 
-                // Create variants for the new product
-                for (const variant of formVariants) {
-                    console.log('Creating variant:', variant);
+                // Check if we should use flexible attribute system
+                if (hasVariants && selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0)) {
+                    // Use the generate variants API for flexible attribute system
                     try {
-                        await productVariantService.create(productId, {
-                            color: variant.color,
-                            size: variant.size,
-                            storage: variant.storage,
-                            ram: variant.ram,
-                            material: variant.material,
-                            capacity: variant.capacity,
-                            sku: variant.sku,
-                            price: variant.price,
-                            stock: variant.stock
+                        console.log('Generating variants for new product...');
+                        const generatedVariants = await productVariantService.generateVariants(productId, {
+                            attributes: selectedAttributes.map(sa => ({
+                                attribute_id: sa.attribute_id,
+                                value_ids: sa.value_ids
+                            })),
+                            base_price: formData.selling_price,
+                            base_stock: initialStock
                         });
-                        console.log('Variant created successfully');
-                    } catch (variantError: any) {
-                        console.error('Failed to create variant:', variantError);
-                        throw new Error(`Lỗi tạo biến thể: ${variantError.response?.data?.message || variantError.message}`);
+                        console.log('Generated variants:', generatedVariants);
+                    } catch (genError: any) {
+                        console.error('Failed to generate variants:', genError);
+                        setFormError(`Lỗi tạo biến thể: ${genError.response?.data?.message || genError.message}`);
+                    }
+                } else if (formVariants.length > 0) {
+                    // Fallback: Create legacy variants from formVariants
+                    for (const variant of formVariants) {
+                        console.log('Creating legacy variant:', variant);
+                        try {
+                            await productVariantService.create(productId, {
+                                color: variant.color,
+                                size: variant.size,
+                                storage: variant.storage,
+                                ram: variant.ram,
+                                material: variant.material,
+                                capacity: variant.capacity,
+                                sku: variant.sku,
+                                price: variant.price,
+                                stock: variant.stock
+                            });
+                            console.log('Legacy variant created successfully');
+                        } catch (variantError: any) {
+                            console.error('Failed to create variant:', variantError);
+                            throw new Error(`Lỗi tạo biến thể: ${variantError.response?.data?.message || variantError.message}`);
+                        }
+                    }
+                } else if (!hasVariants) {
+                    // No variants selected - create default variant with initial stock
+                    try {
+                        console.log('Creating default variant with stock:', initialStock);
+                        await productVariantService.create(productId, {
+                            sku: `${autoSku}-DEFAULT`,
+                            price: formData.selling_price,
+                            stock: initialStock
+                        });
+                        console.log('Default variant created successfully');
+                    } catch (defaultVariantError: any) {
+                        console.error('Failed to create default variant:', defaultVariantError);
+                        // Don't throw error, product is still created
                     }
                 }
             }
@@ -841,8 +973,8 @@ const Products: React.FC = () => {
                                                         }
                                                     }}
                                                     className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${isSelected
-                                                            ? 'bg-blue-600 text-white border-blue-600'
-                                                            : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                                                        ? 'bg-blue-600 text-white border-blue-600'
+                                                        : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
                                                         }`}
                                                 >
                                                     {isSelected ? '✓ ' : ''}{attr.display_name}
@@ -882,8 +1014,8 @@ const Products: React.FC = () => {
                                                                             );
                                                                         }}
                                                                         className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-1 ${isValSelected
-                                                                                ? 'bg-green-600 text-white'
-                                                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                                            ? 'bg-green-600 text-white'
+                                                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                                             }`}
                                                                     >
                                                                         {attr.type === 'color' && val.color_code && (
@@ -897,9 +1029,55 @@ const Products: React.FC = () => {
                                                                 );
                                                             })}
                                                         </div>
+                                                        {/* Input for custom value */}
+                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-blue-100">
+                                                            <input
+                                                                type="text"
+                                                                placeholder={`Nhập ${selAttr.attribute_display_name} mới...`}
+                                                                value={customValues[selAttr.attribute_id] || ''}
+                                                                onChange={(e) => setCustomValues(prev => ({
+                                                                    ...prev,
+                                                                    [selAttr.attribute_id]: e.target.value
+                                                                }))}
+                                                                className="input text-sm flex-1"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                        handleAddCustomValue(selAttr.attribute_id);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleAddCustomValue(selAttr.attribute_id)}
+                                                                className="btn btn-secondary text-sm whitespace-nowrap"
+                                                            >
+                                                                + Thêm
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+                                    )}
+
+                                    {/* Initial Stock Input */}
+                                    {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
+                                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                            <label className="block text-sm font-medium text-green-800 mb-2">
+                                                📦 Số lượng tồn kho ban đầu (cho mỗi biến thể)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={initialStock}
+                                                onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
+                                                className="input w-full"
+                                                min="0"
+                                                placeholder="Nhập số lượng..."
+                                            />
+                                            <p className="text-xs text-green-600 mt-1">
+                                                Mỗi biến thể sẽ có số lượng này. Bạn có thể chỉnh sửa riêng từng biến thể sau.
+                                            </p>
                                         </div>
                                     )}
 
@@ -918,7 +1096,7 @@ const Products: React.FC = () => {
                                                         // Calculate number of variants
                                                         const count = selectedAttributes.reduce((acc, sa) => acc * sa.value_ids.length, 1);
                                                         setFormError('');
-                                                        alert(`Sẽ tạo ${count} biến thể từ các thuộc tính đã chọn khi lưu sản phẩm.`);
+                                                        alert(`Sẽ tạo ${count} biến thể với ${initialStock} sản phẩm mỗi biến thể khi lưu.`);
                                                     } finally {
                                                         setGeneratingVariants(false);
                                                     }
@@ -927,10 +1105,10 @@ const Products: React.FC = () => {
                                                 className="btn btn-primary w-full"
                                             >
                                                 {generatingVariants ? '⏳ Đang xử lý...' : `🚀 Xem trước biến thể (${selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)
-                                                    } tổ hợp)`}
+                                                    } tổ hợp x ${initialStock} SP)`}
                                             </button>
                                             <p className="text-xs text-slate-500 mt-2 text-center">
-                                                Sau khi tạo sản phẩm, bạn có thể chỉnh sửa giá và tồn kho cho từng biến thể
+                                                Biến thể sẽ được tạo khi bạn bấm "Thêm mới" hoặc "Cập nhật"
                                             </p>
                                         </div>
                                     )}
@@ -945,11 +1123,25 @@ const Products: React.FC = () => {
                             </div>
                         )}
 
-                        {/* No variants message */}
+                        {/* No variants - show initial stock input */}
                         {!hasVariants && (
-                            <p className="text-sm text-slate-500 italic">
-                                💡 Sản phẩm sẽ có 1 biến thể mặc định. Bạn có thể thêm biến thể sau khi tạo sản phẩm.
-                            </p>
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                <h4 className="font-medium text-amber-800 mb-3">📦 Số lượng sản phẩm ban đầu</h4>
+                                <p className="text-sm text-amber-700 mb-3">
+                                    Sản phẩm này không có biến thể. Nhập số lượng tồn kho ban đầu:
+                                </p>
+                                <input
+                                    type="number"
+                                    value={initialStock}
+                                    onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="input w-full"
+                                    min="0"
+                                    placeholder="Nhập số lượng..."
+                                />
+                                <p className="text-xs text-amber-600 mt-2">
+                                    💡 Bạn có thể cập nhật số lượng sau bằng cách quản lý biến thể.
+                                </p>
+                            </div>
                         )}
                     </div>
 

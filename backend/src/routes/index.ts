@@ -15,6 +15,7 @@ import * as stockTransferController from '../controllers/stock-transfer.controll
 import * as productVariantController from '../controllers/product-variant.controller';
 import * as uploadController from '../controllers/upload.controller';
 import * as attributeController from '../controllers/attribute.controller';
+import * as specificationController from '../controllers/specification.controller';
 
 const router = Router();
 
@@ -127,6 +128,16 @@ router.delete('/attributes/:id/values/:valueId', authenticate, isAdmin, attribut
 
 // Get attributes used by a product
 router.get('/products/:productId/attributes', authenticate, isViewer, attributeController.getProductAttributes);
+
+// ==================== PRODUCT SPECIFICATION ROUTES ====================
+// View specifications (any authenticated user)
+router.get('/products/:id/specifications', authenticate, isViewer, specificationController.getSpecificationsByProduct);
+
+// Manage specifications (admin/manager only)
+router.post('/products/:id/specifications', authenticate, isWarehouseManager, specificationController.createSpecification);
+router.post('/products/:id/specifications/bulk', authenticate, isWarehouseManager, specificationController.createBulkSpecifications);
+router.put('/specifications/:id', authenticate, isWarehouseManager, specificationController.updateSpecification);
+router.delete('/specifications/:id', authenticate, isWarehouseManager, specificationController.deleteSpecification);
 
 // ==================== UPLOAD ROUTES ====================
 router.post('/upload/image', authenticate, isWarehouseManager, uploadController.upload.single('image'), uploadController.uploadImage);

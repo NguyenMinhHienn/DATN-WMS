@@ -92,7 +92,7 @@ export interface Unit {
     is_active: boolean;
 }
 
-// Product Variant types (E-commerce model - flexible attributes)
+// Product Variant types (E-commerce model - flexible attributes + legacy support)
 export interface ProductVariant {
     id: number;
     product_id: number;
@@ -103,8 +103,15 @@ export interface ProductVariant {
     is_active: boolean;
     created_at: Date;
     updated_at: Date;
-    // Populated from variant_attribute_values
+    // Populated from variant_attribute_values (new flexible system)
     attribute_values?: VariantAttributeValue[];
+    // Legacy fields for backward compatibility
+    color?: string;
+    size?: string;
+    storage?: string;
+    ram?: string;
+    material?: string;
+    capacity?: string;
 }
 
 export interface ProductWithVariants extends Product {
@@ -176,14 +183,21 @@ export interface CreateAttributeValueDto {
     sort_order?: number;
 }
 
-// DTOs for Product Variant operations (flexible)
+// DTOs for Product Variant operations (flexible + legacy support)
 export interface CreateProductVariantDto {
     product_id: number;
     sku: string;
     price: number;
     stock?: number;
     image_url?: string;
-    attribute_value_ids?: number[]; // Array of attribute_value IDs
+    attribute_value_ids?: number[]; // Array of attribute_value IDs (new flexible system)
+    // Legacy fields for backward compatibility
+    color?: string;
+    size?: string;
+    storage?: string;
+    ram?: string;
+    material?: string;
+    capacity?: string;
 }
 
 export interface UpdateProductVariantDto {
@@ -193,6 +207,13 @@ export interface UpdateProductVariantDto {
     image_url?: string;
     is_active?: boolean;
     attribute_value_ids?: number[];
+    // Legacy fields for backward compatibility
+    color?: string;
+    size?: string;
+    storage?: string;
+    ram?: string;
+    material?: string;
+    capacity?: string;
 }
 
 // DTO for generating variant combinations

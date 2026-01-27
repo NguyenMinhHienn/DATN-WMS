@@ -55,5 +55,18 @@ export const productVariantService = {
     async checkStock(id: number, quantity: number = 1): Promise<boolean> {
         const response = await api.get<ApiResponse<{ in_stock: boolean }>>(`/variants/${id}/stock?quantity=${quantity}`);
         return response.data.data?.in_stock || false;
+    },
+
+    // Generate variants from attribute combinations (Admin)
+    async generateVariants(productId: number, data: {
+        attributes: { attribute_id: number; value_ids: number[] }[];
+        base_price?: number;
+        base_stock?: number;
+    }): Promise<ProductVariant[]> {
+        const response = await api.post<ApiResponse<ProductVariant[]>>(`/products/${productId}/variants/generate`, {
+            product_id: productId,
+            ...data
+        });
+        return response.data.data || [];
     }
 };
