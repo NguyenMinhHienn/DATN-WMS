@@ -16,6 +16,7 @@ import * as productVariantController from '../controllers/product-variant.contro
 import * as uploadController from '../controllers/upload.controller';
 import * as attributeController from '../controllers/attribute.controller';
 import * as specificationController from '../controllers/specification.controller';
+import * as orderController from '../controllers/order.controller';
 
 const router = Router();
 
@@ -143,6 +144,11 @@ router.delete('/specifications/:id', authenticate, isWarehouseManager, specifica
 router.post('/upload/image', authenticate, isWarehouseManager, uploadController.upload.single('image'), uploadController.uploadImage);
 router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadController.deleteImage);
 
+// ==================== ORDER ROUTES (Staff Read-Only) ====================
+// Staff có thể xem đơn hàng để theo dõi trạng thái
+router.get('/orders/users', authenticate, isStaff, orderController.getUsersWithOrders);
+router.get('/orders/:id', authenticate, isStaff, orderController.getOrderById);
+router.get('/orders/:id/items', authenticate, isStaff, orderController.getOrderItems);
+router.get('/users/:id/orders', authenticate, isStaff, orderController.getOrdersByUser);
+
 export default router;
-
-

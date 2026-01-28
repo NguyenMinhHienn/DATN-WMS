@@ -27,6 +27,8 @@ import ProductConfig from './pages/admin/ProductConfig';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import CreateTransfer from './pages/staff/CreateTransfer';
 import MyTransfers from './pages/staff/MyTransfers';
+import StaffProducts from './pages/staff/StaffProducts';
+import StaffOrders from './pages/staff/StaffOrders';
 
 // Client/Public Pages
 import Home from './pages/client/Home';
@@ -103,6 +105,8 @@ const App: React.FC = () => {
                         <Route path="dashboard" element={<StaffDashboard />} />
                         <Route path="create-transfer" element={<CreateTransfer />} />
                         <Route path="my-transfers" element={<MyTransfers />} />
+                        <Route path="products" element={<StaffProducts />} />
+                        <Route path="orders" element={<StaffOrders />} />
                     </Route>
 
                     {/* ==================== FALLBACK ==================== */}
