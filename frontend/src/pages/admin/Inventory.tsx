@@ -48,21 +48,29 @@ const InventoryPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn">
+            {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Tồn kho</h1>
-                <p className="text-slate-600">Theo dõi tồn kho tại các kho hàng</p>
+                <h1 className="text-2xl font-bold">
+                    <span className="gradient-text">Tồn kho</span>
+                </h1>
+                <p className="text-slate-400 mt-1">Theo dõi tồn kho tại các kho hàng</p>
             </div>
 
             {/* Low Stock Alert */}
             {lowStock.length > 0 && (
-                <div className="card mb-6 border-l-4 border-red-500 bg-red-50">
-                    <h3 className="font-semibold text-red-800 mb-2">⚠️ Cảnh báo sắp hết hàng</h3>
-                    <p className="text-sm text-red-700">{lowStock.length} sản phẩm dưới mức đặt hàng lại</p>
+                <div className="chart-container mb-6 border-l-4 border-red-500 bg-red-500/10">
+                    <div className="flex items-center gap-3">
+                        <span className="text-3xl animate-pulse">⚠️</span>
+                        <div>
+                            <h3 className="font-semibold text-red-400">Cảnh báo sắp hết hàng</h3>
+                            <p className="text-sm text-red-300/80">{lowStock.length} sản phẩm dưới mức đặt hàng lại</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Filters */}
-            <div className="card mb-6">
+            <div className="chart-container mb-6">
                 <div className="flex gap-4">
                     <select
                         value={selectedWarehouse || ''}
@@ -76,48 +84,59 @@ const InventoryPage: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="table-container">
+            <div className="chart-container p-0 overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
-                        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : (
                     <>
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Tồn kho</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Đã giữ</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Có sẵn</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {inventory.map(item => (
-                                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                                        <td className="py-3 px-4">
-                                            <p className="font-medium text-slate-800">{item.product_name}</p>
-                                            <p className="text-xs text-slate-500 font-mono">{item.sku}</p>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{item.warehouse_name}</td>
-                                        <td className="py-3 px-4 text-sm text-right font-medium">{item.quantity_on_hand}</td>
-                                        <td className="py-3 px-4 text-sm text-right text-amber-600">{item.quantity_reserved}</td>
-                                        <td className="py-3 px-4 text-sm text-right font-bold text-primary-600">{item.quantity_available}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            <span className={`text-xs px-2 py-1 rounded-full ${item.status === 'available' ? 'bg-emerald-100 text-emerald-700' :
-                                                item.status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
-                                                }`}>{item.status}</span>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                    <tr>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tồn kho</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Đã giữ</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Có sẵn</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
                                     </tr>
-                                ))}
-                                {inventory.length === 0 && (
-                                    <tr><td colSpan={6} className="py-12 text-center text-slate-500">Không có dữ liệu tồn kho</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <div className="px-4 pb-4">
+                                </thead>
+                                <tbody>
+                                    {inventory.map(item => (
+                                        <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
+                                            <td className="py-4 px-6">
+                                                <p className="font-medium text-white">{item.product_name}</p>
+                                                <p className="text-xs text-indigo-300 font-mono">{item.sku}</p>
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-slate-300">{item.warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-right font-medium text-white">{item.quantity_on_hand}</td>
+                                            <td className="py-4 px-6 text-sm text-right text-amber-400">{item.quantity_reserved}</td>
+                                            <td className="py-4 px-6 text-sm text-right font-bold text-indigo-400">{item.quantity_available}</td>
+                                            <td className="py-4 px-6 text-center">
+                                                <span className={`badge ${item.status === 'available' ? 'badge-success' :
+                                                        item.status === 'expired' ? 'badge-danger' : 'badge-warning'
+                                                    }`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {inventory.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="py-12 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <span className="text-4xl opacity-50">📦</span>
+                                                    <p className="text-slate-500">Không có dữ liệu tồn kho</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-700/50">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>

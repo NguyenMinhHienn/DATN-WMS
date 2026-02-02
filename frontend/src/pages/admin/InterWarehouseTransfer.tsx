@@ -46,9 +46,9 @@ const InterWarehouseTransfer: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            'approved': 'bg-green-100 text-green-800 border-green-300',
-            'rejected': 'bg-red-100 text-red-800 border-red-300',
+            'pending': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+            'approved': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            'rejected': 'bg-red-500/20 text-red-400 border-red-500/30',
         };
         const labels: Record<string, string> = {
             'pending': '⏳ Chờ duyệt',
@@ -56,7 +56,7 @@ const InterWarehouseTransfer: React.FC = () => {
             'rejected': '❌ Từ chối',
         };
         return (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${styles[status] || 'bg-gray-100'}`}>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${styles[status] || 'bg-slate-500/20'}`}>
                 {labels[status] || status}
             </span>
         );
@@ -67,33 +67,36 @@ const InterWarehouseTransfer: React.FC = () => {
     const pendingCount = transfers.filter(t => t.status === 'pending').length;
 
     return (
-        <div className="animate-fadeIn p-6">
-            <div className="flex justify-between items-center mb-6">
+        <div className="animate-fadeIn">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">🔄 Phiếu Chuyển Kho</h1>
-                    <p className="text-slate-600">Lịch sử và trạng thái các phiếu chuyển hàng giữa các kho</p>
+                    <h1 className="text-2xl font-bold">
+                        <span className="gradient-text">🔄 Phiếu Chuyển Kho</span>
+                    </h1>
+                    <p className="text-slate-400 mt-1">Lịch sử và trạng thái các phiếu chuyển hàng giữa các kho</p>
                 </div>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-                    <p className="text-sm text-gray-500">Đã chuyển</p>
-                    <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
+                <div className="chart-container border-l-4 border-emerald-500">
+                    <p className="text-sm text-slate-400">Đã chuyển</p>
+                    <p className="text-2xl font-bold text-emerald-400">{approvedCount}</p>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-                    <p className="text-sm text-gray-500">Chờ duyệt</p>
-                    <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
+                <div className="chart-container border-l-4 border-amber-500">
+                    <p className="text-sm text-slate-400">Chờ duyệt</p>
+                    <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
-                    <p className="text-sm text-gray-500">Tổng phiếu</p>
-                    <p className="text-2xl font-bold text-purple-600">{pagination.total}</p>
+                <div className="chart-container border-l-4 border-purple-500">
+                    <p className="text-sm text-slate-400">Tổng phiếu</p>
+                    <p className="text-2xl font-bold text-purple-400">{pagination.total}</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="card mb-6">
-                <div className="flex flex-wrap gap-4">
+            <div className="chart-container mb-6">
+                <div className="flex flex-wrap gap-4 items-center">
                     <select
                         value={selectedStatus}
                         onChange={(e) => { setSelectedStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
@@ -106,7 +109,7 @@ const InterWarehouseTransfer: React.FC = () => {
                     </select>
                     <button
                         onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                        className="text-slate-400 hover:text-white transition-colors"
                     >
                         Xóa bộ lọc
                     </button>
@@ -114,54 +117,63 @@ const InterWarehouseTransfer: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="chart-container p-0 overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
-                        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : (
                     <>
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã phiếu</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho nguồn</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Kho đích</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Ngày</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Số SP</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Người tạo</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {transfers.map(transfer => (
-                                    <tr key={transfer.id} className={`border-b border-slate-100 hover:bg-slate-50 ${transfer.status === 'pending' ? 'bg-yellow-50' : ''}`}>
-                                        <td className="py-3 px-4 font-mono text-sm font-medium text-primary-600">{transfer.transfer_number}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{transfer.source_warehouse_name}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{transfer.destination_warehouse_name}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
-                                        <td className="py-3 px-4 text-sm text-right">{transfer.total_items}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{transfer.created_by_name}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            {getStatusBadge(transfer.status)}
-                                        </td>
-                                        <td className="py-3 px-4 text-center">
-                                            <button
-                                                onClick={() => handleViewDetail(transfer.id)}
-                                                className="text-blue-600 hover:text-blue-800"
-                                            >
-                                                Chi tiết
-                                            </button>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                    <tr>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho nguồn</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho đích</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người tạo</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
                                     </tr>
-                                ))}
-                                {transfers.length === 0 && (
-                                    <tr><td colSpan={8} className="py-12 text-center text-slate-500">Không tìm thấy phiếu chuyển kho</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <div className="px-4 pb-4">
+                                </thead>
+                                <tbody>
+                                    {transfers.map(transfer => (
+                                        <tr key={transfer.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${transfer.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
+                                            <td className="py-4 px-6 font-mono text-sm font-medium text-purple-400">{transfer.transfer_number}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.source_warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.destination_warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-400">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
+                                            <td className="py-4 px-6 text-sm text-right text-white">{transfer.total_items}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.created_by_name}</td>
+                                            <td className="py-4 px-6 text-center">
+                                                {getStatusBadge(transfer.status)}
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <button
+                                                    onClick={() => handleViewDetail(transfer.id)}
+                                                    className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                                                >
+                                                    Chi tiết
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {transfers.length === 0 && (
+                                        <tr>
+                                            <td colSpan={8} className="py-12 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <span className="text-4xl opacity-50">🔄</span>
+                                                    <p className="text-slate-500">Không tìm thấy phiếu chuyển kho</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-700/50">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -170,67 +182,67 @@ const InterWarehouseTransfer: React.FC = () => {
 
             {/* Detail Modal */}
             {showDetailModal && selectedTransfer && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl shadow-purple-500/10">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold">🔄 Chi tiết phiếu chuyển: {selectedTransfer.transfer_number}</h2>
+                                <h2 className="text-xl font-bold text-white">🔄 Chi tiết phiếu chuyển: {selectedTransfer.transfer_number}</h2>
                                 <div className="flex gap-2 mt-2">
                                     {getStatusBadge(selectedTransfer.status)}
                                 </div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
+                            <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl transition-colors">
                                 ×
                             </button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                             <div>
-                                <span className="text-gray-500">Kho nguồn:</span>
-                                <p className="font-medium">{selectedTransfer.source_warehouse_name}</p>
+                                <span className="text-slate-500">Kho nguồn:</span>
+                                <p className="font-medium text-white">{selectedTransfer.source_warehouse_name}</p>
                             </div>
                             <div>
-                                <span className="text-gray-500">Kho đích:</span>
-                                <p className="font-medium">{selectedTransfer.destination_warehouse_name}</p>
+                                <span className="text-slate-500">Kho đích:</span>
+                                <p className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</p>
                             </div>
                             <div>
-                                <span className="text-gray-500">Ngày:</span>
-                                <p className="font-medium">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
+                                <span className="text-slate-500">Ngày:</span>
+                                <p className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
                             </div>
                             <div>
-                                <span className="text-gray-500">Người tạo:</span>
-                                <p className="font-medium">{selectedTransfer.created_by_name}</p>
+                                <span className="text-slate-500">Người tạo:</span>
+                                <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
                             </div>
                             <div>
-                                <span className="text-gray-500">Tổng giá trị:</span>
-                                <p className="font-medium text-lg">{selectedTransfer.total_value.toLocaleString()} đ</p>
+                                <span className="text-slate-500">Tổng giá trị:</span>
+                                <p className="font-medium text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()} đ</p>
                             </div>
                             {selectedTransfer.reason && (
                                 <div>
-                                    <span className="text-gray-500">Lý do:</span>
-                                    <p className="font-medium">{selectedTransfer.reason}</p>
+                                    <span className="text-slate-500">Lý do:</span>
+                                    <p className="font-medium text-white">{selectedTransfer.reason}</p>
                                 </div>
                             )}
                         </div>
 
                         {/* Transfer Direction Visualization */}
-                        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg mb-4">
+                        <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg mb-4">
                             <div className="flex items-center justify-center gap-4">
                                 <div className="text-center">
-                                    <p className="text-sm text-gray-500">Kho nguồn</p>
-                                    <p className="font-bold text-purple-700">{selectedTransfer.source_warehouse_name}</p>
+                                    <p className="text-sm text-slate-400">Kho nguồn</p>
+                                    <p className="font-bold text-purple-400">{selectedTransfer.source_warehouse_name}</p>
                                 </div>
                                 <div className="text-3xl text-purple-500">→</div>
                                 <div className="text-center">
-                                    <p className="text-sm text-gray-500">Kho đích</p>
-                                    <p className="font-bold text-purple-700">{selectedTransfer.destination_warehouse_name}</p>
+                                    <p className="text-sm text-slate-400">Kho đích</p>
+                                    <p className="font-bold text-purple-400">{selectedTransfer.destination_warehouse_name}</p>
                                 </div>
                             </div>
                         </div>
 
                         {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-                                <p className="text-red-700">
+                            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg mb-4">
+                                <p className="text-red-400">
                                     <strong>Lý do từ chối:</strong> {selectedTransfer.rejection_reason}
                                 </p>
                             </div>
@@ -239,44 +251,46 @@ const InterWarehouseTransfer: React.FC = () => {
                         {/* Items table */}
                         {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-medium mb-2">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
-                                <table className="w-full border text-sm">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-3 py-2 text-left border">SKU</th>
-                                            <th className="px-3 py-2 text-left border">Tên SP</th>
-                                            <th className="px-3 py-2 text-right border">SL</th>
-                                            <th className="px-3 py-2 text-right border">Đơn giá</th>
-                                            <th className="px-3 py-2 text-right border">Thành tiền</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedTransfer.items.map(item => (
-                                            <tr key={item.id}>
-                                                <td className="px-3 py-2 border font-mono">{item.sku}</td>
-                                                <td className="px-3 py-2 border">{item.product_name}</td>
-                                                <td className="px-3 py-2 text-right border">{item.quantity_requested}</td>
-                                                <td className="px-3 py-2 text-right border">{item.unit_cost.toLocaleString()}</td>
-                                                <td className="px-3 py-2 text-right border font-medium">{item.line_total.toLocaleString()}</td>
+                                <h3 className="font-medium mb-2 text-white">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
+                                <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-700/50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-slate-300">SKU</th>
+                                                <th className="px-4 py-3 text-left text-slate-300">Tên SP</th>
+                                                <th className="px-4 py-3 text-right text-slate-300">SL</th>
+                                                <th className="px-4 py-3 text-right text-slate-300">Đơn giá</th>
+                                                <th className="px-4 py-3 text-right text-slate-300">Thành tiền</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="bg-gray-50 font-medium">
-                                        <tr>
-                                            <td colSpan={2} className="px-3 py-2 border">Tổng cộng:</td>
-                                            <td className="px-3 py-2 text-right border">{selectedTransfer.total_quantity}</td>
-                                            <td className="px-3 py-2 border"></td>
-                                            <td className="px-3 py-2 text-right border text-lg">{selectedTransfer.total_value.toLocaleString()}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {selectedTransfer.items.map(item => (
+                                                <tr key={item.id} className="border-t border-slate-700/50">
+                                                    <td className="px-4 py-3 font-mono text-purple-300">{item.sku}</td>
+                                                    <td className="px-4 py-3 text-white">{item.product_name}</td>
+                                                    <td className="px-4 py-3 text-right text-white">{item.quantity_requested}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-300">{item.unit_cost.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-purple-400">{item.line_total.toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="bg-slate-700/50 font-medium">
+                                            <tr>
+                                                <td colSpan={2} className="px-4 py-3 text-slate-300">Tổng cộng:</td>
+                                                <td className="px-4 py-3 text-right text-white">{selectedTransfer.total_quantity}</td>
+                                                <td className="px-4 py-3"></td>
+                                                <td className="px-4 py-3 text-right text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex justify-end pt-4 border-t">
+                        <div className="flex justify-end pt-4 border-t border-slate-700/50">
                             <button
                                 onClick={() => setShowDetailModal(false)}
-                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                                className="btn btn-secondary"
                             >
                                 Đóng
                             </button>

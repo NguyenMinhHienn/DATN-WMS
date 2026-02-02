@@ -700,8 +700,10 @@ const Products: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Quản lý sản phẩm</h1>
-                    <p className="text-slate-600">Quản lý sản phẩm và biến thể theo danh mục</p>
+                    <h1 className="text-2xl font-bold">
+                        <span className="gradient-text">📦 Quản lý sản phẩm</span>
+                    </h1>
+                    <p className="text-slate-400 mt-1">Quản lý sản phẩm và biến thể theo danh mục</p>
                 </div>
                 {canEdit && (
                     <button onClick={handleCreate} className="btn btn-primary">
@@ -711,7 +713,7 @@ const Products: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="card mb-6">
+            <div className="chart-container mb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <input
                         type="text"
@@ -750,93 +752,98 @@ const Products: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="table-container">
+            <div className="chart-container p-0 overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
-                        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : (
                     <>
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Sản phẩm</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Mã SKU</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Danh mục</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Giá bán</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Trạng thái</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-slate-600">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {products.map(product => (
-                                    <tr key={product.id} className="border-b border-slate-100 hover:bg-slate-50">
-                                        <td className="py-3 px-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center text-slate-500 overflow-hidden">
-                                                    {product.image_url ? (
-                                                        <img src={uploadService.getImageUrl(product.image_url)} alt="" className="w-full h-full object-cover rounded-lg" />
-                                                    ) : '📦'}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-800">{product.name}</p>
-                                                    <p className="text-xs text-slate-500">{product.brand}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-slate-600 font-mono">{product.sku}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600">{product.category_name || '-'}</td>
-                                        <td className="py-3 px-4 text-sm font-medium text-slate-800 text-right">
-                                            {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
-                                        </td>
-                                        <td className="py-3 px-4 text-center">
-                                            <span className={`text-xs px-2 py-1 rounded-full ${product.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                                product.status === 'inactive' ? 'bg-slate-100 text-slate-600' :
-                                                    product.status === 'draft' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-red-100 text-red-700'
-                                                }`}>
-                                                {product.status === 'active' ? 'Đang bán' :
-                                                    product.status === 'inactive' ? 'Tạm ngừng' :
-                                                        product.status === 'draft' ? 'Nháp' : 'Ngừng KD'}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <div className="flex items-center justify-center gap-1">
-                                                {canEdit && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleManageVariants(product)}
-                                                            className="p-2 hover:bg-blue-50 rounded-lg text-blue-600"
-                                                            title="Quản lý biến thể"
-                                                        >🎨</button>
-                                                        <button
-                                                            onClick={() => handleEdit(product)}
-                                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-primary-600"
-                                                            title="Sửa"
-                                                        >✏️</button>
-                                                    </>
-                                                )}
-                                                {canDelete && (
-                                                    <button
-                                                        onClick={() => handleDelete(product)}
-                                                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-red-600"
-                                                        title="Xóa"
-                                                    >🗑️</button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {products.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-slate-500">
-                                            Không tìm thấy sản phẩm
-                                        </td>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã SKU</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Danh mục</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Giá bán</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <div className="px-4 pb-4">
+                                </thead>
+                                <tbody>
+                                    {products.map(product => (
+                                        <tr key={product.id} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-400 overflow-hidden">
+                                                        {product.image_url ? (
+                                                            <img src={uploadService.getImageUrl(product.image_url)} alt="" className="w-full h-full object-cover rounded-lg" />
+                                                        ) : '📦'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-white">{product.name}</p>
+                                                        <p className="text-xs text-slate-500">{product.brand}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-indigo-400 font-mono">{product.sku}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-300">{product.category_name || '-'}</td>
+                                            <td className="py-4 px-6 text-sm font-medium text-emerald-400 text-right">
+                                                {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <span className={`text-xs px-3 py-1 rounded-full border ${product.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                                    product.status === 'inactive' ? 'bg-slate-500/20 text-slate-400 border-slate-500/30' :
+                                                        product.status === 'draft' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                                            'bg-red-500/20 text-red-400 border-red-500/30'
+                                                    }`}>
+                                                    {product.status === 'active' ? 'Đang bán' :
+                                                        product.status === 'inactive' ? 'Tạm ngừng' :
+                                                            product.status === 'draft' ? 'Nháp' : 'Ngừng KD'}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {canEdit && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleManageVariants(product)}
+                                                                className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"
+                                                                title="Quản lý biến thể"
+                                                            >🎨</button>
+                                                            <button
+                                                                onClick={() => handleEdit(product)}
+                                                                className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                title="Sửa"
+                                                            >✏️</button>
+                                                        </>
+                                                    )}
+                                                    {canDelete && (
+                                                        <button
+                                                            onClick={() => handleDelete(product)}
+                                                            className="p-2 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                            title="Xóa"
+                                                        >🗑️</button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {products.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="py-12 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <span className="text-4xl opacity-50">📦</span>
+                                                    <p className="text-slate-500">Không tìm thấy sản phẩm</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-700/50">
                             <Pagination
                                 pagination={pagination}
                                 onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
