@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { StockTransfer, PaginationInfo } from '../../interface';
 
 /**
  * MyTransfers - Xem danh sách phiếu đã tạo (cho STAFF)
- * STAFF chỉ xem được phiếu của mình, KHÔNG có nút duyệt/từ chối
+ * Light theme modern với màu sắc tươi sáng
  */
 const MyTransfers: React.FC = () => {
     const [transfers, setTransfers] = useState<StockTransfer[]>([]);
@@ -45,9 +46,9 @@ const MyTransfers: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            'approved': 'bg-green-100 text-green-800 border-green-300',
-            'rejected': 'bg-red-100 text-red-800 border-red-300',
+            'pending': 'bg-amber-100 text-amber-700 border border-amber-200',
+            'approved': 'bg-green-100 text-green-700 border border-green-200',
+            'rejected': 'bg-red-100 text-red-700 border border-red-200',
         };
         const labels: Record<string, string> = {
             'pending': '⏳ Chờ duyệt',
@@ -55,131 +56,178 @@ const MyTransfers: React.FC = () => {
             'rejected': '❌ Từ chối',
         };
         return (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${styles[status] || 'bg-gray-100'}`}>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
                 {labels[status] || status}
             </span>
         );
     };
 
     const getTypeBadge = (type: string) => {
-        const configs: Record<string, { bg: string; label: string }> = {
-            'IMPORT': { bg: 'bg-emerald-100 text-emerald-700', label: '📥 Nhập kho' },
-            'EXPORT': { bg: 'bg-orange-100 text-orange-700', label: '📤 Xuất kho' },
-            'TRANSFER': { bg: 'bg-purple-100 text-purple-700', label: '🔄 Chuyển kho' },
+        const configs: Record<string, { className: string; label: string }> = {
+            'IMPORT': { className: 'bg-green-100 text-green-700 border border-green-200', label: '📥 Nhập kho' },
+            'EXPORT': { className: 'bg-orange-100 text-orange-700 border border-orange-200', label: '📤 Xuất kho' },
+            'TRANSFER': { className: 'bg-purple-100 text-purple-700 border border-purple-200', label: '🔄 Chuyển kho' },
         };
-        const config = configs[type] || { bg: 'bg-gray-100', label: type };
-        return <span className={`px-2 py-1 rounded text-sm ${config.bg}`}>{config.label}</span>;
+        const config = configs[type] || { className: 'bg-gray-100 text-gray-700', label: type };
+        return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>{config.label}</span>;
     };
 
+    if (loading && transfers.length === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-600 font-medium">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div>
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Phiếu đã tạo</h1>
-                <p className="text-slate-600">Theo dõi trạng thái các phiếu bạn đã gửi</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <span className="text-2xl">📋</span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-800">Phiếu đã tạo</h1>
+                        <p className="text-slate-500">Theo dõi trạng thái các phiếu bạn đã gửi</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Filter */}
-            <div className="bg-white rounded-xl shadow p-4 mb-6">
-                <div className="flex items-center gap-4">
-                    <label className="text-sm text-slate-600">Lọc theo trạng thái:</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-3 py-2 border border-slate-300 rounded-lg"
+            {/* Filter & Stats */}
+            <div className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-slate-100">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <label className="text-sm font-medium text-slate-600">Lọc theo trạng thái:</label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        >
+                            <option value="">Tất cả</option>
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="approved">Đã duyệt</option>
+                            <option value="rejected">Từ chối</option>
+                        </select>
+                    </div>
+                    <Link
+                        to="/staff/create-transfer"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
                     >
-                        <option value="">Tất cả</option>
-                        <option value="pending">Chờ duyệt</option>
-                        <option value="approved">Đã duyệt</option>
-                        <option value="rejected">Từ chối</option>
-                    </select>
+                        ➕ Tạo phiếu mới
+                    </Link>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mã phiếu</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Loại</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Kho</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Số lượng</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Trạng thái</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Ngày tạo</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Chi tiết</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
-                        {loading ? (
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
                             <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
-                                    <div className="flex justify-center">
-                                        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                </td>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Mã phiếu</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Loại</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Kho</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Số lượng</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Trạng thái</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Ngày tạo</th>
+                                <th className="text-right py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Thao tác</th>
                             </tr>
-                        ) : transfers.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
-                                    Bạn chưa tạo phiếu nào
-                                </td>
-                            </tr>
-                        ) : (
-                            transfers.map((transfer) => (
-                                <tr key={transfer.id} className="hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-medium text-slate-800">
-                                        {transfer.transfer_number}
-                                    </td>
-                                    <td className="px-6 py-4">{getTypeBadge(transfer.transfer_type)}</td>
-                                    <td className="px-6 py-4 text-slate-600">
-                                        {transfer.transfer_type === 'IMPORT' && transfer.destination_warehouse_name}
-                                        {transfer.transfer_type === 'EXPORT' && transfer.source_warehouse_name}
-                                        {transfer.transfer_type === 'TRANSFER' && (
-                                            <>{transfer.source_warehouse_name} → {transfer.destination_warehouse_name}</>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-600">
-                                        {transfer.total_quantity} ({transfer.total_items} SP)
-                                    </td>
-                                    <td className="px-6 py-4">{getStatusBadge(transfer.status)}</td>
-                                    <td className="px-6 py-4 text-slate-600">
-                                        {new Date(transfer.created_at).toLocaleDateString('vi-VN')}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => viewDetail(transfer.id)}
-                                            className="text-emerald-600 hover:text-emerald-800 font-medium"
-                                        >
-                                            Xem
-                                        </button>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} className="py-12 text-center">
+                                        <div className="flex justify-center">
+                                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : transfers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <span className="text-5xl opacity-50">📋</span>
+                                            <p className="text-slate-500 font-medium">Bạn chưa tạo phiếu nào</p>
+                                            <Link
+                                                to="/staff/create-transfer"
+                                                className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                                            >
+                                                ➕ Tạo phiếu đầu tiên
+                                            </Link>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                transfers.map((transfer) => (
+                                    <tr key={transfer.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="py-4 px-6">
+                                            <span className="font-mono text-sm font-semibold text-indigo-600">
+                                                {transfer.transfer_number}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-6">{getTypeBadge(transfer.transfer_type)}</td>
+                                        <td className="py-4 px-6 text-slate-700">
+                                            {transfer.transfer_type === 'IMPORT' && transfer.destination_warehouse_name}
+                                            {transfer.transfer_type === 'EXPORT' && transfer.source_warehouse_name}
+                                            {transfer.transfer_type === 'TRANSFER' && (
+                                                <span className="flex items-center gap-2">
+                                                    <span>{transfer.source_warehouse_name}</span>
+                                                    <span className="text-indigo-500 font-bold">→</span>
+                                                    <span>{transfer.destination_warehouse_name}</span>
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-4 px-6 text-slate-700">
+                                            <span className="font-semibold">{transfer.total_quantity}</span>
+                                            <span className="text-slate-400 ml-1">({transfer.total_items} SP)</span>
+                                        </td>
+                                        <td className="py-4 px-6">{getStatusBadge(transfer.status)}</td>
+                                        <td className="py-4 px-6 text-slate-500">
+                                            {new Date(transfer.created_at).toLocaleDateString('vi-VN')}
+                                        </td>
+                                        <td className="py-4 px-6 text-right">
+                                            <button
+                                                onClick={() => viewDetail(transfer.id)}
+                                                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 rounded-lg transition-all"
+                                            >
+                                                Xem chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                    <div className="px-6 py-4 border-t flex justify-between items-center">
-                        <span className="text-sm text-slate-600">
+                    <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-slate-50">
+                        <span className="text-sm text-slate-500">
                             Hiển thị {transfers.length} / {pagination.total} phiếu
                         </span>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
                                 disabled={pagination.page === 1}
-                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                                Trước
+                                ← Trước
                             </button>
-                            <span className="px-3 py-1">{pagination.page} / {pagination.totalPages}</span>
+                            <span className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg">
+                                {pagination.page} / {pagination.totalPages}
+                            </span>
                             <button
                                 onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
                                 disabled={pagination.page === pagination.totalPages}
-                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                                Sau
+                                Sau →
                             </button>
                         </div>
                     </div>
@@ -188,77 +236,99 @@ const MyTransfers: React.FC = () => {
 
             {/* Detail Modal */}
             {selectedTransfer && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 m-4">
-                        <div className="flex justify-between items-start mb-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto m-4 shadow-2xl">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-start">
                             <div>
-                                <h2 className="text-xl font-bold">Phiếu: {selectedTransfer.transfer_number}</h2>
-                                <div className="flex gap-2 mt-2">
+                                <h2 className="text-xl font-bold text-slate-800">Phiếu: {selectedTransfer.transfer_number}</h2>
+                                <div className="flex gap-2 mt-3">
                                     {getTypeBadge(selectedTransfer.transfer_type)}
                                     {getStatusBadge(selectedTransfer.status)}
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedTransfer(null)} className="text-slate-400 hover:text-slate-600 text-2xl">
+                            <button
+                                onClick={() => setSelectedTransfer(null)}
+                                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-2xl"
+                            >
                                 ×
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                            {selectedTransfer.source_warehouse_name && (
-                                <div>
-                                    <span className="text-slate-500">Kho nguồn:</span>
-                                    <p className="font-medium">{selectedTransfer.source_warehouse_name}</p>
+                        {/* Modal Content */}
+                        <div className="p-6">
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                {selectedTransfer.source_warehouse_name && (
+                                    <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Kho nguồn</span>
+                                        <p className="font-semibold text-slate-800 mt-1">{selectedTransfer.source_warehouse_name}</p>
+                                    </div>
+                                )}
+                                {selectedTransfer.destination_warehouse_name && (
+                                    <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Kho đích</span>
+                                        <p className="font-semibold text-slate-800 mt-1">{selectedTransfer.destination_warehouse_name}</p>
+                                    </div>
+                                )}
+                                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wider">Ngày tạo</span>
+                                    <p className="font-semibold text-slate-800 mt-1">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
+                                </div>
+                                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                                    <span className="text-xs font-medium text-green-600 uppercase tracking-wider">Tổng giá trị</span>
+                                    <p className="font-semibold text-green-600 mt-1">{selectedTransfer.total_value.toLocaleString()} đ</p>
+                                </div>
+                            </div>
+
+                            {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
+                                    <p className="text-red-700">
+                                        <strong className="text-red-800">Lý do từ chối:</strong> {selectedTransfer.rejection_reason}
+                                    </p>
                                 </div>
                             )}
-                            {selectedTransfer.destination_warehouse_name && (
+
+                            {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                                 <div>
-                                    <span className="text-slate-500">Kho đích:</span>
-                                    <p className="font-medium">{selectedTransfer.destination_warehouse_name}</p>
+                                    <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                                        <span className="w-6 h-6 bg-indigo-100 rounded flex items-center justify-center text-sm">📦</span>
+                                        Danh sách sản phẩm
+                                    </h3>
+                                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">SKU</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Tên SP</th>
+                                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">SL</th>
+                                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Đơn giá</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {selectedTransfer.items.map(item => (
+                                                    <tr key={item.id} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-3 text-slate-500 font-mono">{item.sku}</td>
+                                                        <td className="px-4 py-3 text-slate-800 font-medium">{item.product_name}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-800 font-semibold">{item.quantity_requested}</td>
+                                                        <td className="px-4 py-3 text-right text-green-600 font-medium">{item.unit_cost.toLocaleString()} đ</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
-                            <div>
-                                <span className="text-slate-500">Ngày:</span>
-                                <p className="font-medium">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-500">Tổng giá trị:</span>
-                                <p className="font-medium">{selectedTransfer.total_value.toLocaleString()} đ</p>
-                            </div>
                         </div>
 
-                        {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-                                <p className="text-red-700">
-                                    <strong>Lý do từ chối:</strong> {selectedTransfer.rejection_reason}
-                                </p>
-                            </div>
-                        )}
-
-                        {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                            <div>
-                                <h3 className="font-medium mb-2">Danh sách sản phẩm</h3>
-                                <table className="w-full border text-sm">
-                                    <thead className="bg-slate-50">
-                                        <tr>
-                                            <th className="px-3 py-2 text-left border">SKU</th>
-                                            <th className="px-3 py-2 text-left border">Tên SP</th>
-                                            <th className="px-3 py-2 text-right border">SL</th>
-                                            <th className="px-3 py-2 text-right border">Đơn giá</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedTransfer.items.map(item => (
-                                            <tr key={item.id}>
-                                                <td className="px-3 py-2 border">{item.sku}</td>
-                                                <td className="px-3 py-2 border">{item.product_name}</td>
-                                                <td className="px-3 py-2 text-right border">{item.quantity_requested}</td>
-                                                <td className="px-3 py-2 text-right border">{item.unit_cost.toLocaleString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                        {/* Modal Footer */}
+                        <div className="p-6 border-t border-slate-100 flex justify-end">
+                            <button
+                                onClick={() => setSelectedTransfer(null)}
+                                className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-medium"
+                            >
+                                Đóng
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

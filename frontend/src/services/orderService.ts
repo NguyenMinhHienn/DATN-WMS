@@ -38,6 +38,7 @@ export interface OrderItem {
     unit_price: number;
     line_total: number;
     variant_attributes?: string;
+    image_url?: string;
 }
 
 

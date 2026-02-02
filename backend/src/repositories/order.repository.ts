@@ -39,6 +39,7 @@ export interface OrderItem {
     unit_price: number;
     line_total: number;
     variant_attributes?: string;
+    image_url?: string;
 }
 
 
@@ -147,8 +148,10 @@ class OrderRepository {
                 coi.quantity,
                 coi.unit_price,
                 coi.line_total,
-                coi.variant_attributes
+                coi.variant_attributes,
+                p.image_url
             FROM customer_order_items coi
+            LEFT JOIN products p ON coi.product_id = p.id
             WHERE coi.order_id = ?
             ORDER BY coi.id ASC
         `;
@@ -176,8 +179,10 @@ class OrderRepository {
                 coi.quantity,
                 coi.unit_price,
                 coi.line_total,
-                coi.variant_attributes
+                coi.variant_attributes,
+                p.image_url
             FROM customer_order_items coi
+            LEFT JOIN products p ON coi.product_id = p.id
             WHERE coi.order_id = ?
             ORDER BY coi.id ASC
         `;

@@ -1,32 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
 import { Warehouse, Product } from '../../interface';
 
 /**
- * CreateTransfer - Trang tạo phiếu NHẬP/XUẤT/CHUYỂN KHO cho STAFF
- * 
- * - IMPORT (Nhập kho): Nhập thông tin sản phẩm mới → Kho đích
- * - EXPORT (Xuất kho): Chọn sản phẩm có sẵn từ Kho nguồn
- * - TRANSFER (Chuyển kho): Chọn sản phẩm từ Kho nguồn → Kho đích
+ * CreateTransfer - Light theme modern
+ * Tạo phiếu NHẬP/XUẤT/CHUYỂN KHO cho STAFF
  */
 
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
 interface FormItem {
-    // Dùng cho EXPORT/TRANSFER
     product_id?: number;
-
-    // Dùng cho IMPORT (nhập mới)
     product_name: string;
     product_sku: string;
     product_image_url: string;
     image_file?: File | null;
     image_preview?: string;
-
-    // Chung
     quantity: number;
     unit_price: number;
     notes: string;
@@ -151,8 +143,6 @@ const CreateTransfer: React.FC = () => {
                 })
             };
 
-            console.log('[CreateTransfer] Sending payload:', payload);
-
             await stockTransferService.createTransfer(payload as any);
 
             const typeLabel = transferType === 'IMPORT' ? 'nhập kho' : transferType === 'EXPORT' ? 'xuất kho' : 'chuyển kho';
@@ -213,67 +203,81 @@ const CreateTransfer: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-600 font-medium">Đang tải dữ liệu...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Tạo phiếu kho</h1>
-                <p className="text-slate-600">Chọn loại phiếu và nhập thông tin sản phẩm</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+            {/* Header */}
+            <div className="max-w-5xl mx-auto mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <Link to="/staff/dashboard" className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-slate-200">
+                        <span className="text-lg">←</span>
+                    </Link>
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <span className="text-2xl">📝</span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-800">Tạo phiếu kho</h1>
+                        <p className="text-slate-500">Chọn loại phiếu và nhập thông tin sản phẩm</p>
+                    </div>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg">
+            <form onSubmit={handleSubmit} className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
                 {error && (
-                    <div className="m-6 mb-0 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                        <strong>Lỗi:</strong> {error}
+                    <div className="m-6 mb-0 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+                        <strong>⚠️ Lỗi:</strong> {error}
                     </div>
                 )}
 
                 {/* Transfer Type Selection */}
-                <div className="p-6 border-b">
-                    <label className="block text-sm font-medium text-slate-700 mb-3">Loại phiếu *</label>
+                <div className="p-6 border-b border-slate-100">
+                    <label className="block text-sm font-semibold text-slate-700 mb-4">Loại phiếu *</label>
                     <div className="grid grid-cols-3 gap-4">
                         {[
-                            { type: 'IMPORT' as const, icon: '📥', label: 'Nhập kho', desc: 'Nhập sản phẩm mới vào kho', color: 'emerald' },
-                            { type: 'EXPORT' as const, icon: '📤', label: 'Xuất kho', desc: 'Xuất hàng khỏi kho', color: 'orange' },
-                            { type: 'TRANSFER' as const, icon: '🔄', label: 'Chuyển kho', desc: 'Chuyển giữa 2 kho', color: 'purple' },
+                            { type: 'IMPORT' as const, icon: '📥', label: 'Nhập kho', desc: 'Nhập sản phẩm mới vào kho', gradient: 'from-emerald-500 to-green-600', border: 'border-emerald-200', bg: 'bg-emerald-50' },
+                            { type: 'EXPORT' as const, icon: '📤', label: 'Xuất kho', desc: 'Xuất hàng khỏi kho', gradient: 'from-orange-500 to-amber-500', border: 'border-orange-200', bg: 'bg-orange-50' },
+                            { type: 'TRANSFER' as const, icon: '🔄', label: 'Chuyển kho', desc: 'Chuyển giữa 2 kho', gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-200', bg: 'bg-purple-50' },
                         ].map((item) => (
                             <button
                                 key={item.type}
                                 type="button"
                                 onClick={() => {
                                     setTransferType(item.type);
-                                    setFormItems([{ ...emptyItem }]); // Reset items
+                                    setFormItems([{ ...emptyItem }]);
                                 }}
-                                className={`p-4 rounded-xl border-2 text-left transition-all ${transferType === item.type
-                                        ? `border-${item.color}-500 bg-${item.color}-50 ring-2 ring-${item.color}-200`
-                                        : 'border-slate-200 hover:border-slate-300'
+                                className={`p-5 rounded-2xl border-2 text-left transition-all duration-300 ${transferType === item.type
+                                    ? `bg-gradient-to-br ${item.gradient} text-white border-transparent shadow-lg scale-[1.02]`
+                                    : `${item.bg} ${item.border} hover:shadow-md`
                                     }`}
                             >
                                 <span className="text-3xl block mb-2">{item.icon}</span>
-                                <p className="font-semibold">{item.label}</p>
-                                <p className="text-xs text-slate-500">{item.desc}</p>
+                                <p className={`font-bold ${transferType === item.type ? 'text-white' : 'text-slate-800'}`}>{item.label}</p>
+                                <p className={`text-xs mt-1 ${transferType === item.type ? 'text-white/80' : 'text-slate-500'}`}>{item.desc}</p>
                             </button>
                         ))}
                     </div>
                 </div>
 
                 {/* Warehouse Selection */}
-                <div className="p-6 border-b">
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                     <div className="grid grid-cols-2 gap-6">
                         {(transferType === 'EXPORT' || transferType === 'TRANSFER') && (
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
                                     Kho nguồn <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={sourceWarehouseId || ''}
                                     onChange={(e) => setSourceWarehouseId(Number(e.target.value) || undefined)}
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     required
                                 >
                                     <option value="">-- Chọn kho nguồn --</option>
@@ -285,13 +289,13 @@ const CreateTransfer: React.FC = () => {
                         )}
                         {(transferType === 'IMPORT' || transferType === 'TRANSFER') && (
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
                                     Kho đích <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={destWarehouseId || ''}
                                     onChange={(e) => setDestWarehouseId(Number(e.target.value) || undefined)}
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     required
                                 >
                                     <option value="">-- Chọn kho đích --</option>
@@ -302,12 +306,12 @@ const CreateTransfer: React.FC = () => {
                             </div>
                         )}
                         <div className={transferType === 'IMPORT' ? 'col-span-1' : ''}>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Lý do</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">Lý do</label>
                             <input
                                 type="text"
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg"
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="Nhập lý do..."
                             />
                         </div>
@@ -315,23 +319,32 @@ const CreateTransfer: React.FC = () => {
                 </div>
 
                 {/* Items */}
-                <div className="p-6 border-b">
-                    <div className="flex justify-between items-center mb-4">
-                        <label className="text-lg font-medium text-slate-700">
+                <div className="p-6 border-b border-slate-100">
+                    <div className="flex justify-between items-center mb-5">
+                        <label className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-sm">📦</span>
                             Danh sách sản phẩm <span className="text-red-500">*</span>
                         </label>
-                        <button type="button" onClick={addItem} className="px-4 py-2 text-emerald-600 hover:text-emerald-700 font-medium">
+                        <button
+                            type="button"
+                            onClick={addItem}
+                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors font-medium text-sm"
+                        >
                             + Thêm sản phẩm
                         </button>
                     </div>
 
                     <div className="space-y-4">
                         {formItems.map((item, index) => (
-                            <div key={index} className="p-4 bg-slate-50 rounded-xl border">
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className="text-sm font-medium text-slate-500">Sản phẩm #{index + 1}</span>
+                            <div key={index} className="p-5 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all">
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium">Sản phẩm #{index + 1}</span>
                                     {formItems.length > 1 && (
-                                        <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 text-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(index)}
+                                            className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors"
+                                        >
                                             ❌ Xóa
                                         </button>
                                     )}
@@ -342,70 +355,70 @@ const CreateTransfer: React.FC = () => {
                                     <>
                                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                             <div className="md:col-span-2">
-                                                <label className="block text-xs text-slate-500 mb-1">Tên SP *</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Tên SP *</label>
                                                 <input
                                                     type="text"
                                                     value={item.product_name}
                                                     onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                     placeholder="Tên sản phẩm"
                                                     required
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Mã SKU</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Mã SKU</label>
                                                 <input
                                                     type="text"
                                                     value={item.product_sku}
                                                     onChange={(e) => updateItem(index, 'product_sku', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                     placeholder="Tự động"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Số lượng *</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
                                                 <input
                                                     type="number" min="1" value={item.quantity}
                                                     onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-center"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                     required
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Đơn giá</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Đơn giá</label>
                                                 <input
                                                     type="number" min="0" value={item.unit_price}
                                                     onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                 />
                                             </div>
                                         </div>
                                         {/* Hình ảnh */}
-                                        <div className="mt-3 grid grid-cols-3 gap-4">
+                                        <div className="mt-4 grid grid-cols-3 gap-4">
                                             <div>
                                                 <input type="file" accept="image/*" ref={el => fileInputRefs.current[index] = el} className="hidden"
                                                     onChange={(e) => handleFileSelect(index, e.target.files?.[0] || null)} />
                                                 <button type="button" onClick={() => triggerFileInput(index)}
-                                                    className="w-full px-3 py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-emerald-400 text-sm">
+                                                    className="w-full px-3 py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 text-sm transition-colors bg-white">
                                                     📷 Chọn hình
                                                 </button>
                                             </div>
                                             <div>
                                                 <input type="url" value={item.product_image_url}
                                                     onChange={(e) => updateItem(index, 'product_image_url', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                     placeholder="URL hình" />
                                             </div>
                                             <div>
                                                 <input type="text" value={item.notes}
                                                     onChange={(e) => updateItem(index, 'notes', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                     placeholder="Ghi chú" />
                                             </div>
                                         </div>
                                         {(item.image_preview || item.product_image_url) && (
                                             <img src={item.image_preview || item.product_image_url} alt="Preview"
-                                                className="mt-2 h-12 w-12 object-cover rounded border"
+                                                className="mt-3 h-14 w-14 object-cover rounded-xl border-2 border-slate-200 shadow-sm"
                                                 onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                                         )}
                                     </>
@@ -413,11 +426,11 @@ const CreateTransfer: React.FC = () => {
                                     /* EXPORT/TRANSFER: Chọn sản phẩm có sẵn */
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div className="md:col-span-2">
-                                            <label className="block text-xs text-slate-500 mb-1">Sản phẩm *</label>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Sản phẩm *</label>
                                             <select
                                                 value={item.product_id || ''}
                                                 onChange={(e) => updateItem(index, 'product_id', Number(e.target.value))}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                 required
                                             >
                                                 <option value="">-- Chọn sản phẩm --</option>
@@ -426,38 +439,38 @@ const CreateTransfer: React.FC = () => {
                                                 ))}
                                             </select>
                                             {item.product_id && getProduct(item.product_id) && (
-                                                <div className="mt-1 flex items-center gap-2">
+                                                <div className="mt-2 flex items-center gap-2">
                                                     {getProduct(item.product_id)?.image_url && (
-                                                        <img src={getProduct(item.product_id)?.image_url} className="h-8 w-8 rounded object-cover" />
+                                                        <img src={getProduct(item.product_id)?.image_url} className="h-10 w-10 rounded-lg object-cover border border-slate-200 shadow-sm" />
                                                     )}
-                                                    <span className="text-xs text-slate-500">{getProduct(item.product_id)?.name}</span>
+                                                    <span className="text-sm text-slate-600">{getProduct(item.product_id)?.name}</span>
                                                 </div>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">Số lượng *</label>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
                                             <input
                                                 type="number" min="1" value={item.quantity}
                                                 onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-center"
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                 required
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">Đơn giá</label>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Đơn giá</label>
                                             <input
                                                 type="number" min="0" value={item.unit_price}
                                                 onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                             />
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Thành tiền */}
-                                <div className="mt-3 text-right">
-                                    <span className="text-sm text-slate-600">Thành tiền: </span>
-                                    <span className="font-bold text-emerald-600">{calculations.itemTotals[index]?.toLocaleString() || 0} đ</span>
+                                <div className="mt-4 text-right">
+                                    <span className="text-sm text-slate-500">Thành tiền: </span>
+                                    <span className="font-bold text-green-600 text-lg">{calculations.itemTotals[index]?.toLocaleString() || 0} đ</span>
                                 </div>
                             </div>
                         ))}
@@ -465,24 +478,31 @@ const CreateTransfer: React.FC = () => {
                 </div>
 
                 {/* Summary & Actions */}
-                <div className="p-6 bg-slate-50 rounded-b-xl">
+                <div className="p-6 bg-gradient-to-r from-slate-50 to-indigo-50">
                     <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <p className="text-sm text-slate-600">Số sản phẩm: <strong>{formItems.length}</strong></p>
-                            <p className="text-sm text-slate-600">Tổng SL: <strong>{calculations.totalQty}</strong></p>
+                        <div className="space-y-1">
+                            <p className="text-sm text-slate-600">Số sản phẩm: <strong className="text-slate-800">{formItems.length}</strong></p>
+                            <p className="text-sm text-slate-600">Tổng SL: <strong className="text-slate-800">{calculations.totalQty}</strong></p>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-slate-600">Tổng tiền:</p>
-                            <p className="text-3xl font-bold text-emerald-600">{calculations.grandTotal.toLocaleString()} đ</p>
+                            <p className="text-sm text-slate-600 mb-1">Tổng tiền:</p>
+                            <p className="text-3xl font-bold text-green-600">{calculations.grandTotal.toLocaleString()} đ</p>
                         </div>
                     </div>
 
                     <div className="flex justify-end gap-4">
-                        <button type="button" onClick={() => navigate('/staff/dashboard')} className="px-6 py-3 text-slate-600 hover:text-slate-800">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/staff/dashboard')}
+                            className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                        >
                             Hủy
                         </button>
-                        <button type="submit" disabled={submitting}
-                            className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2">
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 font-medium flex items-center gap-2"
+                        >
                             {submitting ? (
                                 <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tạo...</>
                             ) : (
