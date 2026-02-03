@@ -25,6 +25,9 @@ router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
+router.put('/auth/profile', authenticate, authController.updateProfile);
+router.put('/auth/password', authenticate, authController.changePassword);
+router.post('/auth/avatar', authenticate, uploadController.upload.single('avatar'), uploadController.uploadAvatar);
 
 // ==================== USER ROUTES ====================
 router.get('/users', authenticate, isAdmin, userController.getAllUsers);

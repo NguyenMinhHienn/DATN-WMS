@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,8 +9,21 @@ import { useAuth } from '../context/AuthContext';
  */
 export const StaffLayout: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -75,22 +88,48 @@ export const StaffLayout: React.FC = () => {
                         </ul>
                     </nav>
 
-                    {/* User section */}
-                    <div className="border-t border-slate-200 p-4">
-                        <div className="flex items-center gap-3 mb-3">
+                    {/* User section with dropdown */}
+                    <div className="border-t border-slate-200 p-4 relative" ref={dropdownRef}>
+                        {/* Dropdown Menu */}
+                        {dropdownOpen && (
+                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                <button
+                                    onClick={() => { navigate('/profile'); setDropdownOpen(false); setSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                >
+                                    <span>👤</span> Thông tin cá nhân
+                                </button>
+                                <button
+                                    onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); setSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                >
+                                    <span>🔒</span> Đổi mật khẩu
+                                </button>
+                                <div className="border-t border-slate-200"></div>
+                                <button
+                                    onClick={() => { handleLogout(); setDropdownOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
+                                >
+                                    <span>🚪</span> Đăng xuất
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Clickable User Card */}
+                        <button
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
                             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-medium">
                                 {user?.full_name?.charAt(0) || 'S'}
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 text-left">
                                 <p className="font-medium text-slate-800 truncate">{user?.full_name}</p>
                                 <p className="text-xs text-emerald-600 font-medium">STAFF</p>
                             </div>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="w-full px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm"
-                        >
-                            Đăng xuất
+                            <svg className={`w-5 h-5 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
                         </button>
                     </div>
                 </div>

@@ -38,6 +38,9 @@ import ProductList from './pages/client/ProductList';
 import ProductDetail from './pages/client/ProductDetail';
 import AccessDenied from './pages/client/AccessDenied';
 
+// Shared Pages
+import Profile from './pages/Profile';
+
 /**
  * App Routing Structure:
  * 
@@ -53,6 +56,10 @@ import AccessDenied from './pages/client/AccessDenied';
  * CLIENT (/):
  *   - Xem sản phẩm, trang chủ
  *   - Mọi người đều truy cập được
+ * 
+ * PROFILE (/profile):
+ *   - Trang thông tin cá nhân
+ *   - Tất cả authenticated users đều truy cập được
  */
 const App: React.FC = () => {
     return (
@@ -66,6 +73,9 @@ const App: React.FC = () => {
                     <Route path="/products" element={<ProductList />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
                     <Route path="/403" element={<AccessDenied />} />
+
+                    {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
+                    <Route path="/profile" element={<Profile />} />
 
                     {/* ==================== ADMIN ROUTES ==================== */}
                     {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}

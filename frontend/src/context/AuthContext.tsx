@@ -47,6 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return user.roles.some(r => roles.includes(r.name));
     }, [user]);
 
+    const refreshUser = useCallback(async () => {
+        try {
+            const response = await authService.getCurrentUser();
+            setUser(response);
+            sessionStorage.setItem('user', JSON.stringify(response));
+        } catch (error) {
+            console.error('Failed to refresh user:', error);
+        }
+    }, []);
+
     const value: AuthContextType = {
         user,
         token,
@@ -56,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         hasRole,
         hasAnyRole,
+        refreshUser,
     };
 
     return (

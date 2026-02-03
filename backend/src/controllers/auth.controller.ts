@@ -101,3 +101,77 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
         data: result,
     } as ApiResponse);
 });
+
+/**
+ * Update user profile
+ * PUT /auth/profile
+ */
+export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authenticated',
+        } as ApiResponse);
+    }
+
+    const { full_name, email, phone } = req.body;
+
+    // Validate email if provided
+    if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email không hợp lệ',
+            } as ApiResponse);
+        }
+    }
+
+    const updatedUser = await authService.updateProfile(req.user.userId, {
+        full_name,
+        email,
+        phone,
+    });
+
+    res.json({
+        success: true,
+        message: 'Cập nhật thông tin thành công',
+        data: updatedUser,
+    } as ApiResponse);
+});
+
+/**
+ * Change password
+ * PUT /auth/password
+ */
+export const changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authenticated',
+        } as ApiResponse);
+    }
+
+    const { current_password, new_password } = req.body;
+
+    if (!current_password || !new_password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mật khẩu hiện tại và mật khẩu mới là bắt buộc',
+        } as ApiResponse);
+    }
+
+    if (new_password.length < 6) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mật khẩu mới phải có ít nhất 6 ký tự',
+        } as ApiResponse);
+    }
+
+    await authService.changePassword(req.user.userId, current_password, new_password);
+
+    res.json({
+        success: true,
+        message: 'Đổi mật khẩu thành công',
+    } as ApiResponse);
+});

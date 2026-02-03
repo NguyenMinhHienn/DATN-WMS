@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 /**
@@ -8,7 +8,10 @@ import { useAuth } from '../../context/AuthContext';
  */
 const Home: React.FC = () => {
     const { isAuthenticated, user, logout } = useAuth();
+    const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Auto slide cho banner
     useEffect(() => {
@@ -16,6 +19,17 @@ const Home: React.FC = () => {
             setCurrentSlide(prev => (prev + 1) % 3);
         }, 5000);
         return () => clearInterval(timer);
+    }, []);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const handleLogout = () => {
@@ -79,22 +93,56 @@ const Home: React.FC = () => {
 
                     {/* User/Auth */}
                     {isAuthenticated ? (
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
-                                    {user?.full_name?.charAt(0) || 'U'}
-                                </div>
-                                <div className="hidden sm:block">
+                        <div className="relative" ref={dropdownRef}>
+                            {/* Clickable User Button */}
+                            <button
+                                onClick={() => setDropdownOpen(!dropdownOpen)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-200" />
+                                ) : (
+                                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
+                                )}
+                                <div className="hidden sm:block text-left">
                                     <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
                                     <p className="text-xs text-slate-500">{user?.roles?.map(r => r.name).join(', ')}</p>
                                 </div>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="px-3 py-1.5 text-slate-600 hover:text-red-600 text-sm border border-slate-200 rounded-lg hover:border-red-200 transition-all"
-                            >
-                                Đăng xuất
+                                <svg className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
                             </button>
+
+                            {/* Dropdown Menu */}
+                            {dropdownOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                    <div className="p-3 border-b border-slate-100 bg-slate-50">
+                                        <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
+                                        <p className="text-xs text-slate-500">{user?.email}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    >
+                                        <span>👤</span> Thông tin cá nhân
+                                    </button>
+                                    <button
+                                        onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    >
+                                        <span>🔒</span> Đổi mật khẩu
+                                    </button>
+                                    <div className="border-t border-slate-200"></div>
+                                    <button
+                                        onClick={() => { handleLogout(); setDropdownOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
+                                    >
+                                        <span>🚪</span> Đăng xuất
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">

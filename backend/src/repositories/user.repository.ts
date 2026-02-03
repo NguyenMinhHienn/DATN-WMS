@@ -180,6 +180,20 @@ export class UserRepository {
     `);
         return rows as Role[];
     }
+
+    async findByIdWithPassword(id: number): Promise<User | null> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT * FROM users WHERE id = ? AND deleted_at IS NULL
+    `, [id]);
+
+        return rows.length > 0 ? (rows[0] as User) : null;
+    }
+
+    async updatePassword(id: number, passwordHash: string): Promise<void> {
+        await pool.query(`
+      UPDATE users SET password_hash = ? WHERE id = ?
+    `, [passwordHash, id]);
+    }
 }
 
 export const userRepository = new UserRepository();

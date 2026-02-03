@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,13 +28,24 @@ const menuItems = [
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
-
-    // Admin sidebar - không cần filter roles vì đã có AdminRoute guard
 
     return (
         <>
@@ -99,34 +110,62 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         </ul>
                     </nav>
 
-                    {/* User section */}
-                    <div className="border-t border-slate-800/50 p-4">
-                        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-slate-800/30 backdrop-blur-sm">
+                    {/* User section with dropdown */}
+                    <div className="border-t border-slate-800/50 p-4 relative" ref={dropdownRef}>
+                        {/* Dropdown Menu - positioned above the user card */}
+                        {dropdownOpen && (
+                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-slate-800 rounded-xl shadow-xl border border-slate-700/50 overflow-hidden z-50">
+                                <button
+                                    onClick={() => { navigate('/profile'); setDropdownOpen(false); onClose(); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors text-sm"
+                                >
+                                    <span>👤</span> Thông tin cá nhân
+                                </button>
+                                <button
+                                    onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); onClose(); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors text-sm"
+                                >
+                                    <span>🔒</span> Đổi mật khẩu
+                                </button>
+                                <div className="border-t border-slate-700/50"></div>
+                                <button
+                                    onClick={() => { handleLogout(); setDropdownOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm"
+                                >
+                                    <span>🚪</span> Đăng xuất
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Clickable User Card */}
+                        <button
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 backdrop-blur-sm hover:bg-slate-800/50 transition-colors cursor-pointer"
+                        >
                             <div className="relative">
-                                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30">
-                                    {user?.full_name?.charAt(0) || 'U'}
-                                </div>
+                                {user?.avatar_url ? (
+                                    <img
+                                        src={`http://localhost:3000${user.avatar_url}`}
+                                        alt="Avatar"
+                                        className="w-11 h-11 rounded-xl object-cover shadow-lg"
+                                    />
+                                ) : (
+                                    <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30">
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
+                                )}
                                 {/* Online indicator */}
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 text-left">
                                 <p className="font-medium text-white truncate">{user?.full_name}</p>
                                 <p className="text-xs text-indigo-300/70 truncate">
                                     {user?.roles?.map(r => r.name).join(', ')}
                                 </p>
                             </div>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl 
-                                       bg-slate-800/50 text-slate-300 hover:bg-red-500/20 hover:text-red-400 
-                                       border border-slate-700/50 hover:border-red-500/30
-                                       transition-all duration-300 font-medium"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            <svg className={`w-5 h-5 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                             </svg>
-                            Đăng xuất
                         </button>
                     </div>
                 </div>

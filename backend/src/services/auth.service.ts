@@ -129,6 +129,56 @@ export class AuthService {
             token,
         };
     }
+
+    /**
+     * Update user profile
+     */
+    async updateProfile(userId: number, data: {
+        full_name?: string;
+        email?: string;
+        phone?: string;
+    }) {
+        const user = await userRepository.findById(userId);
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Check if email is being changed and if new email exists
+        if (data.email && data.email !== user.email) {
+            const existingEmail = await userRepository.findByEmail(data.email);
+            if (existingEmail) {
+                throw new AppError('Email đã được sử dụng', 400);
+            }
+        }
+
+        await userRepository.update(userId, {
+            full_name: data.full_name,
+            email: data.email,
+            phone: data.phone,
+        });
+
+        return this.getCurrentUser(userId);
+    }
+
+    /**
+     * Change user password
+     */
+    async changePassword(userId: number, currentPassword: string, newPassword: string) {
+        const user = await userRepository.findByIdWithPassword(userId);
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Verify current password
+        const isValid = await this.verifyPassword(currentPassword, user.password_hash || '');
+        if (!isValid) {
+            throw new AppError('Mật khẩu hiện tại không đúng', 400);
+        }
+
+        // Hash new password and update
+        const newHash = await this.hashPassword(newPassword);
+        await userRepository.updatePassword(userId, newHash);
+    }
 }
 
 export const authService = new AuthService();

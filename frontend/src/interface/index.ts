@@ -360,6 +360,7 @@ export interface AuthContextType {
     logout: () => void;
     hasRole: (role: string) => boolean;
     hasAnyRole: (roles: string[]) => boolean;
+    refreshUser?: () => Promise<void>;
 }
 
 // Form types
