@@ -99,6 +99,7 @@ const PRODUCTS = [
     { sku: 'SPORT-002', name: 'Yoga Mat Premium 6mm', category: 'SPORT', unit: 'PCS', cost: 350000, price: 550000, min_stock: 40, brand: 'Manduka' },
 ];
 
+
 // Inventory data: product SKU -> warehouse code -> quantity
 const INVENTORY_DATA: { [sku: string]: { [whCode: string]: number } } = {
     'ELEC-001': { 'WH-001': 50, 'WH-002': 80, 'WH-003': 30 },
@@ -273,6 +274,7 @@ async function seedProducts(
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
             [prod.sku, prod.name, categoryId, unitId, prod.cost, prod.price, prod.min_stock, prod.brand, adminId]
         );
+
         productMap.set(prod.sku, result.insertId);
         console.log(`   ✓ Product: ${prod.name}`);
     }
