@@ -85,8 +85,10 @@ class OrderRepository {
     /**
      * Lấy danh sách đơn hàng của một user
      */
-    async getOrdersByUserId(userId: number): Promise<OrderSummary[]> {
-        const query = `
+    async getOrdersByUserId(userId: number, page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderSummary[], pagination: any }> {
+        const offset = (page - 1) * limit;
+        
+        let query = `
             SELECT
                 co.id,
                 co.order_number,
@@ -101,12 +103,43 @@ class OrderRepository {
             FROM customer_orders co
             LEFT JOIN order_statuses os ON co.status_id = os.id
             WHERE co.user_id = ? AND co.deleted_at IS NULL
-            ORDER BY co.order_date DESC
         `;
-
-
-        const [rows] = await pool.query<RowDataPacket[]>(query, [userId]);
-        return rows as OrderSummary[];
+        
+        const params: any[] = [userId];
+        
+        if (status) {
+            query += ' AND co.status_code = ?';
+            params.push(status);
+        }
+        
+        query += ' ORDER BY co.order_date DESC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+        
+        // Count total
+        let countQuery = `
+            SELECT COUNT(*) as total
+            FROM customer_orders co
+            WHERE co.user_id = ? AND co.deleted_at IS NULL
+        `;
+        const countParams: any[] = [userId];
+        
+        if (status) {
+            countQuery += ' AND co.status_code = ?';
+            countParams.push(status);
+        }
+        
+        const [rows] = await pool.query<RowDataPacket[]>(query, params);
+        const [[{ total }]] = await pool.query<RowDataPacket[]>(countQuery, countParams);
+        
+        return {
+            data: rows as OrderSummary[],
+            pagination: {
+                page,
+                limit,
+                total: parseInt(total),
+                totalPages: Math.ceil(total / limit)
+            }
+        };
     }
 
 

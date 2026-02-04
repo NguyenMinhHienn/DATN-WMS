@@ -20,11 +20,11 @@ class OrderService {
     /**
      * Lấy danh sách đơn hàng của một user
      */
-    async getOrdersByUserId(userId: number): Promise<OrderSummary[]> {
+    async getOrdersByUserId(userId: number, page?: number, limit?: number, status?: string): Promise<{ data: OrderSummary[], pagination: any }> {
         if (!userId || userId <= 0) {
             throw new AppError('User ID không hợp lệ', 400);
         }
-        return orderRepository.getOrdersByUserId(userId);
+        return orderRepository.getOrdersByUserId(userId, page, limit, status);
     }
 
 
@@ -64,6 +64,7 @@ class OrderService {
     async countUsersWithOrders(): Promise<number> {
         return orderRepository.countUsersWithOrders();
     }
+    
 }
 
 

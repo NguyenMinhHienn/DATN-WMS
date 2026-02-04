@@ -40,6 +40,8 @@ import AccessDenied from './pages/client/AccessDenied';
 
 // Shared Pages
 import Profile from './pages/Profile';
+import OrdersPage from './pages/client/Orders';
+import SupportPage from './pages/client/Support';
 
 /**
  * App Routing Structure:
@@ -121,6 +123,9 @@ const App: React.FC = () => {
 
                     {/* ==================== FALLBACK ==================== */}
                     <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/orders/:id" element={<OrdersPage />} /> {/* Tạm dùng cùng component */}
+                    <Route path="/support" element={<SupportPage />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

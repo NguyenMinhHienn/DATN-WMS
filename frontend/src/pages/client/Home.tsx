@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
  * Trang chủ với UI hiện đại, premium cho CLIENT và khách
  */
 const Home: React.FC = () => {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, hasRole } = useAuth();
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -87,8 +87,27 @@ const Home: React.FC = () => {
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
                         <Link to="/products" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
+
+                        {/* THÊM NÚT ORDERS VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
+                        {isAuthenticated && (
+                            <>
+                                <Link to="/orders" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/support" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
+                            </>
+                        )}
+
                         <a href="#features" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Tính năng</a>
                         <a href="#about" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Giới thiệu</a>
+                        {hasRole && hasRole('admin') && (
+                            <Link to="/admin/dashboard" className="text-purple-600 hover:text-purple-700 font-medium transition-colors">
+                                Admin
+                            </Link>
+                        )}
+                        {hasRole && hasRole('staff') && (
+                            <Link to="/staff/dashboard" className="text-green-600 hover:text-green-700 font-medium transition-colors">
+                                Staff
+                            </Link>
+                        )}
                     </nav>
 
                     {/* User/Auth */}
@@ -122,6 +141,21 @@ const Home: React.FC = () => {
                                         <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
                                         <p className="text-xs text-slate-500">{user?.email}</p>
                                     </div>
+
+                                    {/* THÊM NÚT ORDERS VÀ SUPPORT VÀO DROPDOWN */}
+                                    <button
+                                        onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    >
+                                        <span>📦</span> Đơn hàng của tôi
+                                    </button>
+                                    <button
+                                        onClick={() => { navigate('/support'); setDropdownOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    >
+                                        <span>💬</span> Hỗ trợ
+                                    </button>
+
                                     <button
                                         onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
                                         className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
@@ -154,6 +188,37 @@ const Home: React.FC = () => {
                             </Link>
                         </div>
                     )}
+                </div>
+
+                {/* Mobile Navigation (ẩn trên desktop) */}
+                <div className="md:hidden py-4 border-t">
+                    <div className="flex flex-col space-y-3">
+                        <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
+                        <Link to="/products" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
+
+                        {/* THÊM NÚT ORDERS VÀ SUPPORT CHO MOBILE */}
+                        {isAuthenticated && (
+                            <>
+                                <Link to="/orders" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/support" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
+                            </>
+                        )}
+
+                        <a href="#features" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Tính năng</a>
+                        <a href="#about" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Giới thiệu</a>
+
+                        {/* Admin/Staff links for mobile */}
+                        {hasRole && hasRole('admin') && (
+                            <Link to="/admin/dashboard" className="text-purple-600 hover:text-purple-700 font-medium transition-colors">
+                                Admin Panel
+                            </Link>
+                        )}
+                        {hasRole && hasRole('staff') && (
+                            <Link to="/staff/dashboard" className="text-green-600 hover:text-green-700 font-medium transition-colors">
+                                Staff Panel
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </header>
 
