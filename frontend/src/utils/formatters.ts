@@ -11,24 +11,23 @@ export const formatCurrency = (amount: number): string => {
 /**
  * Định dạng ngày tháng
  */
-export const formatDate = (dateString: string | Date, includeTime: boolean = false): string => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    
-    if (includeTime) {
-        return new Intl.DateTimeFormat('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).format(date);
+// src/utils/formatters.ts
+export const formatDate = (dateString: string | Date): string => {
+    try {
+        const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+        return date.toLocaleDateString('vi-VN');
+    } catch {
+        return 'N/A';
     }
-    
-    return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    }).format(date);
+};
+
+export const formatDateTime = (dateString: string | Date): string => {
+    try {
+        const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+        return date.toLocaleString('vi-VN');
+    } catch {
+        return 'N/A';
+    }
 };
 
 /**
@@ -49,6 +48,7 @@ export const formatPhoneNumber = (phone: string): string => {
  * Cắt ngắn text với ellipsis
  */
 export const truncateText = (text: string, maxLength: number): string => {
+    if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
 };
@@ -68,4 +68,23 @@ export const formatQuantity = (quantity: number, unit?: string): string => {
  */
 export const formatPercent = (percent: number): string => {
     return `${percent.toFixed(1)}%`;
+};
+
+/**
+ * Định dạng thời gian từ giờ
+ */
+export const formatDuration = (hours: number): string => {
+    if (hours < 1) {
+        const minutes = Math.round(hours * 60);
+        return `${minutes} phút`;
+    }
+    if (hours < 24) {
+        return `${Math.round(hours)} giờ`;
+    }
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.round(hours % 24);
+    if (remainingHours === 0) {
+        return `${days} ngày`;
+    }
+    return `${days} ngày ${remainingHours} giờ`;
 };

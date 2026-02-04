@@ -41,7 +41,7 @@ import AccessDenied from './pages/client/AccessDenied';
 // Shared Pages
 import Profile from './pages/Profile';
 import OrdersPage from './pages/client/Orders';
-import SupportPage from './pages/client/Support';
+import SupportPage from './pages/client/SupportTicketsPage';
 
 /**
  * App Routing Structure:
