@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { cartService } from '../../services/cartService';
 
 /**
  * Home Page - Client/Public
@@ -12,6 +13,7 @@ const Home: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [cartItemCount, setCartItemCount] = useState(0);
 
     // Auto slide cho banner
     useEffect(() => {
@@ -19,6 +21,22 @@ const Home: React.FC = () => {
             setCurrentSlide(prev => (prev + 1) % 3);
         }, 5000);
         return () => clearInterval(timer);
+    }, []);
+
+    // Load cart item count
+    useEffect(() => {
+        const updateCartCount = () => {
+            setCartItemCount(cartService.getCartUniqueItemCount());
+        };
+        updateCartCount();
+
+        window.addEventListener('storage', updateCartCount);
+        const interval = setInterval(updateCartCount, 1000);
+
+        return () => {
+            window.removeEventListener('storage', updateCartCount);
+            clearInterval(interval);
+        };
     }, []);
 
     // Close dropdown when clicking outside
@@ -117,11 +135,29 @@ const Home: React.FC = () => {
 
                             {/* Dropdown Menu */}
                             {dropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
                                     <div className="p-3 border-b border-slate-100 bg-slate-50">
                                         <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
                                         <p className="text-xs text-slate-500">{user?.email}</p>
                                     </div>
+
+                                    {/* Giỏ hàng */}
+                                    <button
+                                        onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
+                                        className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            <span>🛒</span> Giỏ hàng
+                                        </span>
+                                        {cartItemCount > 0 && (
+                                            <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {cartItemCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    <div className="border-t border-slate-200"></div>
+
                                     <button
                                         onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
                                         className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"

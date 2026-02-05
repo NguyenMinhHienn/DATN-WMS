@@ -28,7 +28,13 @@ api.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
         if (error.response?.status === 401) {
-            // Token expired or invalid
+            // Không redirect nếu đang ở cart endpoints (để fallback localStorage)
+            const url = error.config?.url || '';
+            if (url.includes('/cart')) {
+                // Để cartService xử lý fallback
+                return Promise.reject(error);
+            }
+            // Token expired or invalid - redirect to login cho các endpoints khác
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('user');
             window.location.href = '/login';

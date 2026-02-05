@@ -220,7 +220,18 @@ export class ProductVariantRepository {
             product.min_price = Math.min(...product.variants.map(v => v.price));
             product.max_price = Math.max(...product.variants.map(v => v.price));
             product.total_stock = product.variants.reduce((sum, v) => sum + v.stock, 0);
-            product.available_colors = product.variants.map(v => v.color).join(', ');
+            product.available_colors = product.variants
+                .map(v => {
+                    // First check for new attribute_values system
+                    if (v.attribute_values && v.attribute_values.length > 0) {
+                        const colorAttr = v.attribute_values.find((av: any) => av.attribute_name === 'color');
+                        return colorAttr?.display_value || null;
+                    }
+                    // Fallback to legacy color column
+                    return v.color || null;
+                })
+                .filter(c => c && c.trim() !== '')
+                .join(', ');
         }
 
         return product;

@@ -36,6 +36,7 @@ import Login from './pages/client/Login';
 import Register from './pages/client/Register';
 import ProductList from './pages/client/ProductList';
 import ProductDetail from './pages/client/ProductDetail';
+import Cart from './pages/client/Cart';
 import AccessDenied from './pages/client/AccessDenied';
 
 // Shared Pages
@@ -54,7 +55,7 @@ import Profile from './pages/Profile';
  *   - KHÔNG có chức năng duyệt phiếu
  * 
  * CLIENT (/):
- *   - Xem sản phẩm, trang chủ
+ *   - Xem sản phẩm, trang chủ, giỏ hàng
  *   - Mọi người đều truy cập được
  * 
  * PROFILE (/profile):
@@ -72,6 +73,7 @@ const App: React.FC = () => {
                     <Route path="/register" element={<Register />} />
                     <Route path="/products" element={<ProductList />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/cart" element={<Cart />} />
                     <Route path="/403" element={<AccessDenied />} />
 
                     {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}

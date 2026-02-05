@@ -17,6 +17,7 @@ import * as uploadController from '../controllers/upload.controller';
 import * as attributeController from '../controllers/attribute.controller';
 import * as specificationController from '../controllers/specification.controller';
 import * as orderController from '../controllers/order.controller';
+import * as cartController from '../controllers/cart.controller';
 
 const router = Router();
 
@@ -153,5 +154,14 @@ router.get('/orders/users', authenticate, isStaff, orderController.getUsersWithO
 router.get('/orders/:id', authenticate, isStaff, orderController.getOrderById);
 router.get('/orders/:id/items', authenticate, isStaff, orderController.getOrderItems);
 router.get('/users/:id/orders', authenticate, isStaff, orderController.getOrdersByUser);
+
+// ==================== CART ROUTES (User) ====================
+// Giỏ hàng cho user đã đăng nhập
+router.post('/cart/add', authenticate, cartController.addToCart);
+router.get('/cart', authenticate, cartController.getCart);
+router.get('/cart/count', authenticate, cartController.getCartItemCount);
+router.put('/cart/items/:itemId', authenticate, cartController.updateCartItem);
+router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem);
+router.delete('/cart', authenticate, cartController.clearCart);
 
 export default router;

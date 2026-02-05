@@ -4,6 +4,7 @@ import { productVariantService } from '../../services/productVariantService';
 import { productService } from '../../services/productService';
 import { uploadService } from '../../services/uploadService';
 import { specificationService, ProductSpecification } from '../../services/specificationService';
+import { cartService } from '../../services/cartService';
 import { ProductWithVariants, ProductVariant, VARIANT_TYPES_CONFIG } from '../../interface';
 
 const ProductDetail: React.FC = () => {
@@ -15,7 +16,10 @@ const ProductDetail: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     // State cho số lượng sản phẩm muốn thêm vào giỏ
     const [quantity, setQuantity] = useState(1);
-
+    // State cho thông báo giỏ hàng
+    const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    // State cho nút yêu thích
+    const [isWishlisted, setIsWishlisted] = useState(false);
     useEffect(() => {
         if (id) loadProduct(parseInt(id));
     }, [id]);
@@ -72,6 +76,48 @@ const ProductDetail: React.FC = () => {
 
     // Get display price (variant price or product base price)
     const displayPrice = selectedVariant?.price ?? product?.selling_price ?? 0;
+
+    // Xử lý thêm vào giỏ hàng
+    // TODO: Sẽ thay bằng API call khi có backend
+    const handleAddToCart = () => {
+        if (!product) return;
+
+        // Tạo label cho biến thể (nếu có)
+        let variantLabel: string | null = null;
+        if (selectedVariant) {
+            const labelParts: string[] = [];
+            if (selectedVariant.attribute_values && selectedVariant.attribute_values.length > 0) {
+                selectedVariant.attribute_values.forEach((av: any) => {
+                    labelParts.push(av.display_value);
+                });
+            } else {
+                // Fallback legacy columns
+                if (selectedVariant.color) labelParts.push(getVariantOptionLabel('color', selectedVariant.color));
+                if (selectedVariant.size) labelParts.push(getVariantOptionLabel('size', selectedVariant.size));
+                if (selectedVariant.storage) labelParts.push(selectedVariant.storage);
+                if (selectedVariant.ram) labelParts.push(selectedVariant.ram);
+            }
+            variantLabel = labelParts.join(' / ') || null;
+        }
+
+        cartService.addToCart({
+            product_id: product.id,
+            variant_id: selectedVariant?.id ?? null,
+            name: product.name,
+            variant_label: variantLabel,
+            price: displayPrice,
+            quantity: quantity,
+            image_url: selectedVariant?.image_url || product.image_url || null,
+            sku: selectedVariant?.sku || product.sku || null,
+            max_stock: selectedVariant?.stock ?? product.total_stock ?? null,
+        });
+
+        // Hiển thị thông báo thành công
+        setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+
+        // Tự động ẩn thông báo sau 3 giây
+        setTimeout(() => setCartMessage(null), 3000);
+    };
 
     if (loading) {
         return (
@@ -218,15 +264,26 @@ const ProductDetail: React.FC = () => {
                                     {product.variants.map(variant => {
                                         const isSelected = selectedVariant?.id === variant.id;
                                         // Build variant label from attributes
-                                        const labelParts: string[] = [];
-                                        if (variant.color) labelParts.push(getVariantOptionLabel('color', variant.color));
-                                        if (variant.size) labelParts.push(getVariantOptionLabel('size', variant.size));
-                                        if (variant.storage) labelParts.push(variant.storage);
-                                        if (variant.ram) labelParts.push(variant.ram);
-                                        if (variant.material) labelParts.push(getVariantOptionLabel('material', variant.material));
-                                        if (variant.capacity) labelParts.push(variant.capacity);
+                                        let labelParts: string[] = [];
+
+                                        // Check for new attribute_values system first
+                                        if (variant.attribute_values && variant.attribute_values.length > 0) {
+                                            labelParts = variant.attribute_values.map((av: any) => av.display_value);
+                                        } else {
+                                            // Fallback to legacy columns
+                                            if (variant.color) labelParts.push(getVariantOptionLabel('color', variant.color));
+                                            if (variant.size) labelParts.push(getVariantOptionLabel('size', variant.size));
+                                            if (variant.storage) labelParts.push(variant.storage);
+                                            if (variant.ram) labelParts.push(variant.ram);
+                                            if (variant.material) labelParts.push(getVariantOptionLabel('material', variant.material));
+                                            if (variant.capacity) labelParts.push(variant.capacity);
+                                        }
 
                                         const label = labelParts.join(' / ') || 'Mặc định';
+
+                                        // Get color info from attribute_values or legacy column
+                                        const colorAttr = variant.attribute_values?.find((av: any) => av.attribute_name === 'color');
+                                        const colorCode = colorAttr?.color_code || (variant.color ? getColorHex(variant.color) : null);
 
                                         return (
                                             <button
@@ -237,10 +294,10 @@ const ProductDetail: React.FC = () => {
                                                     : 'border-slate-200 hover:border-slate-400'
                                                     } ${variant.stock <= 0 ? 'opacity-50' : ''}`}
                                             >
-                                                {variant.color && (
+                                                {colorCode && (
                                                     <span
                                                         className="w-4 h-4 rounded-full border"
-                                                        style={{ backgroundColor: getColorHex(variant.color) }}
+                                                        style={{ backgroundColor: colorCode }}
                                                     />
                                                 )}
                                                 <span className="text-sm">{label}</span>
@@ -296,7 +353,7 @@ const ProductDetail: React.FC = () => {
                                             <td className="py-2 text-slate-800 font-medium">{product.total_stock}</td>
                                         </tr>
                                     )}
-                                    {product.available_colors && (
+                                    {product.available_colors && product.available_colors.trim() !== '' && (
                                         <tr className="border-b border-slate-200">
                                             <td className="py-2 text-slate-500 w-1/3">Màu có sẵn</td>
                                             <td className="py-2 text-slate-800 font-medium">{product.available_colors}</td>
@@ -399,8 +456,21 @@ const ProductDetail: React.FC = () => {
                             </div>
                         )}
 
-                        {/* ========== (B) ADD TO CART SECTION - UI ONLY ========== */}
-                        {/* TODO: Gắn logic xử lý thêm giỏ hàng khi có API */}
+                        {/* ========== (B) ADD TO CART SECTION ========== */}
+                        {/* Thông báo giỏ hàng */}
+                        {cartMessage && (
+                            <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${cartMessage.type === 'success'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
+                                <span>{cartMessage.type === 'success' ? '✓' : '✗'}</span>
+                                <span>{cartMessage.text}</span>
+                                <Link to="/cart" className="ml-auto text-sm font-medium underline hover:no-underline">
+                                    Xem giỏ hàng →
+                                </Link>
+                            </div>
+                        )}
+
                         <div className="card bg-gradient-to-r from-primary-50 to-white border border-primary-100 mt-6">
                             <div className="flex flex-col sm:flex-row items-center gap-4">
                                 {/* Quantity Selector - Hoạt động */}
@@ -418,7 +488,7 @@ const ProductDetail: React.FC = () => {
                                         <input
                                             type="number"
                                             id="qty-input"
-                                            className="w-16 text-center border-0 focus:ring-0 py-2"
+                                            className="w-16 text-center border-0 focus:ring-0 py-2 text-slate-900 font-medium"
                                             value={quantity}
                                             min={1}
                                             max={selectedVariant?.stock ?? product.total_stock ?? 999}
@@ -442,24 +512,29 @@ const ProductDetail: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Add to Cart Button - UI only */}
+                                {/* Add to Cart Button */}
                                 <button
                                     id="btn-add-to-cart"
                                     className="flex-1 sm:flex-none btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 px-8 py-3 text-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
-                                // TODO: onClick - gọi API thêm vào giỏ hàng
+                                    onClick={handleAddToCart}
                                 >
                                     <span className="text-xl">🛒</span>
                                     Thêm vào giỏ hàng
                                 </button>
 
-                                {/* Wishlist Button - UI only */}
+                                {/* Wishlist Button - Toggle yêu thích */}
                                 <button
                                     id="btn-add-wishlist"
-                                    className="btn btn-secondary px-4 py-3"
-                                    title="Thêm vào yêu thích"
-                                // TODO: onClick - gọi API thêm wishlist
+                                    className={`btn px-4 py-3 transition-all duration-300 ${isWishlisted
+                                            ? 'bg-red-50 border-red-300 text-red-500 hover:bg-red-100'
+                                            : 'btn-secondary hover:text-red-500'
+                                        }`}
+                                    title={isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                                    onClick={() => setIsWishlisted(!isWishlisted)}
                                 >
-                                    ♡
+                                    <span className={`text-xl transition-transform duration-300 ${isWishlisted ? 'scale-110' : ''}`}>
+                                        {isWishlisted ? '❤️' : '♡'}
+                                    </span>
                                 </button>
                             </div>
                             <p className="text-xs text-slate-500 mt-3 text-center sm:text-left">

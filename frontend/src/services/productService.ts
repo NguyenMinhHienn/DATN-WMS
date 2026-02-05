@@ -51,4 +51,14 @@ export const productService = {
         const response = await api.get<ApiResponse<Unit[]>>('/units');
         return response.data.data || [];
     },
+
+    async getProductVariants(productId: number): Promise<any[]> {
+        try {
+            const response = await api.get<ApiResponse<any[]>>(`/products/${productId}/variants`);
+            return response.data.data || [];
+        } catch (error) {
+            console.error(`Failed to load variants for product ${productId}:`, error);
+            return [];
+        }
+    },
 };

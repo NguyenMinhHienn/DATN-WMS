@@ -862,7 +862,7 @@ const Products: React.FC = () => {
             >
                 <form onSubmit={handleSubmit}>
                     {formError && (
-                        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                        <div className="mb-4 p-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm">
                             {formError}
                         </div>
                     )}
@@ -870,7 +870,7 @@ const Products: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Danh mục - ở đầu tiên */}
                         <div>
-                            <label className="label">Danh mục *</label>
+                            <label className="label text-slate-300">Danh mục *</label>
                             <select name="category_id" value={formData.category_id || ''} onChange={handleInputChange} className="input" required>
                                 <option value="">Chọn danh mục</option>
                                 {categories.map(cat => (
@@ -879,7 +879,7 @@ const Products: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="label">Trạng thái *</label>
+                            <label className="label text-slate-300">Trạng thái *</label>
                             <select name="status" value={formData.status} onChange={handleInputChange} className="input" required>
                                 <option value="draft">Nháp</option>
                                 <option value="active">Đang bán</option>
@@ -888,30 +888,30 @@ const Products: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="label">Tên sản phẩm *</label>
+                            <label className="label text-slate-300">Tên sản phẩm *</label>
                             <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="input" required />
                         </div>
                         <div>
-                            <label className="label">Mã SKU (tự động)</label>
+                            <label className="label text-slate-300">Mã SKU (tự động)</label>
                             <input
                                 type="text"
                                 name="sku"
                                 value={formData.sku}
-                                className="input bg-slate-100 cursor-not-allowed"
+                                className="input bg-slate-700/50 text-slate-400 cursor-not-allowed border-slate-600"
                                 readOnly
                                 placeholder="Tự động tạo khi lưu..."
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="label">Mô tả</label>
+                            <label className="label text-slate-300">Mô tả</label>
                             <textarea name="description" value={formData.description} onChange={handleInputChange} className="input" rows={2} />
                         </div>
                         <div>
-                            <label className="label">Thương hiệu</label>
+                            <label className="label text-slate-300">Thương hiệu</label>
                             <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="input" />
                         </div>
                         <div>
-                            <label className="label">Hình ảnh sản phẩm</label>
+                            <label className="label text-slate-300">Hình ảnh sản phẩm</label>
                             <ImageCropper
                                 value={formData.image_url}
                                 onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
@@ -921,31 +921,31 @@ const Products: React.FC = () => {
                             <p className="text-xs text-slate-500 mt-1">Kích thước tối đa: 5MB. Định dạng: JPG, PNG, WebP</p>
                         </div>
                         <div>
-                            <label className="label">Giá nhập *</label>
+                            <label className="label text-slate-300">Giá nhập *</label>
                             <input type="number" name="cost_price" value={formData.cost_price} onChange={handleInputChange} className="input" min="0" step="1000" required />
                         </div>
                         <div>
-                            <label className="label">Giá bán cơ bản *</label>
+                            <label className="label text-slate-300">Giá bán cơ bản *</label>
                             <input type="number" name="selling_price" value={formData.selling_price} onChange={handleInputChange} className="input" min="0" step="1000" required />
                         </div>
                     </div>
 
                     {/* === NEW: 2-Step Variant Section with Flexible Attributes === */}
-                    <div className="mt-6 pt-4 border-t border-slate-200">
-                        <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <div className="mt-6 pt-4 border-t border-slate-700/50">
+                        <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                             🎨 Thiết lập biến thể sản phẩm
                         </h3>
 
                         {/* Step 1: Toggle has variants */}
-                        <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                        <div className="mb-4 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={hasVariants}
                                     onChange={(e) => setHasVariants(e.target.checked)}
-                                    className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                                    className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
                                 />
-                                <span className="text-sm font-medium text-slate-700">
+                                <span className="text-sm font-medium text-slate-300">
                                     Sản phẩm này có nhiều biến thể (màu sắc, kích thước, dung lượng...)
                                 </span>
                             </label>
@@ -955,8 +955,8 @@ const Products: React.FC = () => {
                         {hasVariants && (
                             <div className="space-y-4">
                                 {/* Attribute Selection */}
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <h4 className="font-medium text-blue-800 mb-3">📋 Chọn loại thuộc tính</h4>
+                                <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
+                                    <h4 className="font-medium text-indigo-300 mb-3">📋 Chọn loại thuộc tính</h4>
 
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
                                         {attributes.map(attr => {
@@ -980,8 +980,8 @@ const Products: React.FC = () => {
                                                         }
                                                     }}
                                                     className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${isSelected
-                                                        ? 'bg-blue-600 text-white border-blue-600'
-                                                        : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                                                        ? 'bg-indigo-600 text-white border-indigo-500'
+                                                        : 'bg-slate-700/50 text-slate-300 border-slate-600 hover:border-indigo-400'
                                                         }`}
                                                 >
                                                     {isSelected ? '✓ ' : ''}{attr.display_name}
@@ -998,8 +998,8 @@ const Products: React.FC = () => {
                                                 if (!attr || !attr.values) return null;
 
                                                 return (
-                                                    <div key={selAttr.attribute_id} className="bg-white p-3 rounded-lg border border-blue-200">
-                                                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                                    <div key={selAttr.attribute_id} className="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
+                                                        <label className="text-sm font-medium text-slate-300 mb-2 block">
                                                             {selAttr.attribute_display_name}
                                                         </label>
                                                         <div className="flex flex-wrap gap-2">
@@ -1021,13 +1021,13 @@ const Products: React.FC = () => {
                                                                             );
                                                                         }}
                                                                         className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-1 ${isValSelected
-                                                                            ? 'bg-green-600 text-white'
-                                                                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                                            ? 'bg-emerald-600 text-white'
+                                                                            : 'bg-slate-600/50 text-slate-300 hover:bg-slate-500/50'
                                                                             }`}
                                                                     >
                                                                         {attr.type === 'color' && val.color_code && (
                                                                             <span
-                                                                                className="w-4 h-4 rounded-full border border-slate-300"
+                                                                                className="w-4 h-4 rounded-full border border-slate-400"
                                                                                 style={{ backgroundColor: val.color_code }}
                                                                             />
                                                                         )}
@@ -1037,7 +1037,7 @@ const Products: React.FC = () => {
                                                             })}
                                                         </div>
                                                         {/* Input for custom value */}
-                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-blue-100">
+                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-600">
                                                             <input
                                                                 type="text"
                                                                 placeholder={`Nhập ${selAttr.attribute_display_name} mới...`}
@@ -1070,8 +1070,8 @@ const Products: React.FC = () => {
 
                                     {/* Initial Stock Input */}
                                     {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
-                                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                            <label className="block text-sm font-medium text-green-800 mb-2">
+                                        <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                            <label className="block text-sm font-medium text-emerald-400 mb-2">
                                                 📦 Số lượng tồn kho ban đầu (cho mỗi biến thể)
                                             </label>
                                             <input
@@ -1082,7 +1082,7 @@ const Products: React.FC = () => {
                                                 min="0"
                                                 placeholder="Nhập số lượng..."
                                             />
-                                            <p className="text-xs text-green-600 mt-1">
+                                            <p className="text-xs text-emerald-400/70 mt-1">
                                                 Mỗi biến thể sẽ có số lượng này. Bạn có thể chỉnh sửa riêng từng biến thể sau.
                                             </p>
                                         </div>
@@ -1132,9 +1132,9 @@ const Products: React.FC = () => {
 
                         {/* No variants - show initial stock input */}
                         {!hasVariants && (
-                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                                <h4 className="font-medium text-amber-800 mb-3">📦 Số lượng sản phẩm ban đầu</h4>
-                                <p className="text-sm text-amber-700 mb-3">
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                                <h4 className="font-medium text-amber-400 mb-3">📦 Số lượng sản phẩm ban đầu</h4>
+                                <p className="text-sm text-amber-400/70 mb-3">
                                     Sản phẩm này không có biến thể. Nhập số lượng tồn kho ban đầu:
                                 </p>
                                 <input
@@ -1145,14 +1145,14 @@ const Products: React.FC = () => {
                                     min="0"
                                     placeholder="Nhập số lượng..."
                                 />
-                                <p className="text-xs text-amber-600 mt-2">
+                                <p className="text-xs text-amber-400/60 mt-2">
                                     💡 Bạn có thể cập nhật số lượng sau bằng cách quản lý biến thể.
                                 </p>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700/50">
                         <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>
                         <button type="submit" disabled={formLoading} className="btn btn-primary">
                             {formLoading ? 'Đang lưu...' : (editingProduct ? 'Cập nhật' : 'Thêm mới')}

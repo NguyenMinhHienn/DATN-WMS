@@ -1,12 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { cartService } from '../services/cartService';
 
 export const Header: React.FC = () => {
     const { isAuthenticated, user, logout, hasAnyRole } = useAuth();
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [cartItemCount, setCartItemCount] = useState(0);
+
+    // Load cart item count
+    useEffect(() => {
+        const updateCartCount = () => {
+            setCartItemCount(cartService.getCartUniqueItemCount());
+        };
+        updateCartCount();
+
+        // Cập nhật khi có thay đổi localStorage (từ tab khác hoặc khi thêm giỏ)
+        window.addEventListener('storage', updateCartCount);
+        // Cập nhật định kỳ để sync với các thay đổi cùng tab
+        const interval = setInterval(updateCartCount, 1000);
+
+        return () => {
+            window.removeEventListener('storage', updateCartCount);
+            clearInterval(interval);
+        };
+    }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -72,7 +92,30 @@ export const Header: React.FC = () => {
 
                                     {/* Dropdown Menu */}
                                     {dropdownOpen && (
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                            {/* User info header */}
+                                            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                                                <p className="font-medium text-slate-800">{user?.full_name}</p>
+                                                <p className="text-xs text-slate-500">{user?.email}</p>
+                                            </div>
+
+                                            {/* Giỏ hàng */}
+                                            <button
+                                                onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span>🛒</span> Giỏ hàng
+                                                </span>
+                                                {cartItemCount > 0 && (
+                                                    <span className="bg-primary-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                        {cartItemCount}
+                                                    </span>
+                                                )}
+                                            </button>
+
+                                            <div className="border-t border-slate-200"></div>
+
                                             <button
                                                 onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"

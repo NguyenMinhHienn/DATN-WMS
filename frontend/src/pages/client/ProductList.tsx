@@ -2,14 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import { uploadService } from '../../services/uploadService';
-import { Product, Category, PaginationInfo } from '../../interface';
+import { cartService } from '../../services/cartService';
+import { useAuth } from '../../context/AuthContext';
+import { Product, Category, PaginationInfo, ProductVariant } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
 /**
  * Product List Page - Client
- * Trang danh sách sản phẩm với UI premium
+ * Trang danh sách sản phẩm với UI premium và Quick Add to Cart
  */
+
+// Interface cho toast notification
+interface Toast {
+    id: number;
+    type: 'success' | 'error';
+    message: string;
+}
+
 const ProductList: React.FC = () => {
+    const { isAuthenticated } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 12, total: 0, totalPages: 0 });
@@ -19,8 +30,29 @@ const ProductList: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [sortBy, setSortBy] = useState<string>('newest');
 
+    // Quick Add states - cho từng sản phẩm
+    const [productVariants, setProductVariants] = useState<{ [key: number]: ProductVariant[] }>({});
+    const [selectedVariants, setSelectedVariants] = useState<{ [key: number]: number | null }>({});
+    const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+    const [loadingAdd, setLoadingAdd] = useState<{ [key: number]: boolean }>({});
+    const [loadingVariants, setLoadingVariants] = useState<{ [key: number]: boolean }>({});
+
+    // Toast notifications
+    const [toasts, setToasts] = useState<Toast[]>([]);
+
     useEffect(() => { loadCategories(); }, []);
     useEffect(() => { loadProducts(); }, [pagination.page, search, selectedCategory]);
+
+    // Load variants cho tất cả products khi ở list view
+    useEffect(() => {
+        if (viewMode === 'list' && products.length > 0) {
+            products.forEach(product => {
+                if (!productVariants[product.id] && !loadingVariants[product.id]) {
+                    loadVariantsForProduct(product.id);
+                }
+            });
+        }
+    }, [viewMode, products]);
 
     const loadProducts = async () => {
         try {
@@ -44,6 +76,133 @@ const ProductList: React.FC = () => {
         }
     };
 
+    // Load variants cho một sản phẩm
+    const loadVariantsForProduct = async (productId: number) => {
+        if (productVariants[productId]) return; // Đã load rồi
+
+        setLoadingVariants(prev => ({ ...prev, [productId]: true }));
+        try {
+            const variants = await productService.getProductVariants(productId);
+            setProductVariants(prev => ({ ...prev, [productId]: variants }));
+
+            // Tự động chọn variant đầu tiên
+            if (variants.length > 0) {
+                setSelectedVariants(prev => ({ ...prev, [productId]: variants[0].id }));
+            }
+        } catch (error) {
+            console.error('Failed to load variants:', error);
+            setProductVariants(prev => ({ ...prev, [productId]: [] }));
+        } finally {
+            setLoadingVariants(prev => ({ ...prev, [productId]: false }));
+        }
+    };
+
+    // Show toast
+    const showToast = (type: 'success' | 'error', message: string) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, type, message }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    };
+
+    // Handle variant selection change
+    const handleVariantChange = (productId: number, variantId: number) => {
+        setSelectedVariants(prev => ({ ...prev, [productId]: variantId }));
+    };
+
+    // Handle quantity change
+    const handleQuantityChange = (productId: number, qty: number) => {
+        setQuantities(prev => ({ ...prev, [productId]: Math.max(1, qty) }));
+    };
+
+    // Get variant label for display
+    const getVariantLabel = (variant: ProductVariant): string => {
+        // Sử dụng attribute_values nếu có
+        if (variant.attribute_values && variant.attribute_values.length > 0) {
+            return variant.attribute_values.map(av => av.display_value || av.value).join(' / ');
+        }
+        // Fallback to legacy fields
+        if (variant.color) return variant.color;
+        if (variant.size) return variant.size;
+        if (variant.storage) return variant.storage;
+        return variant.sku || 'Mặc định';
+    };
+
+    // Quick Add to Cart
+    const handleQuickAddToCart = async (product: Product) => {
+        const productId = product.id;
+        const variants = productVariants[productId] || [];
+        const selectedVariantId = selectedVariants[productId];
+        const quantity = quantities[productId] || 1;
+
+        // Kiểm tra phải có variant
+        if (variants.length === 0) {
+            showToast('error', 'Sản phẩm chưa có biến thể');
+            return;
+        }
+
+        if (!selectedVariantId) {
+            showToast('error', 'Vui lòng chọn biến thể sản phẩm');
+            return;
+        }
+
+        const selectedVariant = variants.find(v => v.id === selectedVariantId);
+        if (!selectedVariant) {
+            showToast('error', 'Không tìm thấy biến thể');
+            return;
+        }
+
+        setLoadingAdd(prev => ({ ...prev, [productId]: true }));
+
+        // Helper function to add to localStorage
+        const addToLocalStorage = () => {
+            cartService.addToCart({
+                product_id: productId,
+                variant_id: selectedVariantId,
+                name: product.name,
+                variant_label: getVariantLabel(selectedVariant),
+                price: selectedVariant.price || product.selling_price,
+                quantity: quantity,
+                image_url: selectedVariant.image_url || product.image_url,
+                sku: selectedVariant.sku || product.sku,
+                max_stock: selectedVariant.stock,
+            });
+            showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+        };
+
+        try {
+            if (isAuthenticated) {
+                // User đã đăng nhập - gọi API
+                const result = await cartService.addToCartAPI(productId, selectedVariantId, quantity);
+                if (result.success) {
+                    showToast('success', result.message);
+                } else {
+                    // API trả về lỗi - fallback về localStorage thay vì hiển thị lỗi
+                    // Trừ trường hợp lỗi nghiệp vụ rõ ràng (hết hàng, không đủ stock...)
+                    const errorMsg = result.message.toLowerCase();
+                    if (errorMsg.includes('đăng nhập') || errorMsg.includes('token') || errorMsg.includes('lỗi')) {
+                        // Lỗi auth hoặc lỗi server - fallback localStorage
+                        console.warn('API failed, using localStorage fallback:', result.message);
+                        addToLocalStorage();
+                    } else {
+                        // Lỗi nghiệp vụ (hết hàng, không đủ stock) - hiển thị cho user
+                        showToast('error', result.message);
+                    }
+                }
+            } else {
+                // Chưa đăng nhập - dùng localStorage
+                addToLocalStorage();
+            }
+        } catch (error) {
+            console.error('Add to cart error:', error);
+            // Exception - fallback localStorage
+            addToLocalStorage();
+        } finally {
+            setLoadingAdd(prev => ({ ...prev, [productId]: false }));
+        }
+    };
+
     // Sort products (UI only, client-side)
     const sortedProducts = [...products].sort((a, b) => {
         switch (sortBy) {
@@ -56,6 +215,22 @@ const ProductList: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50">
+            {/* Toast Notifications */}
+            <div className="fixed top-4 right-4 z-50 space-y-2">
+                {toasts.map(toast => (
+                    <div
+                        key={toast.id}
+                        className={`px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in ${toast.type === 'success'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-red-500 text-white'
+                            }`}
+                    >
+                        <span>{toast.type === 'success' ? '✅' : '❌'}</span>
+                        <span>{toast.message}</span>
+                    </div>
+                ))}
+            </div>
+
             {/* ========== HERO HEADER ========== */}
             <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -193,8 +368,8 @@ const ProductList: React.FC = () => {
                     <button
                         onClick={() => { setSelectedCategory(undefined); setPagination(p => ({ ...p, page: 1 })); }}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${!selectedCategory
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                             }`}
                     >
                         🏷️ Tất cả
@@ -204,8 +379,8 @@ const ProductList: React.FC = () => {
                             key={cat.id}
                             onClick={() => { setSelectedCategory(cat.id); setPagination(p => ({ ...p, page: 1 })); }}
                             className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === cat.id
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                                 }`}
                         >
                             {cat.name}
@@ -225,35 +400,36 @@ const ProductList: React.FC = () => {
                         {viewMode === 'grid' && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
                                 {sortedProducts.map(product => (
-                                    <Link
+                                    <div
                                         key={product.id}
-                                        to={`/products/${product.id}`}
-                                        className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                                        className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300"
                                     >
-                                        {/* Image */}
-                                        <div className="relative w-full h-52 bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-6xl overflow-hidden">
-                                            {product.image_url ? (
-                                                <img
-                                                    src={uploadService.getImageUrl(product.image_url)}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <span className="group-hover:scale-110 transition-transform">📦</span>
-                                            )}
-                                            {/* Quick Actions Overlay */}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                <span className="px-4 py-2 bg-white rounded-lg text-sm font-medium text-slate-800 shadow-lg">
-                                                    👁️ Xem chi tiết
-                                                </span>
+                                        {/* Image - Link to detail */}
+                                        <Link to={`/products/${product.id}`}>
+                                            <div className="relative w-full h-52 bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-6xl overflow-hidden">
+                                                {product.image_url ? (
+                                                    <img
+                                                        src={uploadService.getImageUrl(product.image_url)}
+                                                        alt={product.name}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    />
+                                                ) : (
+                                                    <span className="group-hover:scale-110 transition-transform">📦</span>
+                                                )}
+                                                {/* Quick Actions Overlay */}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <span className="px-4 py-2 bg-white rounded-lg text-sm font-medium text-slate-800 shadow-lg">
+                                                        👁️ Xem chi tiết
+                                                    </span>
+                                                </div>
+                                                {/* Category Badge */}
+                                                {product.category_name && (
+                                                    <span className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-600">
+                                                        {product.category_name}
+                                                    </span>
+                                                )}
                                             </div>
-                                            {/* Category Badge */}
-                                            {product.category_name && (
-                                                <span className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-600">
-                                                    {product.category_name}
-                                                </span>
-                                            )}
-                                        </div>
+                                        </Link>
 
                                         {/* Content */}
                                         <div className="p-4">
@@ -263,10 +439,12 @@ const ProductList: React.FC = () => {
                                                     <span className="text-xs text-slate-500">• {product.brand}</span>
                                                 )}
                                             </div>
-                                            <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                                {product.name}
-                                            </h3>
-                                            <div className="flex items-center justify-between">
+                                            <Link to={`/products/${product.id}`}>
+                                                <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
+                                                    {product.name}
+                                                </h3>
+                                            </Link>
+                                            <div className="flex items-center justify-between mb-3">
                                                 <span className="text-xl font-bold text-blue-600">
                                                     {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
                                                 </span>
@@ -274,60 +452,152 @@ const ProductList: React.FC = () => {
                                                     ✓ Còn hàng
                                                 </span>
                                             </div>
+
+                                            {/* Quick Add Button for Grid - Link to detail */}
+                                            <Link
+                                                to={`/products/${product.id}`}
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
+                                            >
+                                                🛒 Thêm vào giỏ
+                                            </Link>
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         )}
 
-                        {/* LIST VIEW */}
+                        {/* LIST VIEW with Quick Add */}
                         {viewMode === 'list' && (
                             <div className="space-y-4 mb-8">
-                                {sortedProducts.map(product => (
-                                    <Link
-                                        key={product.id}
-                                        to={`/products/${product.id}`}
-                                        className="group flex gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 hover:shadow-lg transition-all"
-                                    >
-                                        {/* Image */}
-                                        <div className="w-32 h-32 flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center text-4xl overflow-hidden">
-                                            {product.image_url ? (
-                                                <img
-                                                    src={uploadService.getImageUrl(product.image_url)}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                />
-                                            ) : '📦'}
-                                        </div>
+                                {sortedProducts.map(product => {
+                                    const variants = productVariants[product.id] || [];
+                                    const selectedVariantId = selectedVariants[product.id];
+                                    const quantity = quantities[product.id] || 1;
+                                    const isLoadingVariants = loadingVariants[product.id];
+                                    const isLoadingAdd = loadingAdd[product.id];
 
-                                        {/* Content */}
-                                        <div className="flex-1 flex flex-col justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{product.sku}</span>
-                                                    {product.category_name && (
-                                                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{product.category_name}</span>
+                                    return (
+                                        <div
+                                            key={product.id}
+                                            className="group flex gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 hover:shadow-lg transition-all"
+                                            onMouseEnter={() => loadVariantsForProduct(product.id)}
+                                        >
+                                            {/* Image */}
+                                            <Link to={`/products/${product.id}`} className="flex-shrink-0">
+                                                <div className="w-32 h-32 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center text-4xl overflow-hidden">
+                                                    {product.image_url ? (
+                                                        <img
+                                                            src={uploadService.getImageUrl(product.image_url)}
+                                                            alt={product.name}
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                        />
+                                                    ) : '📦'}
+                                                </div>
+                                            </Link>
+
+                                            {/* Content */}
+                                            <div className="flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{product.sku}</span>
+                                                        {product.category_name && (
+                                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{product.category_name}</span>
+                                                        )}
+                                                    </div>
+                                                    <Link to={`/products/${product.id}`}>
+                                                        <h3 className="font-semibold text-lg text-slate-800 hover:text-blue-600 transition-colors">
+                                                            {product.name}
+                                                        </h3>
+                                                    </Link>
+                                                    {product.brand && <p className="text-sm text-slate-500">Thương hiệu: {product.brand}</p>}
+                                                </div>
+                                                <div className="flex items-center justify-between mt-2">
+                                                    <span className="text-2xl font-bold text-blue-600">
+                                                        {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
+                                                    </span>
+                                                    <span className="text-sm text-emerald-600">✓ Còn hàng</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Add Section - Fixed width for consistent layout */}
+                                            <div className="flex-shrink-0 w-[240px] flex flex-col gap-3 border-l-2 border-slate-300 pl-4 bg-gradient-to-r from-slate-50 to-white rounded-r-xl py-3 pr-3">
+                                                {/* Variant Dropdown */}
+                                                <div>
+                                                    <label className="text-sm font-bold text-slate-800 mb-2 block">Biến thể:</label>
+                                                    {isLoadingVariants ? (
+                                                        <div className="h-11 flex items-center justify-center text-blue-600 text-sm font-medium bg-blue-50 rounded-lg border-2 border-blue-200">
+                                                            <span className="animate-spin mr-2">⏳</span> Đang tải...
+                                                        </div>
+                                                    ) : variants.length === 0 ? (
+                                                        <div className="h-11 flex items-center justify-center text-orange-700 text-sm bg-orange-50 rounded-lg border-2 border-orange-300 font-semibold">
+                                                            ⚠️ Chưa có biến thể
+                                                        </div>
+                                                    ) : (
+                                                        <select
+                                                            value={selectedVariantId || ''}
+                                                            onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
+                                                            className="w-full px-2 py-2.5 border-2 border-slate-400 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer truncate"
+                                                        >
+                                                            {variants.map(v => (
+                                                                <option key={v.id} value={v.id}>
+                                                                    {getVariantLabel(v)} {v.stock > 0 ? `(${v.stock})` : '(Hết)'}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                     )}
                                                 </div>
-                                                <h3 className="font-semibold text-lg text-slate-800 group-hover:text-blue-600 transition-colors">
-                                                    {product.name}
-                                                </h3>
-                                                {product.brand && <p className="text-sm text-slate-500">Thương hiệu: {product.brand}</p>}
-                                            </div>
-                                            <div className="flex items-center justify-between mt-2">
-                                                <span className="text-2xl font-bold text-blue-600">
-                                                    {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
-                                                </span>
-                                                <span className="text-sm text-emerald-600">✓ Còn hàng</span>
-                                            </div>
-                                        </div>
 
-                                        {/* Arrow */}
-                                        <div className="flex items-center text-slate-300 group-hover:text-blue-500 transition-colors">
-                                            <span className="text-2xl">→</span>
+                                                {/* Quantity Input */}
+                                                <div>
+                                                    <label className="text-sm font-bold text-slate-800 mb-2 block">Số lượng:</label>
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleQuantityChange(product.id, quantity - 1)}
+                                                            disabled={quantity <= 1}
+                                                            className="w-10 h-10 flex items-center justify-center border-2 border-slate-400 rounded-lg bg-white hover:bg-blue-50 hover:border-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-xl font-bold text-slate-700 transition-all"
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            value={quantity}
+                                                            onChange={(e) => handleQuantityChange(product.id, parseInt(e.target.value) || 1)}
+                                                            min="1"
+                                                            className="w-12 h-10 px-1 text-center border-2 border-slate-400 rounded-lg text-lg font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleQuantityChange(product.id, quantity + 1)}
+                                                            className="w-10 h-10 flex items-center justify-center border-2 border-slate-400 rounded-lg bg-white hover:bg-blue-50 hover:border-blue-400 text-xl font-bold text-slate-700 transition-all"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Add to Cart Button */}
+                                                <button
+                                                    onClick={() => handleQuickAddToCart(product)}
+                                                    disabled={isLoadingAdd || variants.length === 0 || isLoadingVariants}
+                                                    className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isLoadingAdd || variants.length === 0 || isLoadingVariants
+                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg'
+                                                        }`}
+                                                >
+                                                    {isLoadingAdd ? (
+                                                        <>
+                                                            <span className="animate-spin">⏳</span>
+                                                            Đang thêm...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            🛒 Thêm vào giỏ
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </Link>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -364,6 +634,23 @@ const ProductList: React.FC = () => {
             >
                 ↑
             </button>
+
+            {/* CSS for animations */}
+            <style>{`
+                @keyframes slide-in {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .animate-slide-in {
+                    animation: slide-in 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };
