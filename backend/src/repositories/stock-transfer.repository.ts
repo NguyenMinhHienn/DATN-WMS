@@ -183,12 +183,15 @@ export class StockTransferRepository {
         return rows as StockTransferItem[];
     }
 
+
     /**
      * Sinh mã phiếu tự động: TR-YYYY-XXXXXX
+     * Nhận connection để đảm bảo trong cùng một transaction
      */
-    async generateTransferNumber(): Promise<string> {
+    async generateTransferNumber(connection?: PoolConnection): Promise<string> {
         const year = new Date().getFullYear();
-        const [rows] = await pool.query<RowDataPacket[]>(`
+        const queryExecutor = connection || pool;
+        const [rows] = await queryExecutor.query<RowDataPacket[]>(`
             SELECT COUNT(*) as count FROM stock_transfers 
             WHERE YEAR(created_at) = ?
         `, [year]);
@@ -208,8 +211,9 @@ export class StockTransferRepository {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
+            console.log('[Repository] Starting transaction for transfer creation...');
 
-            const transferNumber = await this.generateTransferNumber();
+            const transferNumber = await this.generateTransferNumber(connection);
 
             // Tính tổng
             let totalItems = dto.items.length;

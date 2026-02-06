@@ -11,7 +11,10 @@ export const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
+    keepAliveInitialDelay: 10000,
+    idleTimeout: 60000,
+    maxIdle: 5,
+    connectTimeout: 30000,
 });
 
 export async function testConnection(): Promise<boolean> {
