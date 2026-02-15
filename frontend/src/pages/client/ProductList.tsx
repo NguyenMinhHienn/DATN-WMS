@@ -136,24 +136,59 @@ const ProductList: React.FC = () => {
         const selectedVariantId = selectedVariants[productId];
         const quantity = quantities[productId] || 1;
 
-        // Kiểm tra phải có variant
+        setLoadingAdd(prev => ({ ...prev, [productId]: true }));
+
+        // Trường hợp 1: Sản phẩm KHÔNG có biến thể - thêm trực tiếp bằng giá gốc
         if (variants.length === 0) {
-            showToast('error', 'Sản phẩm chưa có biến thể');
+            const addProductToCart = () => {
+                cartService.addToCart({
+                    product_id: productId,
+                    variant_id: null,
+                    name: product.name,
+                    variant_label: 'Mặc định',
+                    price: product.selling_price,
+                    quantity: quantity,
+                    image_url: product.image_url,
+                    sku: product.sku,
+                    max_stock: 999, // Không giới hạn vì không có variant stock
+                });
+                showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+            };
+
+            try {
+                if (isAuthenticated) {
+                    // Gọi API - sử dụng product_id làm variant_id tạm thời cho sản phẩm không có biến thể
+                    const result = await cartService.addToCartAPI(productId, 0, quantity);
+                    if (result.success) {
+                        showToast('success', result.message);
+                    } else {
+                        addProductToCart();
+                    }
+                } else {
+                    addProductToCart();
+                }
+            } catch (error) {
+                console.error('Add to cart error:', error);
+                addProductToCart();
+            } finally {
+                setLoadingAdd(prev => ({ ...prev, [productId]: false }));
+            }
             return;
         }
 
+        // Trường hợp 2: Sản phẩm CÓ biến thể - cần chọn variant
         if (!selectedVariantId) {
             showToast('error', 'Vui lòng chọn biến thể sản phẩm');
+            setLoadingAdd(prev => ({ ...prev, [productId]: false }));
             return;
         }
 
         const selectedVariant = variants.find(v => v.id === selectedVariantId);
         if (!selectedVariant) {
             showToast('error', 'Không tìm thấy biến thể');
+            setLoadingAdd(prev => ({ ...prev, [productId]: false }));
             return;
         }
-
-        setLoadingAdd(prev => ({ ...prev, [productId]: true }));
 
         // Helper function to add to localStorage
         const addToLocalStorage = () => {
@@ -214,7 +249,7 @@ const ProductList: React.FC = () => {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
             {/* Toast Notifications */}
             <div className="fixed top-4 right-4 z-50 space-y-2">
                 {toasts.map(toast => (
@@ -276,7 +311,7 @@ const ProductList: React.FC = () => {
             {/* ========== MAIN CONTENT ========== */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* ========== FILTERS & TOOLBAR ========== */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-8 -mt-8 relative z-10">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 mb-8 -mt-8 relative z-10">
                     <div className="flex flex-col lg:flex-row gap-4">
                         {/* Search */}
                         <div className="relative flex-1">
@@ -286,17 +321,17 @@ const ProductList: React.FC = () => {
                                 placeholder="Tìm kiếm sản phẩm theo tên, SKU..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                             />
                         </div>
 
                         {/* Category Filter */}
                         <div className="flex items-center gap-2">
-                            <span className="text-slate-500 text-sm whitespace-nowrap">📁 Danh mục:</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap">📁 Danh mục:</span>
                             <select
                                 value={selectedCategory || ''}
                                 onChange={(e) => { setSelectedCategory(e.target.value ? parseInt(e.target.value) : undefined); setPagination(p => ({ ...p, page: 1 })); }}
-                                className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[160px]"
+                                className="px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-800 dark:text-white min-w-[160px]"
                             >
                                 <option value="">Tất cả</option>
                                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -305,11 +340,11 @@ const ProductList: React.FC = () => {
 
                         {/* Sort */}
                         <div className="flex items-center gap-2">
-                            <span className="text-slate-500 text-sm whitespace-nowrap">📊 Sắp xếp:</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap">📊 Sắp xếp:</span>
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[140px]"
+                                className="px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-800 dark:text-white min-w-[140px]"
                             >
                                 <option value="newest">Mới nhất</option>
                                 <option value="price-low">Giá thấp → cao</option>
@@ -319,17 +354,17 @@ const ProductList: React.FC = () => {
                         </div>
 
                         {/* View Mode Toggle */}
-                        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 title="Hiển thị dạng lưới"
                             >
                                 ▦
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 title="Hiển thị dạng danh sách"
                             >
                                 ☰
@@ -339,23 +374,23 @@ const ProductList: React.FC = () => {
 
                     {/* Active Filters */}
                     {(search || selectedCategory) && (
-                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
-                            <span className="text-sm text-slate-500">Đang lọc:</span>
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                            <span className="text-sm text-slate-500 dark:text-slate-400">Đang lọc:</span>
                             {search && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">
                                     🔍 "{search}"
-                                    <button onClick={() => setSearch('')} className="ml-1 hover:text-blue-900">×</button>
+                                    <button onClick={() => setSearch('')} className="ml-1 hover:text-blue-900 dark:hover:text-blue-100">×</button>
                                 </span>
                             )}
                             {selectedCategory && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 rounded-full text-sm">
                                     📁 {categories.find(c => c.id === selectedCategory)?.name}
-                                    <button onClick={() => setSelectedCategory(undefined)} className="ml-1 hover:text-violet-900">×</button>
+                                    <button onClick={() => setSelectedCategory(undefined)} className="ml-1 hover:text-violet-900 dark:hover:text-violet-100">×</button>
                                 </span>
                             )}
                             <button
                                 onClick={() => { setSearch(''); setSelectedCategory(undefined); }}
-                                className="text-sm text-red-600 hover:text-red-700 ml-2"
+                                className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 ml-2"
                             >
                                 Xóa tất cả
                             </button>
@@ -369,7 +404,7 @@ const ProductList: React.FC = () => {
                         onClick={() => { setSelectedCategory(undefined); setPagination(p => ({ ...p, page: 1 })); }}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${!selectedCategory
                             ? 'bg-blue-600 text-white shadow-lg'
-                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600'
                             }`}
                     >
                         🏷️ Tất cả
@@ -380,7 +415,7 @@ const ProductList: React.FC = () => {
                             onClick={() => { setSelectedCategory(cat.id); setPagination(p => ({ ...p, page: 1 })); }}
                             className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === cat.id
                                 ? 'bg-blue-600 text-white shadow-lg'
-                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600'
                                 }`}
                         >
                             {cat.name}
@@ -392,7 +427,7 @@ const ProductList: React.FC = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-64 gap-4">
                         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500">Đang tải sản phẩm...</p>
+                        <p className="text-slate-500 dark:text-slate-400">Đang tải sản phẩm...</p>
                     </div>
                 ) : (
                     <>
@@ -402,7 +437,7 @@ const ProductList: React.FC = () => {
                                 {sortedProducts.map(product => (
                                     <div
                                         key={product.id}
-                                        className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300"
+                                        className="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all duration-300"
                                     >
                                         {/* Image - Link to detail */}
                                         <Link to={`/products/${product.id}`}>
@@ -434,21 +469,21 @@ const ProductList: React.FC = () => {
                                         {/* Content */}
                                         <div className="p-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{product.sku}</span>
+                                                <span className="text-xs text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/50 px-2 py-0.5 rounded">{product.sku}</span>
                                                 {product.brand && (
-                                                    <span className="text-xs text-slate-500">• {product.brand}</span>
+                                                    <span className="text-xs text-slate-500 dark:text-slate-400">• {product.brand}</span>
                                                 )}
                                             </div>
                                             <Link to={`/products/${product.id}`}>
-                                                <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
+                                                <h3 className="font-semibold text-slate-800 dark:text-white mb-2 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                                     {product.name}
                                                 </h3>
                                             </Link>
                                             <div className="flex items-center justify-between mb-3">
-                                                <span className="text-xl font-bold text-blue-600">
+                                                <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
                                                     {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
                                                 </span>
-                                                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                                                <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/50 px-2 py-1 rounded-lg">
                                                     ✓ Còn hàng
                                                 </span>
                                             </div>
@@ -479,7 +514,7 @@ const ProductList: React.FC = () => {
                                     return (
                                         <div
                                             key={product.id}
-                                            className="group flex gap-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-4 hover:shadow-lg transition-all"
+                                            className="group flex gap-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 hover:shadow-lg transition-all"
                                             onMouseEnter={() => loadVariantsForProduct(product.id)}
                                         >
                                             {/* Image */}
@@ -499,23 +534,23 @@ const ProductList: React.FC = () => {
                                             <div className="flex-1 flex flex-col justify-between">
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{product.sku}</span>
+                                                        <span className="text-xs text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/50 px-2 py-0.5 rounded">{product.sku}</span>
                                                         {product.category_name && (
-                                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{product.category_name}</span>
+                                                            <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">{product.category_name}</span>
                                                         )}
                                                     </div>
                                                     <Link to={`/products/${product.id}`}>
-                                                        <h3 className="font-semibold text-lg text-slate-800 hover:text-blue-600 transition-colors">
+                                                        <h3 className="font-semibold text-lg text-slate-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                                             {product.name}
                                                         </h3>
                                                     </Link>
-                                                    {product.brand && <p className="text-sm text-slate-500">Thương hiệu: {product.brand}</p>}
+                                                    {product.brand && <p className="text-sm text-slate-500 dark:text-slate-400">Thương hiệu: {product.brand}</p>}
                                                 </div>
                                                 <div className="flex items-center justify-between mt-2">
-                                                    <span className="text-2xl font-bold text-blue-600">
+                                                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                                         {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
                                                     </span>
-                                                    <span className="text-sm text-emerald-600">✓ Còn hàng</span>
+                                                    <span className="text-sm text-emerald-600 dark:text-emerald-400">✓ Còn hàng</span>
                                                 </div>
                                             </div>
 
@@ -575,25 +610,44 @@ const ProductList: React.FC = () => {
                                                 </div>
 
                                                 {/* Add to Cart Button */}
-                                                <button
-                                                    onClick={() => handleQuickAddToCart(product)}
-                                                    disabled={isLoadingAdd || variants.length === 0 || isLoadingVariants}
-                                                    className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isLoadingAdd || variants.length === 0 || isLoadingVariants
-                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg'
-                                                        }`}
-                                                >
-                                                    {isLoadingAdd ? (
-                                                        <>
-                                                            <span className="animate-spin">⏳</span>
-                                                            Đang thêm...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            🛒 Thêm vào giỏ
-                                                        </>
-                                                    )}
-                                                </button>
+                                                {variants.length === 0 && !isLoadingVariants ? (
+                                                    // Không có biến thể -> Thêm trực tiếp vào giỏ hàng
+                                                    <button
+                                                        onClick={() => handleQuickAddToCart(product)}
+                                                        disabled={isLoadingAdd}
+                                                        className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isLoadingAdd
+                                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg'
+                                                            }`}
+                                                    >
+                                                        {isLoadingAdd ? (
+                                                            <><span className="animate-spin">⏳</span> Đang thêm...</>
+                                                        ) : (
+                                                            <>🛒 Thêm vào giỏ</>
+                                                        )}
+                                                    </button>
+                                                ) : (
+                                                    // Có biến thể -> Quick Add button
+                                                    <button
+                                                        onClick={() => handleQuickAddToCart(product)}
+                                                        disabled={isLoadingAdd || isLoadingVariants}
+                                                        className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isLoadingAdd || isLoadingVariants
+                                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg'
+                                                            }`}
+                                                    >
+                                                        {isLoadingAdd ? (
+                                                            <>
+                                                                <span className="animate-spin">⏳</span>
+                                                                Đang thêm...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                🛒 Thêm vào giỏ
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -605,8 +659,8 @@ const ProductList: React.FC = () => {
                         {products.length === 0 && (
                             <div className="text-center py-16">
                                 <div className="text-6xl mb-4">🔍</div>
-                                <h3 className="text-xl font-semibold text-slate-800 mb-2">Không tìm thấy sản phẩm</h3>
-                                <p className="text-slate-500 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">Không tìm thấy sản phẩm</h3>
+                                <p className="text-slate-500 dark:text-slate-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                                 <button
                                     onClick={() => { setSearch(''); setSelectedCategory(undefined); }}
                                     className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
@@ -651,7 +705,7 @@ const ProductList: React.FC = () => {
                     animation: slide-in 0.3s ease-out;
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 

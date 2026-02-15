@@ -513,7 +513,7 @@ const Cart: React.FC = () => {
                                         <span>ℹ️</span>
                                         <span>
                                             {isAuthenticated
-                                                ? 'Giỏ hàng được lưu trên server của bạn.'
+                                                ? 'Giỏ hàng được lưu trên server.'
                                                 : 'Đăng nhập để lưu giỏ hàng và đặt hàng.'}
                                         </span>
                                     </p>

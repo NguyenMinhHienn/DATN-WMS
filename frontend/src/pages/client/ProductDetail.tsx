@@ -353,12 +353,7 @@ const ProductDetail: React.FC = () => {
                                             <td className="py-2 text-slate-800 font-medium">{product.total_stock}</td>
                                         </tr>
                                     )}
-                                    {product.available_colors && product.available_colors.trim() !== '' && (
-                                        <tr className="border-b border-slate-200">
-                                            <td className="py-2 text-slate-500 w-1/3">Màu có sẵn</td>
-                                            <td className="py-2 text-slate-800 font-medium">{product.available_colors}</td>
-                                        </tr>
-                                    )}
+                                    {/* Đã xóa "Màu có sẵn" vì trùng với thông tin màu sắc trong biến thể */}
                                     {product.has_expiry && (
                                         <tr className="border-b border-slate-200">
                                             <td className="py-2 text-slate-500 w-1/3">Theo dõi</td>
@@ -369,22 +364,32 @@ const ProductDetail: React.FC = () => {
                                     {selectedVariant && (
                                         <>
                                             {/* Display flexible attribute_values (new system) */}
-                                            {selectedVariant.attribute_values && selectedVariant.attribute_values.length > 0 ? (
+                                            {Array.isArray(selectedVariant.attribute_values) && selectedVariant.attribute_values.length > 0 ? (
                                                 <>
-                                                    {selectedVariant.attribute_values.map((attrVal: any) => (
-                                                        <tr key={attrVal.id} className="border-b border-slate-200">
-                                                            <td className="py-2 text-slate-500 w-1/3">{attrVal.attribute_display_name || attrVal.attribute_name}</td>
-                                                            <td className="py-2 text-slate-800 font-medium flex items-center gap-2">
-                                                                {attrVal.color_code && (
-                                                                    <span
-                                                                        className="w-4 h-4 rounded-full border border-slate-300 inline-block"
-                                                                        style={{ backgroundColor: attrVal.color_code }}
-                                                                    />
-                                                                )}
-                                                                {attrVal.display_value}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {selectedVariant.attribute_values
+                                                        // Lọc bỏ các attribute không hợp lệ
+                                                        .filter((attrVal: any) => {
+                                                            const attrName = String(attrVal.attribute_display_name || attrVal.attribute_name || '').trim();
+                                                            const displayVal = String(attrVal.display_value || '').trim();
+                                                            // Bỏ qua nếu tên thuộc tính hoặc giá trị rỗng/chỉ là số 0
+                                                            if (!attrName || attrName === '0') return false;
+                                                            if (!displayVal) return false;
+                                                            return true;
+                                                        })
+                                                        .map((attrVal: any) => (
+                                                            <tr key={attrVal.id} className="border-b border-slate-200">
+                                                                <td className="py-2 text-slate-500 w-1/3">{attrVal.attribute_display_name || attrVal.attribute_name}</td>
+                                                                <td className="py-2 text-slate-800 font-medium flex items-center gap-2">
+                                                                    {attrVal.color_code && (
+                                                                        <span
+                                                                            className="w-4 h-4 rounded-full border border-slate-300 inline-block"
+                                                                            style={{ backgroundColor: attrVal.color_code }}
+                                                                        />
+                                                                    )}
+                                                                    {attrVal.display_value}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </>
                                             ) : (
                                                 /* Fallback: Display legacy columns for old products */
@@ -526,8 +531,8 @@ const ProductDetail: React.FC = () => {
                                 <button
                                     id="btn-add-wishlist"
                                     className={`btn px-4 py-3 transition-all duration-300 ${isWishlisted
-                                            ? 'bg-red-50 border-red-300 text-red-500 hover:bg-red-100'
-                                            : 'btn-secondary hover:text-red-500'
+                                        ? 'bg-red-50 border-red-300 text-red-500 hover:bg-red-100'
+                                        : 'btn-secondary hover:text-red-500'
                                         }`}
                                     title={isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
                                     onClick={() => setIsWishlisted(!isWishlisted)}

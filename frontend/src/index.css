@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==================== THEME VARIABLES ==================== */
+:root {
+  /* Light Theme (Default for user pages) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-header: #ffffff;
+  --bg-footer: #1e293b;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #f1f5f9;
+  --input-border: #cbd5e1;
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+[data-theme="dark"] {
+  /* Dark Theme */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.4);
+  --bg-header: #1e293b;
+  --bg-footer: #0f172a;
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: rgba(100, 116, 139, 0.5);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --input-bg: rgba(30, 41, 59, 0.5);
+  --input-border: rgba(100, 116, 139, 0.5);
+  --scrollbar-track: #1e293b;
+  --scrollbar-thumb: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,9 +47,10 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom scrollbar - Dark theme */

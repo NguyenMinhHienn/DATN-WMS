@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { cartService } from '../../services/cartService';
 
 /**
@@ -9,6 +10,7 @@ import { cartService } from '../../services/cartService';
  */
 const Home: React.FC = () => {
     const { isAuthenticated, user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -86,9 +88,9 @@ const Home: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
             {/* ========== HEADER NAVIGATION ========== */}
-            <header className="bg-white/80 backdrop-blur-md shadow-sm border-b sticky top-0 z-50">
+            <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-sm border-b dark:border-slate-700 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2">
@@ -96,93 +98,123 @@ const Home: React.FC = () => {
                             SF
                         </div>
                         <div>
-                            <h1 className="font-bold text-slate-800 text-lg leading-tight">StockFlow</h1>
-                            <p className="text-xs text-slate-500">Warehouse Management</p>
+                            <h1 className="font-bold text-slate-800 dark:text-white text-lg leading-tight">StockFlow</h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Warehouse Management</p>
                         </div>
                     </Link>
 
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
-                        <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
-                        <Link to="/products" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
-                        <a href="#features" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Tính năng</a>
-                        <a href="#about" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Giới thiệu</a>
+                        <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Trang chủ</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Sản phẩm</Link>
+                        <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Tính năng</a>
+                        <a href="#about" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Giới thiệu</a>
                     </nav>
 
                     {/* User/Auth */}
                     {isAuthenticated ? (
-                        <div className="relative" ref={dropdownRef}>
-                            {/* Clickable User Button */}
+                        <div className="flex items-center gap-3">
+                            {/* Theme Toggle Switch for logged-in users */}
                             <button
-                                onClick={() => setDropdownOpen(!dropdownOpen)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                                onClick={toggleTheme}
+                                className="relative w-14 h-7 bg-slate-200 dark:bg-slate-600 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
                             >
-                                {user?.avatar_url ? (
-                                    <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-200" />
-                                ) : (
-                                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
-                                        {user?.full_name?.charAt(0) || 'U'}
+                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${theme === 'dark' ? 'translate-x-7' : 'translate-x-0'}`}>
+                                    {theme === 'dark' ? (
+                                        <span className="text-xs">🌙</span>
+                                    ) : (
+                                        <span className="text-xs">☀️</span>
+                                    )}
+                                </div>
+                            </button>
+                            <div className="relative" ref={dropdownRef}>
+                                {/* Clickable User Button */}
+                                <button
+                                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    {user?.avatar_url ? (
+                                        <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-indigo-200" />
+                                    ) : (
+                                        <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow">
+                                            {user?.full_name?.charAt(0) || 'U'}
+                                        </div>
+                                    )}
+                                    <div className="hidden sm:block text-left">
+                                        <p className="font-medium text-slate-800 dark:text-white text-sm">{user?.full_name}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{user?.roles?.map(r => r.name).join(', ')}</p>
+                                    </div>
+                                    <svg className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {dropdownOpen && (
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                        <div className="p-3 border-b border-slate-100 bg-slate-50">
+                                            <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
+                                            <p className="text-xs text-slate-500">{user?.email}</p>
+                                        </div>
+
+                                        {/* Giỏ hàng */}
+                                        <button
+                                            onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <span>🛒</span> Giỏ hàng
+                                            </span>
+                                            {cartItemCount > 0 && (
+                                                <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                    {cartItemCount}
+                                                </span>
+                                            )}
+                                        </button>
+
+                                        <div className="border-t border-slate-200"></div>
+
+                                        <button
+                                            onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                        >
+                                            <span>👤</span> Thông tin cá nhân
+                                        </button>
+                                        <button
+                                            onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                        >
+                                            <span>🔒</span> Đổi mật khẩu
+                                        </button>
+                                        <div className="border-t border-slate-200"></div>
+                                        <button
+                                            onClick={() => { handleLogout(); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
+                                        >
+                                            <span>🚪</span> Đăng xuất
+                                        </button>
                                     </div>
                                 )}
-                                <div className="hidden sm:block text-left">
-                                    <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
-                                    <p className="text-xs text-slate-500">{user?.roles?.map(r => r.name).join(', ')}</p>
-                                </div>
-                                <svg className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {dropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
-                                    <div className="p-3 border-b border-slate-100 bg-slate-50">
-                                        <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
-                                        <p className="text-xs text-slate-500">{user?.email}</p>
-                                    </div>
-
-                                    {/* Giỏ hàng */}
-                                    <button
-                                        onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
-                                        className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
-                                    >
-                                        <span className="flex items-center gap-3">
-                                            <span>🛒</span> Giỏ hàng
-                                        </span>
-                                        {cartItemCount > 0 && (
-                                            <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                                {cartItemCount}
-                                            </span>
-                                        )}
-                                    </button>
-
-                                    <div className="border-t border-slate-200"></div>
-
-                                    <button
-                                        onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
-                                    >
-                                        <span>👤</span> Thông tin cá nhân
-                                    </button>
-                                    <button
-                                        onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
-                                    >
-                                        <span>🔒</span> Đổi mật khẩu
-                                    </button>
-                                    <div className="border-t border-slate-200"></div>
-                                    <button
-                                        onClick={() => { handleLogout(); setDropdownOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
-                                    >
-                                        <span>🚪</span> Đăng xuất
-                                    </button>
-                                </div>
-                            )}
+                            </div>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2">
-                            <Link to="/login" className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors">
+                        <div className="flex items-center gap-3">
+                            {/* Theme Toggle Switch */}
+                            <button
+                                onClick={toggleTheme}
+                                className="relative w-14 h-7 bg-slate-200 dark:bg-slate-600 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                            >
+                                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${theme === 'dark' ? 'translate-x-7' : 'translate-x-0'}`}>
+                                    {theme === 'dark' ? (
+                                        <span className="text-xs">🌙</span>
+                                    ) : (
+                                        <span className="text-xs">☀️</span>
+                                    )}
+                                </div>
+                            </button>
+                            <Link to="/login" className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">
                                 Đăng nhập
                             </Link>
                             <Link to="/register" className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
@@ -241,14 +273,14 @@ const Home: React.FC = () => {
             </section>
 
             {/* ========== STATS BAR ========== */}
-            <section className="bg-white border-b shadow-sm -mt-8 relative z-10">
+            <section className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 shadow-sm -mt-8 relative z-10">
                 <div className="max-w-5xl mx-auto px-4">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
                         {stats.map((stat, i) => (
                             <div key={i} className="text-center">
                                 <div className="text-3xl mb-1">{stat.icon}</div>
-                                <div className="text-2xl md:text-3xl font-bold text-slate-800">{stat.value}</div>
-                                <div className="text-sm text-slate-500">{stat.label}</div>
+                                <div className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">{stat.value}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -257,16 +289,16 @@ const Home: React.FC = () => {
 
             {/* ========== WELCOME MESSAGE (Logged in users) ========== */}
             {isAuthenticated && (
-                <section className="py-6 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
+                <section className="py-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-b border-emerald-100 dark:border-emerald-800">
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                             <div className="flex items-center gap-3">
                                 <div className="text-3xl">👋</div>
                                 <div>
-                                    <p className="text-emerald-800 font-medium">
+                                    <p className="text-emerald-800 dark:text-emerald-200 font-medium">
                                         Xin chào, <strong>{user?.full_name}</strong>!
                                     </p>
-                                    <p className="text-sm text-emerald-600">Chúc bạn một ngày làm việc hiệu quả.</p>
+                                    <p className="text-sm text-emerald-600 dark:text-emerald-400">Chúc bạn một ngày làm việc hiệu quả.</p>
                                 </div>
                             </div>
                             <Link to="/products" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
@@ -278,12 +310,12 @@ const Home: React.FC = () => {
             )}
 
             {/* ========== FEATURES SECTION ========== */}
-            <section id="features" className="py-20 bg-slate-50">
+            <section id="features" className="py-20 bg-slate-50 dark:bg-slate-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
-                        <span className="inline-block px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">Tính năng</span>
-                        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Tại sao chọn StockFlow?</h2>
-                        <p className="text-slate-600 max-w-2xl mx-auto">Giải pháp quản lý kho hàng toàn diện với công nghệ hiện đại</p>
+                        <span className="inline-block px-4 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium mb-4">Tính năng</span>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white mb-4">Tại sao chọn StockFlow?</h2>
+                        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Giải pháp quản lý kho hàng toàn diện với công nghệ hiện đại</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -297,13 +329,13 @@ const Home: React.FC = () => {
                         ].map((feature, i) => (
                             <div
                                 key={i}
-                                className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-200 hover:-translate-y-1"
+                                className="group bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-xl dark:shadow-slate-900/50 transition-all duration-300 border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-600 hover:-translate-y-1"
                             >
-                                <div className={`w-14 h-14 bg-${feature.color}-100 rounded-2xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
+                                <div className={`w-14 h-14 bg-${feature.color}-100 dark:bg-${feature.color}-900/30 rounded-2xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
-                                <p className="text-slate-600 text-sm leading-relaxed">{feature.desc}</p>
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">{feature.title}</h3>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{feature.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -311,11 +343,11 @@ const Home: React.FC = () => {
             </section>
 
             {/* ========== HOW IT WORKS ========== */}
-            <section className="py-20 bg-white">
+            <section className="py-20 bg-white dark:bg-slate-800">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
-                        <span className="inline-block px-4 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium mb-4">Quy trình</span>
-                        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Cách thức hoạt động</h2>
+                        <span className="inline-block px-4 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-full text-sm font-medium mb-4">Quy trình</span>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white mb-4">Cách thức hoạt động</h2>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -329,11 +361,11 @@ const Home: React.FC = () => {
                                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg">
                                     {item.icon}
                                 </div>
-                                <div className="text-xs font-bold text-blue-600 mb-2">BƯỚC {item.step}</div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{item.title}</h3>
-                                <p className="text-slate-600 text-sm">{item.desc}</p>
+                                <div className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2">BƯỚC {item.step}</div>
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">{item.title}</h3>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm">{item.desc}</p>
                                 {i < 3 && (
-                                    <div className="hidden md:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-slate-200"></div>
+                                    <div className="hidden md:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-slate-200 dark:border-slate-600"></div>
                                 )}
                             </div>
                         ))}

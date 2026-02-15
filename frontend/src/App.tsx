@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Route Guards
 import { AdminRoute } from './components/AdminRoute';
@@ -64,68 +65,70 @@ import Profile from './pages/Profile';
  */
 const App: React.FC = () => {
     return (
-        <AuthProvider>
-            <BrowserRouter>
-                <Routes>
-                    {/* ==================== PUBLIC ROUTES ==================== */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/products" element={<ProductList />} />
-                    <Route path="/products/:id" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/403" element={<AccessDenied />} />
+        <ThemeProvider>
+            <AuthProvider>
+                <BrowserRouter>
+                    <Routes>
+                        {/* ==================== PUBLIC ROUTES ==================== */}
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/products" element={<ProductList />} />
+                        <Route path="/products/:id" element={<ProductDetail />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/403" element={<AccessDenied />} />
 
-                    {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
-                    <Route path="/profile" element={<Profile />} />
+                        {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
+                        <Route path="/profile" element={<Profile />} />
 
-                    {/* ==================== ADMIN ROUTES ==================== */}
-                    {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
-                    <Route
-                        path="/admin"
-                        element={
-                            <AdminRoute>
-                                <AdminLayout />
-                            </AdminRoute>
-                        }
-                    >
-                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                        <Route path="dashboard" element={<Dashboard />} />
-                        <Route path="products" element={<Products />} />
-                        <Route path="warehouses" element={<Warehouses />} />
-                        <Route path="inventory" element={<Inventory />} />
-                        <Route path="stock-in" element={<StockIn />} />
-                        <Route path="stock-out" element={<StockOut />} />
-                        <Route path="inter-warehouse-transfer" element={<InterWarehouseTransfer />} />
-                        <Route path="stock-transfers" element={<StockTransfers />} />
-                        <Route path="users" element={<Users />} />
-                        <Route path="reports" element={<Reports />} />
-                        <Route path="product-config" element={<ProductConfig />} />
-                    </Route>
+                        {/* ==================== ADMIN ROUTES ==================== */}
+                        {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
+                        <Route
+                            path="/admin"
+                            element={
+                                <AdminRoute>
+                                    <AdminLayout />
+                                </AdminRoute>
+                            }
+                        >
+                            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                            <Route path="dashboard" element={<Dashboard />} />
+                            <Route path="products" element={<Products />} />
+                            <Route path="warehouses" element={<Warehouses />} />
+                            <Route path="inventory" element={<Inventory />} />
+                            <Route path="stock-in" element={<StockIn />} />
+                            <Route path="stock-out" element={<StockOut />} />
+                            <Route path="inter-warehouse-transfer" element={<InterWarehouseTransfer />} />
+                            <Route path="stock-transfers" element={<StockTransfers />} />
+                            <Route path="users" element={<Users />} />
+                            <Route path="reports" element={<Reports />} />
+                            <Route path="product-config" element={<ProductConfig />} />
+                        </Route>
 
-                    {/* ==================== STAFF ROUTES ==================== */}
-                    {/* Chỉ role 'staff' - Tạo phiếu, xem phiếu đã tạo */}
-                    <Route
-                        path="/staff"
-                        element={
-                            <StaffRoute>
-                                <StaffLayout />
-                            </StaffRoute>
-                        }
-                    >
-                        <Route index element={<Navigate to="/staff/dashboard" replace />} />
-                        <Route path="dashboard" element={<StaffDashboard />} />
-                        <Route path="create-transfer" element={<CreateTransfer />} />
-                        <Route path="my-transfers" element={<MyTransfers />} />
-                        <Route path="products" element={<StaffProducts />} />
-                        <Route path="orders" element={<StaffOrders />} />
-                    </Route>
+                        {/* ==================== STAFF ROUTES ==================== */}
+                        {/* Chỉ role 'staff' - Tạo phiếu, xem phiếu đã tạo */}
+                        <Route
+                            path="/staff"
+                            element={
+                                <StaffRoute>
+                                    <StaffLayout />
+                                </StaffRoute>
+                            }
+                        >
+                            <Route index element={<Navigate to="/staff/dashboard" replace />} />
+                            <Route path="dashboard" element={<StaffDashboard />} />
+                            <Route path="create-transfer" element={<CreateTransfer />} />
+                            <Route path="my-transfers" element={<MyTransfers />} />
+                            <Route path="products" element={<StaffProducts />} />
+                            <Route path="orders" element={<StaffOrders />} />
+                        </Route>
 
-                    {/* ==================== FALLBACK ==================== */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+                        {/* ==================== FALLBACK ==================== */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
+        </ThemeProvider>
     );
 };
 

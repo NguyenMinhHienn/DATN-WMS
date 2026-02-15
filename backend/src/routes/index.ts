@@ -145,7 +145,7 @@ router.put('/specifications/:id', authenticate, isWarehouseManager, specificatio
 router.delete('/specifications/:id', authenticate, isWarehouseManager, specificationController.deleteSpecification);
 
 // ==================== UPLOAD ROUTES ====================
-router.post('/upload/image', authenticate, isWarehouseManager, uploadController.upload.single('image'), uploadController.uploadImage);
+router.post('/upload/image', authenticate, isStaff, uploadController.upload.single('image'), uploadController.uploadImage);
 router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadController.deleteImage);
 
 // ==================== ORDER ROUTES (Staff Read-Only) ====================

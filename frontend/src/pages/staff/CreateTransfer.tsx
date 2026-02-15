@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
 import { Warehouse, Product } from '../../interface';
+import ImageCropper from '../../components/ImageCropper';
 
 /**
  * CreateTransfer - Light theme modern
@@ -17,8 +18,6 @@ interface FormItem {
     product_name: string;
     product_sku: string;
     product_image_url: string;
-    image_file?: File | null;
-    image_preview?: string;
     quantity: number;
     unit_price: number;
     notes: string;
@@ -29,8 +28,6 @@ const emptyItem: FormItem = {
     product_name: '',
     product_sku: '',
     product_image_url: '',
-    image_file: null,
-    image_preview: '',
     quantity: 1,
     unit_price: 0,
     notes: ''
@@ -52,8 +49,6 @@ const CreateTransfer: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
-
-    const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     useEffect(() => {
         loadData();
@@ -128,7 +123,7 @@ const CreateTransfer: React.FC = () => {
                         return {
                             product_name: item.product_name,
                             product_sku: item.product_sku || undefined,
-                            product_image_url: item.product_image_url || item.image_preview || undefined,
+                            product_image_url: item.product_image_url || undefined,
                             quantity: item.quantity,
                             unit_price: item.unit_price,
                             notes: item.notes || undefined
@@ -180,23 +175,6 @@ const CreateTransfer: React.FC = () => {
         }
 
         setFormItems(updated);
-    };
-
-    const handleFileSelect = (index: number, file: File | null) => {
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const updated = [...formItems];
-                updated[index].image_file = file;
-                updated[index].image_preview = reader.result as string;
-                setFormItems(updated);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const triggerFileInput = (index: number) => {
-        fileInputRefs.current[index]?.click();
     };
 
     const getProduct = (id: number) => products.find(p => p.id === id);
@@ -394,33 +372,25 @@ const CreateTransfer: React.FC = () => {
                                             </div>
                                         </div>
                                         {/* Hình ảnh */}
-                                        <div className="mt-4 grid grid-cols-3 gap-4">
+                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                                             <div>
-                                                <input type="file" accept="image/*" ref={el => fileInputRefs.current[index] = el} className="hidden"
-                                                    onChange={(e) => handleFileSelect(index, e.target.files?.[0] || null)} />
-                                                <button type="button" onClick={() => triggerFileInput(index)}
-                                                    className="w-full px-3 py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 text-sm transition-colors bg-white">
-                                                    📷 Chọn hình
-                                                </button>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Hình ảnh sản phẩm</label>
+                                                <ImageCropper
+                                                    value={item.product_image_url}
+                                                    onChange={(url) => updateItem(index, 'product_image_url', url)}
+                                                    maxSize={400}
+                                                    aspectRatio={1}
+                                                    placeholder="📷 Chọn hình"
+                                                />
                                             </div>
-                                            <div>
-                                                <input type="url" value={item.product_image_url}
-                                                    onChange={(e) => updateItem(index, 'product_image_url', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    placeholder="URL hình" />
-                                            </div>
-                                            <div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Ghi chú</label>
                                                 <input type="text" value={item.notes}
                                                     onChange={(e) => updateItem(index, 'notes', e.target.value)}
                                                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    placeholder="Ghi chú" />
+                                                    placeholder="Ghi chú (hàng dễ vỡ, bảo quản lạnh...)" />
                                             </div>
                                         </div>
-                                        {(item.image_preview || item.product_image_url) && (
-                                            <img src={item.image_preview || item.product_image_url} alt="Preview"
-                                                className="mt-3 h-14 w-14 object-cover rounded-xl border-2 border-slate-200 shadow-sm"
-                                                onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
-                                        )}
                                     </>
                                 ) : (
                                     /* EXPORT/TRANSFER: Chọn sản phẩm có sẵn */

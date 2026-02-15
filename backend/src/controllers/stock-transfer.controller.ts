@@ -105,7 +105,7 @@ export const approveTransfer = asyncHandler(async (req: AuthRequest, res: Respon
 
     res.json({
         success: true,
-        message: 'Stock transfer approved successfully. Inventory has been updated.',
+        message: 'Đã duyệt yêu cầu và cập nhật tồn kho. Lưu ý: Sản phẩm mới vẫn ở trạng thái Nháp, cần vào Quản lý Sản phẩm để thiết lập danh mục và bật bán.',
     } as ApiResponse);
 });
 

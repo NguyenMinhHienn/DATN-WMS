@@ -420,12 +420,10 @@ export class StockTransferRepository {
                             transfer.transfer_number,
                             adminUserId
                         );
-                        // Kích hoạt sản phẩm draft (nếu là sản phẩm mới tạo từ phiếu nhập)
-                        await connection.query(`
-                            UPDATE products 
-                            SET status = 'active' 
-                            WHERE id = ? AND status = 'draft'
-                        `, [item.product_id]);
+                        // LƯU Ý: Sản phẩm mới vẫn giữ status = 'draft' sau khi duyệt
+                        // Admin cần vào trang Quản lý Sản phẩm để:
+                        // 1. Thiết lập danh mục, biến thể
+                        // 2. Bật status = 'active' khi sẵn sàng bán
                         break;
 
                     case 'EXPORT':
