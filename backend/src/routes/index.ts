@@ -165,3 +165,15 @@ router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem
 router.delete('/cart', authenticate, cartController.clearCart);
 
 export default router;
+
+// ==================== CLIENT ORDER ROUTES ====================
+// Client can view their own orders (authenticate only, no role check)
+router.get('/client/orders', authenticate, orderController.getClientOrders);
+router.get('/client/orders/:id', authenticate, orderController.getClientOrderById);
+
+// ==================== SUPPORT ROUTES ====================
+// Client can create and view support tickets
+router.get('/support/tickets', authenticate, orderController.getClientTickets);
+router.post('/support/tickets', authenticate, orderController.createSupportTicket);
+
+

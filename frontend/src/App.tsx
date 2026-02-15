@@ -42,6 +42,8 @@ import AccessDenied from './pages/client/AccessDenied';
 
 // Shared Pages
 import Profile from './pages/Profile';
+import OrdersPage from './pages/client/Orders';
+import SupportPage from './pages/client/SupportTicketsPage';
 
 /**
  * App Routing Structure:
@@ -80,6 +82,9 @@ const App: React.FC = () => {
 
                         {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/orders" element={<OrdersPage />} />
+                        <Route path="/orders/:id" element={<OrdersPage />} />
+                        <Route path="/support" element={<SupportPage />} />
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}

@@ -9,7 +9,7 @@ import { cartService } from '../../services/cartService';
  * Trang chủ với UI hiện đại, premium cho CLIENT và khách
  */
 const Home: React.FC = () => {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, hasRole } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -107,8 +107,27 @@ const Home: React.FC = () => {
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Trang chủ</Link>
                         <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Sản phẩm</Link>
+
+                        {/* NÚT ORDERS VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
+                        {isAuthenticated && (
+                            <>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hỗ trợ</Link>
+                            </>
+                        )}
+
                         <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Tính năng</a>
                         <a href="#about" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Giới thiệu</a>
+                        {hasRole && hasRole('admin') && (
+                            <Link to="/admin/dashboard" className="text-purple-600 hover:text-purple-700 font-medium transition-colors">
+                                Admin
+                            </Link>
+                        )}
+                        {hasRole && hasRole('staff') && (
+                            <Link to="/staff/dashboard" className="text-green-600 hover:text-green-700 font-medium transition-colors">
+                                Staff
+                            </Link>
+                        )}
                     </nav>
 
                     {/* User/Auth */}
@@ -152,16 +171,16 @@ const Home: React.FC = () => {
 
                                 {/* Dropdown Menu */}
                                 {dropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
-                                        <div className="p-3 border-b border-slate-100 bg-slate-50">
-                                            <p className="font-medium text-slate-800 text-sm">{user?.full_name}</p>
-                                            <p className="text-xs text-slate-500">{user?.email}</p>
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                                        <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                                            <p className="font-medium text-slate-800 dark:text-white text-sm">{user?.full_name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
                                         </div>
 
                                         {/* Giỏ hàng */}
                                         <button
                                             onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
-                                            className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
+                                            className="w-full flex items-center justify-between px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-slate-700 hover:text-primary-600 transition-colors text-sm"
                                         >
                                             <span className="flex items-center gap-3">
                                                 <span>🛒</span> Giỏ hàng
@@ -173,24 +192,39 @@ const Home: React.FC = () => {
                                             )}
                                         </button>
 
-                                        <div className="border-t border-slate-200"></div>
+                                        <div className="border-t border-slate-200 dark:border-slate-700"></div>
+
+                                        {/* Đơn hàng */}
+                                        <button
+                                            onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
+                                        >
+                                            <span>�</span> Đơn hàng của tôi
+                                        </button>
+                                        {/* Hỗ trợ */}
+                                        <button
+                                            onClick={() => { navigate('/support'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
+                                        >
+                                            <span>💬</span> Hỗ trợ
+                                        </button>
 
                                         <button
                                             onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
                                         >
                                             <span>👤</span> Thông tin cá nhân
                                         </button>
                                         <button
                                             onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
                                         >
                                             <span>🔒</span> Đổi mật khẩu
                                         </button>
-                                        <div className="border-t border-slate-200"></div>
+                                        <div className="border-t border-slate-200 dark:border-slate-700"></div>
                                         <button
                                             onClick={() => { handleLogout(); setDropdownOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
                                         >
                                             <span>🚪</span> Đăng xuất
                                         </button>
@@ -222,6 +256,37 @@ const Home: React.FC = () => {
                             </Link>
                         </div>
                     )}
+                </div>
+
+                {/* Mobile Navigation (ẩn trên desktop) */}
+                <div className="md:hidden py-4 border-t">
+                    <div className="flex flex-col space-y-3">
+                        <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
+
+                        {/* NÚT ORDERS VÀ SUPPORT CHO MOBILE */}
+                        {isAuthenticated && (
+                            <>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
+                            </>
+                        )}
+
+                        <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Tính năng</a>
+                        <a href="#about" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Giới thiệu</a>
+
+                        {/* Admin/Staff links for mobile */}
+                        {hasRole && hasRole('admin') && (
+                            <Link to="/admin/dashboard" className="text-purple-600 hover:text-purple-700 font-medium transition-colors">
+                                Admin Panel
+                            </Link>
+                        )}
+                        {hasRole && hasRole('staff') && (
+                            <Link to="/staff/dashboard" className="text-green-600 hover:text-green-700 font-medium transition-colors">
+                                Staff Panel
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </header>
 
