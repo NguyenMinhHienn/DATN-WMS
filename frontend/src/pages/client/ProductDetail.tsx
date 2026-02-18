@@ -5,10 +5,12 @@ import { productService } from '../../services/productService';
 import { uploadService } from '../../services/uploadService';
 import { specificationService, ProductSpecification } from '../../services/specificationService';
 import { cartService } from '../../services/cartService';
+import { useAuth } from '../../context/AuthContext';
 import { ProductWithVariants, ProductVariant, VARIANT_TYPES_CONFIG } from '../../interface';
 
 const ProductDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const { isAuthenticated } = useAuth();
     const [product, setProduct] = useState<ProductWithVariants | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
     const [specifications, setSpecifications] = useState<ProductSpecification[]>([]);
@@ -20,6 +22,8 @@ const ProductDetail: React.FC = () => {
     const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     // State cho nút yêu thích
     const [isWishlisted, setIsWishlisted] = useState(false);
+    // State cho loading thêm vào giỏ
+    const [addingToCart, setAddingToCart] = useState(false);
     useEffect(() => {
         if (id) loadProduct(parseInt(id));
     }, [id]);
@@ -78,9 +82,9 @@ const ProductDetail: React.FC = () => {
     const displayPrice = selectedVariant?.price ?? product?.selling_price ?? 0;
 
     // Xử lý thêm vào giỏ hàng
-    // TODO: Sẽ thay bằng API call khi có backend
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) return;
+        if (addingToCart) return;
 
         // Tạo label cho biến thể (nếu có)
         let variantLabel: string | null = null;
@@ -100,20 +104,47 @@ const ProductDetail: React.FC = () => {
             variantLabel = labelParts.join(' / ') || null;
         }
 
-        cartService.addToCart({
-            product_id: product.id,
-            variant_id: selectedVariant?.id ?? null,
-            name: product.name,
-            variant_label: variantLabel,
-            price: displayPrice,
-            quantity: quantity,
-            image_url: selectedVariant?.image_url || product.image_url || null,
-            sku: selectedVariant?.sku || product.sku || null,
-            max_stock: selectedVariant?.stock ?? product.total_stock ?? null,
-        });
+        // Helper: thêm vào localStorage (fallback)
+        const addToLocalStorage = () => {
+            cartService.addToCart({
+                product_id: product.id,
+                variant_id: selectedVariant?.id ?? null,
+                name: product.name,
+                variant_label: variantLabel,
+                price: displayPrice,
+                quantity: quantity,
+                image_url: selectedVariant?.image_url || product.image_url || null,
+                sku: selectedVariant?.sku || product.sku || null,
+                max_stock: selectedVariant?.stock ?? product.total_stock ?? null,
+            });
+        };
 
-        // Hiển thị thông báo thành công
-        setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+        setAddingToCart(true);
+        try {
+            if (isAuthenticated && selectedVariant?.id) {
+                // User đã đăng nhập + có variant -> gọi API để lưu vào DB
+                const result = await cartService.addToCartAPI(product.id, selectedVariant.id, quantity);
+                if (result.success) {
+                    setCartMessage({ type: 'success', text: result.message || `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                } else {
+                    // API lỗi - fallback localStorage
+                    console.warn('API addToCart failed, using localStorage:', result.message);
+                    addToLocalStorage();
+                    setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                }
+            } else {
+                // Chưa đăng nhập hoặc không có variant -> dùng localStorage
+                addToLocalStorage();
+                setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+            }
+        } catch (error) {
+            console.error('Add to cart error:', error);
+            // Fallback localStorage
+            addToLocalStorage();
+            setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+        } finally {
+            setAddingToCart(false);
+        }
 
         // Tự động ẩn thông báo sau 3 giây
         setTimeout(() => setCartMessage(null), 3000);
@@ -520,11 +551,15 @@ const ProductDetail: React.FC = () => {
                                 {/* Add to Cart Button */}
                                 <button
                                     id="btn-add-to-cart"
-                                    className="flex-1 sm:flex-none btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 px-8 py-3 text-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                                    className="flex-1 sm:flex-none btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 px-8 py-3 text-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={handleAddToCart}
+                                    disabled={addingToCart}
                                 >
-                                    <span className="text-xl">🛒</span>
-                                    Thêm vào giỏ hàng
+                                    {addingToCart ? (
+                                        <><span className="animate-spin text-xl">⏳</span> Đang thêm...</>
+                                    ) : (
+                                        <><span className="text-xl">🛒</span> Thêm vào giỏ hàng</>
+                                    )}
                                 </button>
 
                                 {/* Wishlist Button - Toggle yêu thích */}

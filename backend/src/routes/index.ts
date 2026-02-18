@@ -17,6 +17,7 @@ import * as uploadController from '../controllers/upload.controller';
 import * as attributeController from '../controllers/attribute.controller';
 import * as specificationController from '../controllers/specification.controller';
 import * as orderController from '../controllers/order.controller';
+import * as exportSlipController from '../controllers/export-slip.controller';
 import * as cartController from '../controllers/cart.controller';
 
 const router = Router();
@@ -148,12 +149,33 @@ router.delete('/specifications/:id', authenticate, isWarehouseManager, specifica
 router.post('/upload/image', authenticate, isStaff, uploadController.upload.single('image'), uploadController.uploadImage);
 router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadController.deleteImage);
 
-// ==================== ORDER ROUTES (Staff Read-Only) ====================
-// Staff có thể xem đơn hàng để theo dõi trạng thái
-router.get('/orders/users', authenticate, isStaff, orderController.getUsersWithOrders);
+// ==================== ORDER ROUTES ====================
+// Client: Tạo và xem đơn hàng
+router.post('/orders', authenticate, orderController.createOrder);
+router.get('/client/orders', authenticate, orderController.getClientOrders);
+router.get('/client/orders/:id', authenticate, orderController.getClientOrderById);
+router.put('/orders/:id/cancel', authenticate, orderController.cancelOrder);
+
+// Admin: Quản lý đơn hàng
+router.get('/orders', authenticate, isAdmin, orderController.getAllOrders);
+router.get('/orders/confirmed', authenticate, isStaff, orderController.getConfirmedOrders);
 router.get('/orders/:id', authenticate, isStaff, orderController.getOrderById);
-router.get('/orders/:id/items', authenticate, isStaff, orderController.getOrderItems);
-router.get('/users/:id/orders', authenticate, isStaff, orderController.getOrdersByUser);
+router.put('/orders/:id/confirm', authenticate, isAdmin, orderController.confirmOrder);
+router.put('/orders/:id/shipping', authenticate, isAdmin, orderController.markShipping);
+router.put('/orders/:id/delivered', authenticate, isAdmin, orderController.markDelivered);
+router.put('/orders/:id/failed', authenticate, isAdmin, orderController.markFailed);
+
+// ==================== EXPORT SLIP ROUTES (Phiếu xuất kho) ====================
+// Staff: Tạo phiếu và xem phiếu của mình
+router.post('/export-slips', authenticate, isStaff, exportSlipController.createExportSlip);
+router.get('/export-slips/my', authenticate, isStaff, exportSlipController.getMyExportSlips);
+
+// Admin: Quản lý phiếu xuất kho
+router.get('/export-slips', authenticate, isStaff, exportSlipController.getAllExportSlips);
+router.get('/export-slips/:id', authenticate, isStaff, exportSlipController.getExportSlipById);
+router.put('/export-slips/:id/approve', authenticate, isAdmin, exportSlipController.approveExportSlip);
+router.put('/export-slips/:id/complete', authenticate, isAdmin, exportSlipController.completeDelivery);
+router.put('/export-slips/:id/fail', authenticate, isAdmin, exportSlipController.failDelivery);
 
 // ==================== CART ROUTES (User) ====================
 // Giỏ hàng cho user đã đăng nhập
@@ -165,15 +187,3 @@ router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem
 router.delete('/cart', authenticate, cartController.clearCart);
 
 export default router;
-
-// ==================== CLIENT ORDER ROUTES ====================
-// Client can view their own orders (authenticate only, no role check)
-router.get('/client/orders', authenticate, orderController.getClientOrders);
-router.get('/client/orders/:id', authenticate, orderController.getClientOrderById);
-
-// ==================== SUPPORT ROUTES ====================
-// Client can create and view support tickets
-router.get('/support/tickets', authenticate, orderController.getClientTickets);
-router.post('/support/tickets', authenticate, orderController.createSupportTicket);
-
-

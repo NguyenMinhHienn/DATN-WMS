@@ -1,22 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import * as cartService from '../services/cart.service';
+import { AuthRequest } from '../types';
 
 /**
  * Cart Controller
  * Handle HTTP requests cho giỏ hàng
  */
-
-// ============================================================
-// INTERFACES
-// ============================================================
-
-interface AuthRequest extends Request {
-    user?: {
-        id: number;
-        email: string;
-        roles: string[];
-    };
-}
 
 // ============================================================
 // CONTROLLER FUNCTIONS
@@ -28,7 +17,7 @@ interface AuthRequest extends Request {
  */
 export const addToCart = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
@@ -74,7 +63,7 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
  */
 export const getCart = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
@@ -94,7 +83,7 @@ export const getCart = async (req: AuthRequest, res: Response): Promise<void> =>
  */
 export const updateCartItem = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
@@ -127,7 +116,7 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
  */
 export const removeCartItem = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
@@ -153,7 +142,7 @@ export const removeCartItem = async (req: AuthRequest, res: Response): Promise<v
  */
 export const clearCart = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
@@ -178,7 +167,7 @@ export const clearCart = async (req: AuthRequest, res: Response): Promise<void> 
  */
 export const getCartItemCount = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
             return;
