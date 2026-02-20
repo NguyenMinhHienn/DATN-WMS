@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { reportService } from '../../services/reportService';
-import { DashboardStats } from '../../interface';
+import { DashboardStats, SalesSummary, MonthlyReportItem } from '../../interface';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -30,15 +30,7 @@ ChartJS.register(
     Filler
 );
 
-// Demo data for charts - easily replaceable with real API data
-const generateDemoSalesData = () => {
-    const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
-    const salesData = [12500000, 19800000, 15600000, 22400000, 18900000, 25600000, 28900000, 32100000, 27800000, 35600000, 31200000, 42800000];
-    const ordersData = [45, 62, 51, 78, 65, 89, 95, 112, 98, 125, 108, 145];
-
-    return { months, salesData, ordersData };
-};
-
+// Demo data for charts that don't have real API yet
 const generateDemoCategoryData = () => {
     return {
         labels: ['Điện tử', 'Thời trang', 'Gia dụng', 'Thực phẩm', 'Khác'],
@@ -62,6 +54,8 @@ const generateDemoTopProducts = () => {
 
 const Dashboard: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
+    const [monthlyReport, setMonthlyReport] = useState<MonthlyReportItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -70,8 +64,14 @@ const Dashboard: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            const data = await reportService.getDashboard();
-            setStats(data);
+            const [dashData, salesData, monthlyData] = await Promise.all([
+                reportService.getDashboard(),
+                reportService.getSalesSummary().catch(() => null),
+                reportService.getMonthlyReport().catch(() => []),
+            ]);
+            setStats(dashData);
+            setSalesSummary(salesData);
+            setMonthlyReport(monthlyData);
         } catch (error) {
             console.error('Failed to load dashboard:', error);
         } finally {
@@ -79,18 +79,30 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Get demo data
-    const salesDemo = generateDemoSalesData();
+    // Format currency
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+    };
+
+    const formatCompact = (value: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(value);
+    };
+
+    // Demo data for charts that don't have real API
     const categoryDemo = generateDemoCategoryData();
     const topProductsDemo = generateDemoTopProducts();
 
-    // Chart configurations
+    // Monthly Revenue & Profit Chart (REAL DATA)
+    const monthLabels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+    const revenueData = monthlyReport.map(m => m.revenue);
+    const profitData = monthlyReport.map(m => m.profit);
+
     const lineChartData = {
-        labels: salesDemo.months,
+        labels: monthLabels,
         datasets: [
             {
                 label: 'Doanh thu (VND)',
-                data: salesDemo.salesData,
+                data: revenueData,
                 borderColor: 'rgba(99, 102, 241, 1)',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 fill: true,
@@ -102,14 +114,13 @@ const Dashboard: React.FC = () => {
                 pointHoverRadius: 6,
             },
             {
-                label: 'Đơn hàng',
-                data: salesDemo.ordersData,
-                borderColor: 'rgba(168, 85, 247, 1)',
-                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                label: 'Lợi nhuận (VND)',
+                data: profitData,
+                borderColor: 'rgba(34, 197, 94, 1)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
                 fill: true,
                 tension: 0.4,
-                yAxisID: 'y1',
-                pointBackgroundColor: 'rgba(168, 85, 247, 1)',
+                pointBackgroundColor: 'rgba(34, 197, 94, 1)',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 pointRadius: 4,
@@ -144,30 +155,19 @@ const Dashboard: React.FC = () => {
                 displayColors: true,
                 callbacks: {
                     label: function (context: any) {
-                        if (context.dataset.label === 'Doanh thu (VND)') {
-                            return `Doanh thu: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed.y)}`;
-                        }
-                        return `Đơn hàng: ${context.parsed.y}`;
+                        const value = formatCurrency(context.parsed.y);
+                        return `${context.dataset.label}: ${value}`;
                     }
                 }
             },
         },
         scales: {
             x: {
-                grid: {
-                    color: 'rgba(148, 163, 184, 0.1)',
-                },
-                ticks: {
-                    color: '#94a3b8',
-                },
+                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                ticks: { color: '#94a3b8' },
             },
             y: {
-                type: 'linear' as const,
-                display: true,
-                position: 'left' as const,
-                grid: {
-                    color: 'rgba(148, 163, 184, 0.1)',
-                },
+                grid: { color: 'rgba(148, 163, 184, 0.1)' },
                 ticks: {
                     color: '#94a3b8',
                     callback: function (value: any) {
@@ -175,31 +175,18 @@ const Dashboard: React.FC = () => {
                     }
                 },
             },
-            y1: {
-                type: 'linear' as const,
-                display: true,
-                position: 'right' as const,
-                grid: {
-                    drawOnChartArea: false,
-                },
-                ticks: {
-                    color: '#a78bfa',
-                },
-            },
         },
     };
 
     const doughnutChartData = {
         labels: categoryDemo.labels,
-        datasets: [
-            {
-                data: categoryDemo.data,
-                backgroundColor: categoryDemo.colors,
-                borderColor: 'rgba(15, 23, 42, 0.8)',
-                borderWidth: 3,
-                hoverOffset: 8,
-            },
-        ],
+        datasets: [{
+            data: categoryDemo.data,
+            backgroundColor: categoryDemo.colors,
+            borderColor: 'rgba(15, 23, 42, 0.8)',
+            borderWidth: 3,
+            hoverOffset: 8,
+        }],
     };
 
     const doughnutChartOptions = {
@@ -208,11 +195,7 @@ const Dashboard: React.FC = () => {
         plugins: {
             legend: {
                 position: 'right' as const,
-                labels: {
-                    color: '#e2e8f0',
-                    usePointStyle: true,
-                    padding: 15,
-                },
+                labels: { color: '#e2e8f0', usePointStyle: true, padding: 15 },
             },
             tooltip: {
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
@@ -228,28 +211,22 @@ const Dashboard: React.FC = () => {
 
     const barChartData = {
         labels: topProductsDemo.labels,
-        datasets: [
-            {
-                label: 'Số lượng bán',
-                data: topProductsDemo.data,
-                backgroundColor: [
-                    'rgba(99, 102, 241, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
-                    'rgba(236, 72, 153, 0.8)',
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(251, 191, 36, 0.8)',
-                ],
-                borderColor: [
-                    'rgba(99, 102, 241, 1)',
-                    'rgba(168, 85, 247, 1)',
-                    'rgba(236, 72, 153, 1)',
-                    'rgba(34, 197, 94, 1)',
-                    'rgba(251, 191, 36, 1)',
-                ],
-                borderWidth: 2,
-                borderRadius: 8,
-            },
-        ],
+        datasets: [{
+            label: 'Số lượng bán',
+            data: topProductsDemo.data,
+            backgroundColor: [
+                'rgba(99, 102, 241, 0.8)', 'rgba(168, 85, 247, 0.8)',
+                'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
+                'rgba(251, 191, 36, 0.8)',
+            ],
+            borderColor: [
+                'rgba(99, 102, 241, 1)', 'rgba(168, 85, 247, 1)',
+                'rgba(236, 72, 153, 1)', 'rgba(34, 197, 94, 1)',
+                'rgba(251, 191, 36, 1)',
+            ],
+            borderWidth: 2,
+            borderRadius: 8,
+        }],
     };
 
     const barChartOptions = {
@@ -257,9 +234,7 @@ const Dashboard: React.FC = () => {
         maintainAspectRatio: false,
         indexAxis: 'y' as const,
         plugins: {
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             tooltip: {
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 titleColor: '#fff',
@@ -271,20 +246,12 @@ const Dashboard: React.FC = () => {
         },
         scales: {
             x: {
-                grid: {
-                    color: 'rgba(148, 163, 184, 0.1)',
-                },
-                ticks: {
-                    color: '#94a3b8',
-                },
+                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                ticks: { color: '#94a3b8' },
             },
             y: {
-                grid: {
-                    display: false,
-                },
-                ticks: {
-                    color: '#e2e8f0',
-                },
+                grid: { display: false },
+                ticks: { color: '#e2e8f0' },
             },
         },
     };
@@ -301,11 +268,13 @@ const Dashboard: React.FC = () => {
     }
 
     const currentDate = new Date().toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
+
+    // Tính margin %
+    const profitMargin = salesSummary && salesSummary.total_revenue > 0
+        ? ((salesSummary.total_profit / salesSummary.total_revenue) * 100).toFixed(1)
+        : '0';
 
     return (
         <div className="animate-fadeIn min-h-screen">
@@ -316,7 +285,7 @@ const Dashboard: React.FC = () => {
                         <h1 className="text-3xl font-bold">
                             <span className="gradient-text">Bảng điều khiển</span>
                         </h1>
-                        <p className="text-slate-400 mt-1">Chào mừng trở lại! Đây là tổng quan hệ thống của bạn.</p>
+                        <p className="text-slate-400 mt-1">Tổng quan doanh thu & lợi nhuận của hệ thống.</p>
                     </div>
                     <div className="flex items-center gap-2 text-slate-400 bg-slate-800/50 px-4 py-2 rounded-xl backdrop-blur-sm border border-slate-700/50">
                         <span className="text-xl">📅</span>
@@ -325,100 +294,74 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div className="stat-card stat-card-blue">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-blue-100 mb-1 opacity-80">Tổng sản phẩm</p>
-                            <p className="text-4xl font-bold">{stats?.totalProducts || 0}</p>
-                            <p className="text-xs text-blue-200 mt-2 opacity-70">+12% so với tháng trước</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
-                            📦
+            {/* Revenue / Cost / Profit / Orders Cards */}
+            {salesSummary && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="stat-card stat-card-blue">
+                        <div className="flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-sm text-blue-100 mb-1 opacity-80">Tổng doanh thu</p>
+                                <p className="text-2xl font-bold">{formatCompact(salesSummary.total_revenue)}</p>
+                                <p className="text-xs text-blue-200 mt-2 opacity-70">Đơn hoàn thành</p>
+                            </div>
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
+                                💰
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="stat-card stat-card-emerald">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-emerald-100 mb-1 opacity-80">Số kho</p>
-                            <p className="text-4xl font-bold">{stats?.totalWarehouses || 0}</p>
-                            <p className="text-xs text-emerald-200 mt-2 opacity-70">Hoạt động bình thường</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
-                            🏭
+                    <div className="stat-card stat-card-amber">
+                        <div className="flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-sm text-amber-100 mb-1 opacity-80">Tổng giá vốn</p>
+                                <p className="text-2xl font-bold">{formatCompact(salesSummary.total_cost)}</p>
+                                <p className="text-xs text-amber-200 mt-2 opacity-70">Chi phí hàng bán</p>
+                            </div>
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
+                                📊
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="stat-card stat-card-purple">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-purple-100 mb-1 opacity-80">Giá trị tồn kho</p>
-                            <p className="text-3xl font-bold">
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(stats?.totalInventoryValue || 0)}
-                            </p>
-                            <p className="text-xs text-purple-200 mt-2 opacity-70">Cập nhật real-time</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
-                            💰
+                    <div className="stat-card stat-card-emerald">
+                        <div className="flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-sm text-emerald-100 mb-1 opacity-80">Tổng lợi nhuận</p>
+                                <p className="text-2xl font-bold">{formatCompact(salesSummary.total_profit)}</p>
+                                <p className="text-xs text-emerald-200 mt-2 opacity-70">Biên lợi nhuận: {profitMargin}%</p>
+                            </div>
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
+                                📈
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="stat-card stat-card-red">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-red-100 mb-1 opacity-80">Sắp hết hàng</p>
-                            <p className="text-4xl font-bold">{stats?.lowStockItems || 0}</p>
-                            <p className="text-xs text-red-200 mt-2 opacity-70">Cần nhập thêm hàng</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm animate-pulse">
-                            ⚠️
-                        </div>
-                    </div>
-                </div>
-
-                <div className="stat-card stat-card-amber">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-amber-100 mb-1 opacity-80">Phiếu nhập chờ duyệt</p>
-                            <p className="text-4xl font-bold">{stats?.pendingReceipts || 0}</p>
-                            <p className="text-xs text-amber-200 mt-2 opacity-70">Đang chờ xử lý</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
-                            📥
+                    <div className="stat-card stat-card-purple">
+                        <div className="flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-sm text-purple-100 mb-1 opacity-80">Đơn hoàn thành</p>
+                                <p className="text-4xl font-bold">{salesSummary.total_orders}</p>
+                                <p className="text-xs text-purple-200 mt-2 opacity-70">Đã giao thành công</p>
+                            </div>
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
+                                ✅
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="stat-card stat-card-cyan">
-                    <div className="flex items-center justify-between relative z-10">
-                        <div>
-                            <p className="text-sm text-cyan-100 mb-1 opacity-80">Phiếu xuất chờ duyệt</p>
-                            <p className="text-4xl font-bold">{stats?.pendingIssues || 0}</p>
-                            <p className="text-xs text-cyan-200 mt-2 opacity-70">Đang chờ xử lý</p>
-                        </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
-                            📤
-                        </div>
-                    </div>
-                </div>
-            </div>
+            )}
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* Sales Line Chart */}
+                {/* Revenue & Profit Line Chart (REAL DATA) */}
                 <div className="chart-container lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-xl font-semibold text-white">📈 Biểu đồ Doanh thu & Đơn hàng</h2>
-                            <p className="text-sm text-slate-400 mt-1">Thống kê theo tháng trong năm 2024 (Demo)</p>
+                            <h2 className="text-xl font-semibold text-white">📈 Doanh thu & Lợi nhuận theo tháng</h2>
+                            <p className="text-sm text-slate-400 mt-1">Thống kê theo tháng trong năm {new Date().getFullYear()}</p>
                         </div>
                         <div className="flex gap-2">
-                            <span className="badge badge-info">Demo Data</span>
+                            <span className="badge badge-success">Real Data</span>
                         </div>
                     </div>
                     <div className="h-80">
@@ -475,14 +418,11 @@ const Dashboard: React.FC = () => {
                                     <td className="py-4 px-4 text-sm text-slate-400">{movement.warehouse_name}</td>
                                     <td className="py-4 px-4">
                                         <span className={`badge ${movement.movement_type.includes('in') || movement.movement_type === 'goods_receipt'
-                                            ? 'badge-success'
-                                            : 'badge-danger'
-                                            }`}>
+                                            ? 'badge-success' : 'badge-danger'}`}>
                                             {movement.movement_type.replace(/_/g, ' ')}
                                         </span>
                                     </td>
-                                    <td className={`py-4 px-4 text-sm text-right font-bold ${movement.quantity_change > 0 ? 'text-emerald-400' : 'text-red-400'
-                                        }`}>
+                                    <td className={`py-4 px-4 text-sm text-right font-bold ${movement.quantity_change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                         {movement.quantity_change > 0 ? '+' : ''}{movement.quantity_change}
                                     </td>
                                     <td className="py-4 px-4 text-sm text-slate-500">

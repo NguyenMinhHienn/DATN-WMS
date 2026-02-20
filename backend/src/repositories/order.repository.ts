@@ -1,246 +1,262 @@
 import pool from '../config/database';
-import { RowDataPacket } from 'mysql2/promise';
-
+import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 /**
  * Order Repository
- * Xử lý truy vấn CSDL cho đơn hàng (READ ONLY cho Staff)
+ * CRUD operations cho bảng orders & order_items
  */
 
+// ==================== INTERFACES ====================
 
-export interface UserWithOrderCount {
+export interface OrderRow {
     id: number;
-    username: string;
-    email: string;
-    full_name: string;
-    order_count: number;
-}
-
-
-export interface OrderSummary {
-    id: number;
-    order_number: string;
-    order_date: Date;
-    status_code: string;
-    status_name: string;
-    status_color: string;
+    user_id: number;
     total_amount: number;
-    total_items: number;
-    payment_status: string;
+    payment_method: 'COD' | 'BANKING';
+    payment_status: 'unpaid' | 'paid';
+    status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';
     shipping_name: string;
+    shipping_phone: string;
+    shipping_address: string;
+    notes: string | null;
+    created_at: Date;
+    updated_at: Date;
+    // Joined fields
+    user_fullname?: string;
+    user_email?: string;
 }
 
-
-export interface OrderItem {
+export interface OrderItemRow {
     id: number;
+    order_id: number;
+    product_id: number;
+    variant_id: number | null;
     product_name: string;
-    variant_sku: string;
+    variant_sku: string | null;
     quantity: number;
     unit_price: number;
-    line_total: number;
-    variant_attributes?: string;
+    cost_price_snapshot: number;
+    variant_attributes: string | null;
     image_url?: string;
 }
 
-
-export interface OrderDetail extends OrderSummary {
-    items: OrderItem[];
+export interface CreateOrderItemInput {
+    product_id: number;
+    variant_id: number | null;
+    product_name: string;
+    variant_sku: string | null;
+    quantity: number;
+    unit_price: number;
+    cost_price_snapshot: number;
+    variant_attributes: string | null;
 }
 
+// ==================== REPOSITORY ====================
 
 class OrderRepository {
+
     /**
-     * Lấy danh sách users có ít nhất 1 đơn hàng
+     * Tạo đơn hàng mới + items (trong transaction)
      */
-    async getUsersWithOrders(search?: string): Promise<UserWithOrderCount[]> {
+    async createOrder(
+        userId: number,
+        shippingName: string,
+        shippingPhone: string,
+        shippingAddress: string,
+        paymentMethod: 'COD' | 'BANKING',
+        totalAmount: number,
+        items: CreateOrderItemInput[],
+        notes?: string
+    ): Promise<number> {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Insert order
+            const [orderResult] = await connection.execute<ResultSetHeader>(
+                `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, notes)
+                 VALUES (?, ?, ?, 'unpaid', 'pending', ?, ?, ?, ?)`,
+                [userId, totalAmount, paymentMethod, shippingName, shippingPhone, shippingAddress, notes || null]
+            );
+            const orderId = orderResult.insertId;
+
+            // Insert order items
+            for (const item of items) {
+                await connection.execute<ResultSetHeader>(
+                    `INSERT INTO order_items (order_id, product_id, variant_id, product_name, variant_sku, quantity, unit_price, cost_price_snapshot, variant_attributes)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [orderId, item.product_id, item.variant_id, item.product_name, item.variant_sku, item.quantity, item.unit_price, item.cost_price_snapshot, item.variant_attributes]
+                );
+            }
+
+            await connection.commit();
+            return orderId;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    /**
+     * Lấy tất cả đơn hàng (admin) - có pagination
+     */
+    async getAllOrders(page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
+        const offset = (page - 1) * limit;
         let query = `
-            SELECT
-                u.id,
-                u.username,
-                u.email,
-                u.full_name,
-                COUNT(co.id) as order_count
-            FROM users u
-            INNER JOIN customer_orders co ON u.id = co.user_id
-            WHERE co.deleted_at IS NULL AND u.deleted_at IS NULL
+            SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE 1=1
         `;
         const params: any[] = [];
 
-
-        if (search && search.trim()) {
-            query += ` AND (u.full_name LIKE ? OR u.email LIKE ? OR u.username LIKE ?)`;
-            const searchPattern = `%${search.trim()}%`;
-            params.push(searchPattern, searchPattern, searchPattern);
-        }
-
-
-        query += ` GROUP BY u.id ORDER BY order_count DESC, u.full_name ASC`;
-
-
-        const [rows] = await pool.query<RowDataPacket[]>(query, params);
-        return rows as UserWithOrderCount[];
-    }
-
-
-    /**
-     * Lấy danh sách đơn hàng của một user
-     */
-    async getOrdersByUserId(userId: number, page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderSummary[], pagination: any }> {
-        const offset = (page - 1) * limit;
-        
-        let query = `
-            SELECT
-                co.id,
-                co.order_number,
-                co.order_date,
-                co.status_code,
-                COALESCE(os.name_vi, co.status_code) as status_name,
-                COALESCE(os.color, '#6B7280') as status_color,
-                co.total_amount,
-                co.total_items,
-                co.payment_status,
-                co.shipping_name
-            FROM customer_orders co
-            LEFT JOIN order_statuses os ON co.status_id = os.id
-            WHERE co.user_id = ? AND co.deleted_at IS NULL
-        `;
-        
-        const params: any[] = [userId];
-        
         if (status) {
-            query += ' AND co.status_code = ?';
+            query += ' AND o.status = ?';
             params.push(status);
         }
-        
-        query += ' ORDER BY co.order_date DESC LIMIT ? OFFSET ?';
+
+        query += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
-        
-        // Count total
-        let countQuery = `
-            SELECT COUNT(*) as total
-            FROM customer_orders co
-            WHERE co.user_id = ? AND co.deleted_at IS NULL
-        `;
-        const countParams: any[] = [userId];
-        
+
+        // Count
+        let countQuery = 'SELECT COUNT(*) as total FROM orders WHERE 1=1';
+        const countParams: any[] = [];
         if (status) {
-            countQuery += ' AND co.status_code = ?';
+            countQuery += ' AND status = ?';
             countParams.push(status);
         }
-        
+
         const [rows] = await pool.query<RowDataPacket[]>(query, params);
         const [[{ total }]] = await pool.query<RowDataPacket[]>(countQuery, countParams);
-        
+
         return {
-            data: rows as OrderSummary[],
+            data: rows as OrderRow[],
             pagination: {
-                page,
-                limit,
+                page, limit,
                 total: parseInt(total),
                 totalPages: Math.ceil(total / limit)
             }
         };
     }
 
-
     /**
-     * Lấy chi tiết đơn hàng (bao gồm items)
+     * Lấy đơn hàng của 1 user (client) - có pagination
      */
-    async getOrderById(orderId: number): Promise<OrderDetail | null> {
-        // Get order info
-        const orderQuery = `
-            SELECT
-                co.id,
-                co.order_number,
-                co.order_date,
-                co.status_code,
-                COALESCE(os.name_vi, co.status_code) as status_name,
-                COALESCE(os.color, '#6B7280') as status_color,
-                co.total_amount,
-                co.total_items,
-                co.payment_status,
-                co.shipping_name
-            FROM customer_orders co
-            LEFT JOIN order_statuses os ON co.status_id = os.id
-            WHERE co.id = ? AND co.deleted_at IS NULL
+    async getOrdersByUserId(userId: number, page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
+        const offset = (page - 1) * limit;
+        let query = `
+            SELECT o.*
+            FROM orders o
+            WHERE o.user_id = ?
         `;
+        const params: any[] = [userId];
 
-
-        const [orderRows] = await pool.query<RowDataPacket[]>(orderQuery, [orderId]);
-        if (orderRows.length === 0) {
-            return null;
+        if (status) {
+            query += ' AND o.status = ?';
+            params.push(status);
         }
 
+        query += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
 
-        // Get order items
-        const itemsQuery = `
-            SELECT
-                coi.id,
-                coi.product_name,
-                coi.variant_sku,
-                coi.quantity,
-                coi.unit_price,
-                coi.line_total,
-                coi.variant_attributes,
-                p.image_url
-            FROM customer_order_items coi
-            LEFT JOIN products p ON coi.product_id = p.id
-            WHERE coi.order_id = ?
-            ORDER BY coi.id ASC
-        `;
+        let countQuery = 'SELECT COUNT(*) as total FROM orders WHERE user_id = ?';
+        const countParams: any[] = [userId];
+        if (status) {
+            countQuery += ' AND status = ?';
+            countParams.push(status);
+        }
 
-
-        const [itemRows] = await pool.query<RowDataPacket[]>(itemsQuery, [orderId]);
-
+        const [rows] = await pool.query<RowDataPacket[]>(query, params);
+        const [[{ total }]] = await pool.query<RowDataPacket[]>(countQuery, countParams);
 
         return {
-            ...(orderRows[0] as OrderSummary),
-            items: itemRows as OrderItem[]
+            data: rows as OrderRow[],
+            pagination: {
+                page, limit,
+                total: parseInt(total),
+                totalPages: Math.ceil(total / limit)
+            }
         };
     }
 
-
     /**
-     * Lấy items của một đơn hàng
+     * Lấy chi tiết 1 đơn hàng (kèm items)
      */
-    async getOrderItems(orderId: number): Promise<OrderItem[]> {
-        const query = `
-            SELECT
-                coi.id,
-                coi.product_name,
-                coi.variant_sku,
-                coi.quantity,
-                coi.unit_price,
-                coi.line_total,
-                coi.variant_attributes,
-                p.image_url
-            FROM customer_order_items coi
-            LEFT JOIN products p ON coi.product_id = p.id
-            WHERE coi.order_id = ?
-            ORDER BY coi.id ASC
-        `;
+    async getOrderById(orderId: number): Promise<(OrderRow & { items: OrderItemRow[] }) | null> {
+        const [orderRows] = await pool.query<RowDataPacket[]>(
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             WHERE o.id = ?`,
+            [orderId]
+        );
+        if (orderRows.length === 0) return null;
 
+        const [itemRows] = await pool.query<RowDataPacket[]>(
+            `SELECT oi.*, p.image_url
+             FROM order_items oi
+             LEFT JOIN products p ON oi.product_id = p.id
+             WHERE oi.order_id = ?
+             ORDER BY oi.id ASC`,
+            [orderId]
+        );
 
-        const [rows] = await pool.query<RowDataPacket[]>(query, [orderId]);
-        return rows as OrderItem[];
+        return {
+            ...(orderRows[0] as OrderRow),
+            items: itemRows as OrderItemRow[]
+        };
     }
 
+    /**
+     * Cập nhật trạng thái đơn hàng
+     */
+    async updateOrderStatus(orderId: number, status: string): Promise<void> {
+        await pool.execute(
+            'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [status, orderId]
+        );
+    }
 
     /**
-     * Đếm tổng số users có đơn hàng
+     * Cập nhật trạng thái thanh toán
      */
-    async countUsersWithOrders(): Promise<number> {
-        const query = `
-            SELECT COUNT(DISTINCT co.user_id) as total
-            FROM customer_orders co
-            WHERE co.deleted_at IS NULL
-        `;
+    async updatePaymentStatus(orderId: number, paymentStatus: string): Promise<void> {
+        await pool.execute(
+            'UPDATE orders SET payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [paymentStatus, orderId]
+        );
+    }
 
+    /**
+     * Lấy đơn hàng theo status (cho staff tạo phiếu)
+     */
+    async getOrdersByStatus(status: string, page: number = 1, limit: number = 10): Promise<{ data: OrderRow[], pagination: any }> {
+        const offset = (page - 1) * limit;
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             WHERE o.status = ?
+             ORDER BY o.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [status, limit, offset]
+        );
+        const [[{ total }]] = await pool.query<RowDataPacket[]>(
+            'SELECT COUNT(*) as total FROM orders WHERE status = ?',
+            [status]
+        );
 
-        const [rows] = await pool.query<RowDataPacket[]>(query);
-        return rows[0]?.total || 0;
+        return {
+            data: rows as OrderRow[],
+            pagination: {
+                page, limit,
+                total: parseInt(total),
+                totalPages: Math.ceil(total / limit)
+            }
+        };
     }
 }
-
 
 export const orderRepository = new OrderRepository();

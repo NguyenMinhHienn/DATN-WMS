@@ -1,10 +1,21 @@
 import api from './api';
-import { ApiResponse, DashboardStats } from '../interface';
+import { ApiResponse, DashboardStats, SalesSummary, MonthlyReportItem } from '../interface';
 
 export const reportService = {
     async getDashboard(): Promise<DashboardStats> {
         const response = await api.get<ApiResponse<DashboardStats>>('/reports/dashboard');
         return response.data.data!;
+    },
+
+    async getSalesSummary(): Promise<SalesSummary> {
+        const response = await api.get<ApiResponse<SalesSummary>>('/dashboard/summary');
+        return response.data.data!;
+    },
+
+    async getMonthlyReport(year?: number): Promise<MonthlyReportItem[]> {
+        const params = year ? `?year=${year}` : '';
+        const response = await api.get<ApiResponse<MonthlyReportItem[]>>(`/dashboard/monthly-report${params}`);
+        return response.data.data || [];
     },
 
     async getInventoryReport(warehouseId?: number): Promise<any[]> {
@@ -34,3 +45,4 @@ export const reportService = {
         return response.data.data || [];
     },
 };
+

@@ -2,9 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+export interface SidebarBadges {
+    lowStock?: number;
+    pendingReceipts?: number;
+    pendingIssues?: number;
+}
+
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
+    badges?: SidebarBadges;
 }
 
 /**
@@ -12,20 +19,18 @@ interface SidebarProps {
  * STAFF sử dụng StaffLayout với sidebar riêng
  */
 const menuItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/admin/users', label: 'Quản lý Users', icon: '👥' },
-    { path: '/admin/products', label: 'Sản phẩm', icon: '📦' },
-    { path: '/admin/product-config', label: 'Cấu hình SP', icon: '⚙️' },
-    { path: '/admin/warehouses', label: 'Kho hàng', icon: '🏭' },
-    { path: '/admin/inventory', label: 'Tồn kho', icon: '📋' },
-    { path: '/admin/stock-in', label: 'Nhập kho', icon: '📥' },
-    { path: '/admin/stock-out', label: 'Xuất kho', icon: '📤' },
-    { path: '/admin/inter-warehouse-transfer', label: 'Chuyển kho', icon: '🔄' },
-    { path: '/admin/stock-transfers', label: 'Duyệt phiếu', icon: '✅' },
-    { path: '/admin/reports', label: 'Báo cáo', icon: '📈' },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊', badgeKey: null },
+    { path: '/admin/users', label: 'Quản lý Users', icon: '👥', badgeKey: null },
+    { path: '/admin/products', label: 'Sản phẩm', icon: '📦', badgeKey: null },
+    { path: '/admin/product-config', label: 'Cấu hình SP', icon: '⚙️', badgeKey: null },
+    { path: '/admin/warehouses', label: 'Kho hàng', icon: '🏭', badgeKey: null },
+    { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
+    { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
+    { path: '/admin/orders', label: 'Đơn hàng', icon: '🛒', badgeKey: null },
+    { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, badges }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -45,6 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    // Compute badge value for each menu item
+    const getBadgeCount = (badgeKey: string | null): number => {
+        if (!badges || !badgeKey) return 0;
+        if (badgeKey === 'lowStock') return badges.lowStock || 0;
+        if (badgeKey === 'pendingSlips') return (badges.pendingReceipts || 0) + (badges.pendingIssues || 0);
+        return 0;
     };
 
     return (
@@ -89,24 +102,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <nav className="flex-1 overflow-y-auto py-4 px-3">
                         <p className="text-xs text-slate-500 uppercase tracking-wider font-medium px-4 mb-3">Menu chính</p>
                         <ul className="space-y-1">
-                            {menuItems.map((item) => (
-                                <li key={item.path}>
-                                    <NavLink
-                                        to={item.path}
-                                        end={item.path === '/admin'}
-                                        className={({ isActive }) =>
-                                            `group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
-                                                ? 'bg-gradient-to-r from-indigo-600/80 to-purple-600/60 text-white shadow-lg shadow-indigo-500/20'
-                                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                            }`
-                                        }
-                                        onClick={onClose}
-                                    >
-                                        <span className="text-xl group-hover:scale-110 transition-transform duration-200">{item.icon}</span>
-                                        <span className="font-medium">{item.label}</span>
-                                    </NavLink>
-                                </li>
-                            ))}
+                            {menuItems.map((item) => {
+                                const badgeCount = getBadgeCount(item.badgeKey);
+                                return (
+                                    <li key={item.path}>
+                                        <NavLink
+                                            to={item.path}
+                                            end={item.path === '/admin'}
+                                            className={({ isActive }) =>
+                                                `group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
+                                                    ? 'bg-gradient-to-r from-indigo-600/80 to-purple-600/60 text-white shadow-lg shadow-indigo-500/20'
+                                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                                }`
+                                            }
+                                            onClick={onClose}
+                                        >
+                                            <span className="text-xl group-hover:scale-110 transition-transform duration-200 relative">
+                                                {item.icon}
+                                                {badgeCount > 0 && (
+                                                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/40 animate-pulse">
+                                                        {badgeCount > 99 ? '99+' : badgeCount}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="font-medium flex-1">{item.label}</span>
+                                            {badgeCount > 0 && (
+                                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                                                    {badgeCount}
+                                                </span>
+                                            )}
+                                        </NavLink>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </nav>
 

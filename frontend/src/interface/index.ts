@@ -324,6 +324,19 @@ export interface DashboardStats {
     recentMovements: InventoryLog[];
 }
 
+export interface SalesSummary {
+    total_orders: number;
+    total_revenue: number;
+    total_cost: number;
+    total_profit: number;
+}
+
+export interface MonthlyReportItem {
+    month: number;
+    revenue: number;
+    profit: number;
+}
+
 // API Response types
 export interface ApiResponse<T = any> {
     success: boolean;

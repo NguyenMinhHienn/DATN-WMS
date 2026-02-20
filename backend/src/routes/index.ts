@@ -19,6 +19,7 @@ import * as specificationController from '../controllers/specification.controlle
 import * as orderController from '../controllers/order.controller';
 import * as exportSlipController from '../controllers/export-slip.controller';
 import * as cartController from '../controllers/cart.controller';
+import * as dashboardController from '../controllers/dashboard.controller';
 
 const router = Router();
 
@@ -115,6 +116,10 @@ router.get('/reports/inventory', authenticate, isViewer, reportController.getInv
 router.get('/reports/movements', authenticate, isViewer, reportController.getMovementReport);
 router.get('/reports/stock-value', authenticate, isViewer, reportController.getStockValueReport);
 router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
+
+// ==================== DASHBOARD (Doanh thu & Lợi nhuận) ====================
+router.get('/dashboard/summary', authenticate, isAdmin, dashboardController.getSummary);
+router.get('/dashboard/monthly-report', authenticate, isAdmin, dashboardController.getMonthlyReport);
 
 // ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
 // Public: Get all attributes (for product forms)

@@ -1,13 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from '../components/Sidebar';
+import { Sidebar, SidebarBadges } from '../components/Sidebar';
+import { reportService } from '../services/reportService';
 
 export const AdminLayout: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [badges, setBadges] = useState<SidebarBadges>({});
+
+    // Fetch badge data (low stock, pending slips) on mount
+    useEffect(() => {
+        const loadBadges = async () => {
+            try {
+                const stats = await reportService.getDashboard();
+                setBadges({
+                    lowStock: stats.lowStockItems || 0,
+                    pendingReceipts: stats.pendingReceipts || 0,
+                    pendingIssues: stats.pendingIssues || 0,
+                });
+            } catch (err) {
+                console.error('Failed to load sidebar badges:', err);
+            }
+        };
+        loadBadges();
+
+        // Refresh every 60 seconds
+        const interval = setInterval(loadBadges, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950">
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} badges={badges} />
 
             {/* Main content area - always pushed right by sidebar on lg screens */}
             <div className="lg:ml-64 min-h-screen">
@@ -38,4 +61,3 @@ export const AdminLayout: React.FC = () => {
         </div>
     );
 };
-

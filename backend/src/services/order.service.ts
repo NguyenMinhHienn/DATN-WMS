@@ -1,6 +1,7 @@
 import { orderRepository, CreateOrderItemInput } from '../repositories/order.repository';
 import * as cartRepository from '../repositories/cart.repository';
 import * as variantRepository from '../repositories/variant.repository';
+import { productRepository } from '../repositories/product.repository';
 import { AppError } from '../middlewares/error.middleware';
 
 /**
@@ -73,6 +74,10 @@ class OrderService {
             const lineTotal = cartItem.quantity * cartItem.unit_price;
             totalAmount += lineTotal;
 
+            // Lấy cost_price từ products để snapshot tại thời điểm tạo đơn
+            const product = await productRepository.findById(cartItem.product_id);
+            const costPriceSnapshot = product?.cost_price || 0;
+
             orderItems.push({
                 product_id: cartItem.product_id,
                 variant_id: cartItem.product_variant_id,
@@ -80,6 +85,7 @@ class OrderService {
                 variant_sku: cartItem.variant_sku || null,
                 quantity: cartItem.quantity,
                 unit_price: cartItem.unit_price,
+                cost_price_snapshot: costPriceSnapshot,
                 variant_attributes: cartItem.variant_color ? JSON.stringify({ color: cartItem.variant_color }) : null,
             });
         }
