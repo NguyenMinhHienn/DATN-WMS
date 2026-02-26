@@ -334,6 +334,7 @@ export interface SalesSummary {
 export interface MonthlyReportItem {
     month: number;
     revenue: number;
+    cost: number;
     profit: number;
 }
 

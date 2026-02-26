@@ -16,13 +16,12 @@ import Dashboard from './pages/admin/Dashboard';
 import Products from './pages/admin/Products';
 import Warehouses from './pages/admin/Warehouses';
 import Inventory from './pages/admin/Inventory';
-import StockIn from './pages/admin/StockIn';
-import StockOut from './pages/admin/StockOut';
-import StockTransfers from './pages/admin/StockTransfers';
-import InterWarehouseTransfer from './pages/admin/InterWarehouseTransfer';
+import StockManagement from './pages/admin/StockManagement';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 import ProductConfig from './pages/admin/ProductConfig';
+import AdminOrders from './pages/admin/AdminOrders';
+import FinancialReport from './pages/admin/FinancialReport';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
@@ -101,13 +100,12 @@ const App: React.FC = () => {
                             <Route path="products" element={<Products />} />
                             <Route path="warehouses" element={<Warehouses />} />
                             <Route path="inventory" element={<Inventory />} />
-                            <Route path="stock-in" element={<StockIn />} />
-                            <Route path="stock-out" element={<StockOut />} />
-                            <Route path="inter-warehouse-transfer" element={<InterWarehouseTransfer />} />
-                            <Route path="stock-transfers" element={<StockTransfers />} />
+                            <Route path="stock-management" element={<StockManagement />} />
                             <Route path="users" element={<Users />} />
                             <Route path="reports" element={<Reports />} />
                             <Route path="product-config" element={<ProductConfig />} />
+                            <Route path="orders" element={<AdminOrders />} />
+                            <Route path="financial-report" element={<FinancialReport />} />
                         </Route>
 
                         {/* ==================== STAFF ROUTES ==================== */}

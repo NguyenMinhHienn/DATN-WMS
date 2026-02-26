@@ -27,6 +27,7 @@ const menuItems = [
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
     { path: '/admin/orders', label: 'Đơn hàng', icon: '🛒', badgeKey: null },
+    { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];
 

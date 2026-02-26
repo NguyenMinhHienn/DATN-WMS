@@ -16,6 +16,7 @@ export interface SalesSummary {
 export interface MonthlyReportRow {
     month: number;
     revenue: number;
+    cost: number;
     profit: number;
 }
 
@@ -53,6 +54,7 @@ class DashboardRepository {
             SELECT 
                 MONTH(o.created_at) as month,
                 COALESCE(SUM(oi.unit_price * oi.quantity), 0) as revenue,
+                COALESCE(SUM(oi.cost_price_snapshot * oi.quantity), 0) as cost,
                 COALESCE(SUM((oi.unit_price - oi.cost_price_snapshot) * oi.quantity), 0) as profit
             FROM orders o
             JOIN order_items oi ON o.id = oi.order_id

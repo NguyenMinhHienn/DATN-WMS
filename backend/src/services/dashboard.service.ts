@@ -8,6 +8,7 @@ import { dashboardRepository, SalesSummary, MonthlyReportRow } from '../reposito
 export interface MonthlyReportItem {
     month: number;
     revenue: number;
+    cost: number;
     profit: number;
 }
 
@@ -30,10 +31,13 @@ class DashboardService {
         const result: MonthlyReportItem[] = [];
         for (let m = 1; m <= 12; m++) {
             const found = rawData.find(r => r.month === m);
+            const revenue = found ? found.revenue : 0;
+            const cost = found ? found.cost : 0;
             result.push({
                 month: m,
-                revenue: found ? found.revenue : 0,
-                profit: found ? found.profit : 0,
+                revenue,
+                cost,
+                profit: revenue - cost, // Luôn tính profit = revenue - cost
             });
         }
         return result;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
 import { DashboardStats, SalesSummary, MonthlyReportItem } from '../../interface';
 import {
@@ -57,6 +58,7 @@ const Dashboard: React.FC = () => {
     const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
     const [monthlyReport, setMonthlyReport] = useState<MonthlyReportItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadDashboard();
@@ -271,11 +273,6 @@ const Dashboard: React.FC = () => {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    // Tính margin %
-    const profitMargin = salesSummary && salesSummary.total_revenue > 0
-        ? ((salesSummary.total_profit / salesSummary.total_revenue) * 100).toFixed(1)
-        : '0';
-
     return (
         <div className="animate-fadeIn min-h-screen">
             {/* Header */}
@@ -297,12 +294,12 @@ const Dashboard: React.FC = () => {
             {/* Revenue / Cost / Profit / Orders Cards */}
             {salesSummary && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div className="stat-card stat-card-blue">
+                    <div className="stat-card stat-card-blue cursor-pointer hover:scale-[1.03] transition-transform duration-200" onClick={() => navigate('/admin/financial-report')}>
                         <div className="flex items-center justify-between relative z-10">
                             <div>
                                 <p className="text-sm text-blue-100 mb-1 opacity-80">Tổng doanh thu</p>
                                 <p className="text-2xl font-bold">{formatCompact(salesSummary.total_revenue)}</p>
-                                <p className="text-xs text-blue-200 mt-2 opacity-70">Đơn hoàn thành</p>
+                                <p className="text-xs text-blue-200 mt-2 opacity-70">Xem chi tiết →</p>
                             </div>
                             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
                                 💰
@@ -310,12 +307,12 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="stat-card stat-card-amber">
+                    <div className="stat-card stat-card-amber cursor-pointer hover:scale-[1.03] transition-transform duration-200" onClick={() => navigate('/admin/financial-report')}>
                         <div className="flex items-center justify-between relative z-10">
                             <div>
                                 <p className="text-sm text-amber-100 mb-1 opacity-80">Tổng giá vốn</p>
                                 <p className="text-2xl font-bold">{formatCompact(salesSummary.total_cost)}</p>
-                                <p className="text-xs text-amber-200 mt-2 opacity-70">Chi phí hàng bán</p>
+                                <p className="text-xs text-amber-200 mt-2 opacity-70">Xem chi tiết →</p>
                             </div>
                             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
                                 📊
@@ -323,12 +320,12 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="stat-card stat-card-emerald">
+                    <div className="stat-card stat-card-emerald cursor-pointer hover:scale-[1.03] transition-transform duration-200" onClick={() => navigate('/admin/financial-report')}>
                         <div className="flex items-center justify-between relative z-10">
                             <div>
                                 <p className="text-sm text-emerald-100 mb-1 opacity-80">Tổng lợi nhuận</p>
                                 <p className="text-2xl font-bold">{formatCompact(salesSummary.total_profit)}</p>
-                                <p className="text-xs text-emerald-200 mt-2 opacity-70">Biên lợi nhuận: {profitMargin}%</p>
+                                <p className="text-xs text-emerald-200 mt-2 opacity-70">Xem chi tiết →</p>
                             </div>
                             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">
                                 📈
