@@ -26,6 +26,7 @@ const ProductList: React.FC = () => {
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 12, total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [sortBy, setSortBy] = useState<string>('newest');
@@ -41,7 +42,16 @@ const ProductList: React.FC = () => {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
     useEffect(() => { loadCategories(); }, []);
-    useEffect(() => { loadProducts(); }, [pagination.page, search, selectedCategory]);
+
+    // Debounce search: chờ 400ms sau lần gõ cuối mới gọi API
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    useEffect(() => { loadProducts(); }, [pagination.page, debouncedSearch, selectedCategory]);
 
     // Load variants cho tất cả products khi ở list view
     useEffect(() => {
@@ -57,7 +67,7 @@ const ProductList: React.FC = () => {
     const loadProducts = async () => {
         try {
             setLoading(true);
-            const result = await productService.getAll(pagination.page, 12, search || undefined, selectedCategory, 'active');
+            const result = await productService.getAll(pagination.page, 12, debouncedSearch || undefined, selectedCategory, 'active');
             setProducts(result.data);
             setPagination(result.pagination);
         } catch (error) {

@@ -39,6 +39,7 @@ const Products: React.FC = () => {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
     const [selectedStatus, setSelectedStatus] = useState<string>('');
 
@@ -147,13 +148,21 @@ const Products: React.FC = () => {
         return VARIANT_TYPES_CONFIG.filter(vtConfig => types.includes(vtConfig.key));
     }, [formData.category_id, categories]);
 
+    // Debounce search: chờ 400ms sau lần gõ cuối mới gọi API
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
     // Load data
     useEffect(() => {
         loadProducts();
         loadCategories();
         loadUnits();
         loadAttributes(); // Load flexible attributes from API
-    }, [pagination.page, search, selectedCategory, selectedStatus]);
+    }, [pagination.page, debouncedSearch, selectedCategory, selectedStatus]);
 
     const loadProducts = async () => {
         try {
@@ -161,7 +170,7 @@ const Products: React.FC = () => {
             const result = await productService.getAll(
                 pagination.page,
                 pagination.limit,
-                search || undefined,
+                debouncedSearch || undefined,
                 selectedCategory,
                 selectedStatus || undefined
             );

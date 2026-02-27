@@ -17,6 +17,7 @@ const StaffProducts: React.FC = () => {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
 
 
@@ -27,11 +28,19 @@ const StaffProducts: React.FC = () => {
     const [variantLoading, setVariantLoading] = useState(false);
 
 
+    // Debounce search: chờ 400ms sau lần gõ cuối mới gọi API
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
     // Load data
     useEffect(() => {
         loadProducts();
         loadCategories();
-    }, [pagination.page, search, selectedCategory]);
+    }, [pagination.page, debouncedSearch, selectedCategory]);
 
 
     const loadProducts = async () => {
@@ -40,7 +49,7 @@ const StaffProducts: React.FC = () => {
             const response = await productService.getAll(
                 pagination.page,
                 pagination.limit,
-                search || undefined,
+                debouncedSearch || undefined,
                 selectedCategory,
             );
             setProducts(response.data);
