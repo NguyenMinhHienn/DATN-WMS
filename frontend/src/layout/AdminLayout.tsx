@@ -16,6 +16,7 @@ export const AdminLayout: React.FC = () => {
                     lowStock: stats.lowStockItems || 0,
                     pendingReceipts: stats.pendingReceipts || 0,
                     pendingIssues: stats.pendingIssues || 0,
+                    pendingOrders: stats.pendingOrders || 0,
                 });
             } catch (err) {
                 console.error('Failed to load sidebar badges:', err);

@@ -6,6 +6,7 @@ export interface SidebarBadges {
     lowStock?: number;
     pendingReceipts?: number;
     pendingIssues?: number;
+    pendingOrders?: number;
 }
 
 interface SidebarProps {
@@ -26,7 +27,7 @@ const menuItems = [
     { path: '/admin/warehouses', label: 'Kho hàng', icon: '🏭', badgeKey: null },
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
-    { path: '/admin/orders', label: 'Đơn hàng', icon: '🛒', badgeKey: null },
+    { path: '/admin/orders', label: 'Đơn hàng', icon: '🛒', badgeKey: 'pendingOrders' as const },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];
@@ -58,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, badges }) => 
         if (!badges || !badgeKey) return 0;
         if (badgeKey === 'lowStock') return badges.lowStock || 0;
         if (badgeKey === 'pendingSlips') return (badges.pendingReceipts || 0) + (badges.pendingIssues || 0);
+        if (badgeKey === 'pendingOrders') return badges.pendingOrders || 0;
         return 0;
     };
 

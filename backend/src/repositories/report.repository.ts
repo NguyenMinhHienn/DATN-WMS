@@ -32,15 +32,15 @@ export class ReportRepository {
         AND (COALESCE(inv.total_qty, 0) <= p.reorder_point OR COALESCE(inv.total_qty, 0) <= p.min_stock_level)
     `);
 
-    const [pendingReceipts] = await pool.query<RowDataPacket[]>(`
-      SELECT COUNT(*) as count FROM goods_receipts 
-      WHERE deleted_at IS NULL AND status IN ('draft', 'pending')
+    const [pendingSlips] = await pool.query<RowDataPacket[]>(`
+      SELECT COUNT(*) as count FROM stock_transfers 
+      WHERE deleted_at IS NULL AND status = 'pending'
     `);
 
-    const [pendingIssues] = await pool.query<RowDataPacket[]>(`
-      SELECT COUNT(*) as count FROM goods_issues 
-      WHERE deleted_at IS NULL AND status IN ('draft', 'pending', 'picking')
-    `);
+    const [pendingOrders] = await pool.query<RowDataPacket[]>(`
+    SELECT COUNT(*) as count FROM orders 
+    WHERE status = 'pending'
+  `);
 
     const [recentMovements] = await pool.query<RowDataPacket[]>(`
       SELECT il.*, p.name as product_name, w.name as warehouse_name
@@ -56,8 +56,9 @@ export class ReportRepository {
       totalWarehouses: warehouseCount[0].count,
       totalInventoryValue: parseFloat(inventoryValue[0].total_value) || 0,
       lowStockItems: lowStock[0].count,
-      pendingReceipts: pendingReceipts[0].count,
-      pendingIssues: pendingIssues[0].count,
+      pendingReceipts: pendingSlips[0].count,
+      pendingIssues: 0,
+      pendingOrders: pendingOrders[0].count,
       recentMovements: recentMovements as any[],
     };
   }

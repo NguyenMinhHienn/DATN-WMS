@@ -635,6 +635,7 @@ export interface DashboardStats {
     lowStockItems: number;
     pendingReceipts: number;
     pendingIssues: number;
+    pendingOrders: number;
     recentMovements: InventoryLog[];
 }
 
