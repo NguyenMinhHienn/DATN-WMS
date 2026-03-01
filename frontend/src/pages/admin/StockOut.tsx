@@ -1,20 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { stockTransferService } from '../../services/stockTransferService';
+import { exportSlipService, ExportSlipSummary, ExportSlipFull } from '../../services/exportSlipService';
 import { StockTransfer, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 
 
 const StockOut: React.FC = () => {
+    // ==================== TAB STATE ====================
+    const [activeTab, setActiveTab] = useState<'transfers' | 'order-slips'>('transfers');
+
+    // ==================== TRANSFERS STATE ====================
     const [transfers, setTransfers] = useState<StockTransfer[]>([]);
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState('');
-
-    // Modal state
     const [selectedTransfer, setSelectedTransfer] = useState<StockTransfer | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
 
-    useEffect(() => { loadTransfers(); }, [pagination.page, selectedStatus]);
+    // ==================== EXPORT SLIPS STATE ====================
+    const [slips, setSlips] = useState<ExportSlipSummary[]>([]);
+    const [slipsLoading, setSlipsLoading] = useState(true);
+    const [slipStatusFilter, setSlipStatusFilter] = useState('');
+    const [slipPage, setSlipPage] = useState(1);
+    const [slipTotalPages, setSlipTotalPages] = useState(1);
+    const [selectedSlip, setSelectedSlip] = useState<ExportSlipFull | null>(null);
+    const [slipDetailLoading, setSlipDetailLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState('');
+
+    // ==================== LOAD DATA ====================
+    useEffect(() => {
+        if (activeTab === 'transfers') loadTransfers();
+    }, [pagination.page, selectedStatus, activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'order-slips') fetchSlips();
+    }, [slipPage, slipStatusFilter, activeTab]);
 
     const loadTransfers = async () => {
         try {
@@ -34,6 +55,20 @@ const StockOut: React.FC = () => {
         }
     };
 
+    const fetchSlips = async () => {
+        setSlipsLoading(true);
+        try {
+            const result = await exportSlipService.getAllExportSlips(slipPage, 15, slipStatusFilter || undefined);
+            setSlips(result.data);
+            setSlipTotalPages(result.pagination?.totalPages || 1);
+        } catch (err: any) {
+            console.error('Failed to load export slips:', err);
+        } finally {
+            setSlipsLoading(false);
+        }
+    };
+
+    // ==================== TRANSFER ACTIONS ====================
     const handleViewDetail = async (id: number) => {
         try {
             const detail = await stockTransferService.getTransferById(id);
@@ -62,7 +97,81 @@ const StockOut: React.FC = () => {
         );
     };
 
-    // Đếm theo trạng thái
+    // ==================== EXPORT SLIP ACTIONS ====================
+    const handleViewSlipDetail = async (slipId: number) => {
+        if (selectedSlip?.id === slipId) { setSelectedSlip(null); return; }
+        setSlipDetailLoading(true);
+        try {
+            const detail = await exportSlipService.getExportSlipById(slipId);
+            setSelectedSlip(detail);
+        } catch (err) {
+            alert('Không thể tải chi tiết phiếu');
+        } finally {
+            setSlipDetailLoading(false);
+        }
+    };
+
+    const handleSlipAction = async (slipId: number, action: string) => {
+        const labels: Record<string, string> = {
+            approve: 'Duyệt phiếu (trừ kho)',
+            complete: 'Hoàn tất giao hàng',
+            fail: 'Giao hàng thất bại (hoàn kho)',
+        };
+        if (!window.confirm(`${labels[action]}? Hành động này không thể hoàn tác.`)) return;
+        setActionLoading(`${slipId}-${action}`);
+        try {
+            switch (action) {
+                case 'approve': await exportSlipService.approveExportSlip(slipId); break;
+                case 'complete': await exportSlipService.completeDelivery(slipId); break;
+                case 'fail': await exportSlipService.failDelivery(slipId); break;
+            }
+            alert(`✅ ${labels[action]} thành công`);
+            setSelectedSlip(null);
+            fetchSlips();
+        } catch (err: any) {
+            alert(err?.response?.data?.message || 'Thao tác thất bại');
+        } finally {
+            setActionLoading('');
+        }
+    };
+
+    const getSlipActionButtons = (slip: ExportSlipSummary) => {
+        const btns = [];
+        if (slip.status === 'waiting_approval') {
+            btns.push(
+                <button key="approve" onClick={(e) => { e.stopPropagation(); handleSlipAction(slip.id, 'approve'); }}
+                    disabled={actionLoading === `${slip.id}-approve`}
+                    className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 disabled:opacity-50">
+                    ✅ Duyệt (trừ kho)
+                </button>
+            );
+        }
+        if (slip.status === 'approved') {
+            btns.push(
+                <button key="complete" onClick={(e) => { e.stopPropagation(); handleSlipAction(slip.id, 'complete'); }}
+                    disabled={actionLoading === `${slip.id}-complete`}
+                    className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-medium hover:bg-emerald-600 disabled:opacity-50">
+                    📦 Hoàn tất
+                </button>,
+                <button key="fail" onClick={(e) => { e.stopPropagation(); handleSlipAction(slip.id, 'fail'); }}
+                    disabled={actionLoading === `${slip.id}-fail`}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 disabled:opacity-50">
+                    🔙 Thất bại
+                </button>
+            );
+        }
+        return btns;
+    };
+
+    const slipStatusTabs = [
+        { value: '', label: 'Tất cả', icon: '📋' },
+        { value: 'waiting_approval', label: 'Chờ duyệt', icon: '⏳' },
+        { value: 'approved', label: 'Đã duyệt', icon: '✅' },
+        { value: 'completed', label: 'Hoàn tất', icon: '📦' },
+        { value: 'returned', label: 'Trả hàng', icon: '🔙' },
+    ];
+
+    // Stats
     const approvedCount = transfers.filter(t => t.status === 'approved').length;
     const pendingCount = transfers.filter(t => t.status === 'pending').length;
 
@@ -72,115 +181,249 @@ const StockOut: React.FC = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">
-                        <span className="gradient-text">📤 Phiếu Xuất Kho</span>
+                        <span className="gradient-text">📤 Xuất Kho</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Lịch sử và trạng thái các phiếu xuất hàng từ kho</p>
+                    <p className="text-slate-400 mt-1">Quản lý phiếu xuất kho & phiếu giao đơn hàng</p>
                 </div>
+                <button onClick={() => activeTab === 'transfers' ? loadTransfers() : fetchSlips()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium">
+                    🔄 Làm mới
+                </button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="chart-container border-l-4 border-emerald-500">
-                    <p className="text-sm text-slate-400">Đã xuất kho</p>
-                    <p className="text-2xl font-bold text-emerald-400">{approvedCount}</p>
-                </div>
-                <div className="chart-container border-l-4 border-amber-500">
-                    <p className="text-sm text-slate-400">Chờ duyệt</p>
-                    <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
-                </div>
-                <div className="chart-container border-l-4 border-orange-500">
-                    <p className="text-sm text-slate-400">Tổng phiếu</p>
-                    <p className="text-2xl font-bold text-orange-400">{pagination.total}</p>
-                </div>
+            {/* ==================== TAB SWITCH ==================== */}
+            <div className="flex gap-3 mb-6">
+                <button onClick={() => setActiveTab('transfers')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all
+                        ${activeTab === 'transfers'
+                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-slate-700/50'
+                        }`}>
+                    <span>📤</span> Phiếu chuyển kho
+                </button>
+                <button onClick={() => setActiveTab('order-slips')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all
+                        ${activeTab === 'order-slips'
+                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                            : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-slate-700/50'
+                        }`}>
+                    <span>📝</span> Phiếu đơn hàng
+                </button>
             </div>
 
-            {/* Filters */}
-            <div className="chart-container mb-6">
-                <div className="flex flex-wrap gap-4 items-center">
-                    <select
-                        value={selectedStatus}
-                        onChange={(e) => { setSelectedStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="input max-w-xs"
-                    >
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="pending">⏳ Chờ duyệt</option>
-                        <option value="approved">✅ Đã duyệt</option>
-                        <option value="rejected">❌ Từ chối</option>
-                    </select>
-                    <button
-                        onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="text-slate-400 hover:text-white transition-colors"
-                    >
-                        Xóa bộ lọc
-                    </button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="chart-container p-0 overflow-hidden">
-                {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            {/* ==================== TAB 1: STOCK TRANSFERS ==================== */}
+            {activeTab === 'transfers' && (
+                <>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="chart-container border-l-4 border-emerald-500">
+                            <p className="text-sm text-slate-400">Đã xuất kho</p>
+                            <p className="text-2xl font-bold text-emerald-400">{approvedCount}</p>
+                        </div>
+                        <div className="chart-container border-l-4 border-amber-500">
+                            <p className="text-sm text-slate-400">Chờ duyệt</p>
+                            <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
+                        </div>
+                        <div className="chart-container border-l-4 border-orange-500">
+                            <p className="text-sm text-slate-400">Tổng phiếu</p>
+                            <p className="text-2xl font-bold text-orange-400">{pagination.total}</p>
+                        </div>
                     </div>
-                ) : (
-                    <>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
-                                    <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho xuất</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tổng tiền</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người tạo</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transfers.map(transfer => (
-                                        <tr key={transfer.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${transfer.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
-                                            <td className="py-4 px-6 font-mono text-sm font-medium text-orange-400">{transfer.transfer_number}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.source_warehouse_name}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-400">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
-                                            <td className="py-4 px-6 text-sm text-right text-white">{transfer.total_items}</td>
-                                            <td className="py-4 px-6 text-sm text-right font-medium text-red-400">{new Intl.NumberFormat('vi-VN').format(transfer.total_value)} đ</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.created_by_name}</td>
-                                            <td className="py-4 px-6 text-center">
-                                                {getStatusBadge(transfer.status)}
-                                            </td>
-                                            <td className="py-4 px-6 text-center">
-                                                <button
-                                                    onClick={() => handleViewDetail(transfer.id)}
-                                                    className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
-                                                >
-                                                    Chi tiết
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {transfers.length === 0 && (
-                                        <tr>
-                                            <td colSpan={8} className="py-12 text-center">
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <span className="text-4xl opacity-50">📤</span>
-                                                    <p className="text-slate-500">Không tìm thấy phiếu xuất kho</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
-                            <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
-                        </div>
-                    </>
-                )}
-            </div>
 
-            {/* Detail Modal */}
+                    {/* Filters */}
+                    <div className="chart-container mb-6">
+                        <div className="flex flex-wrap gap-4 items-center">
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => { setSelectedStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+                                className="input max-w-xs"
+                            >
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="pending">⏳ Chờ duyệt</option>
+                                <option value="approved">✅ Đã duyệt</option>
+                                <option value="rejected">❌ Từ chối</option>
+                            </select>
+                            <button
+                                onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
+                                className="text-slate-400 hover:text-white transition-colors"
+                            >
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="chart-container p-0 overflow-hidden">
+                        {loading ? (
+                            <div className="flex items-center justify-center h-64">
+                                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                            <tr>
+                                                <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
+                                                <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho xuất</th>
+                                                <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày</th>
+                                                <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
+                                                <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tổng tiền</th>
+                                                <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người tạo</th>
+                                                <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
+                                                <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transfers.map(transfer => (
+                                                <tr key={transfer.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${transfer.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
+                                                    <td className="py-4 px-6 font-mono text-sm font-medium text-orange-400">{transfer.transfer_number}</td>
+                                                    <td className="py-4 px-6 text-sm text-slate-300">{transfer.source_warehouse_name}</td>
+                                                    <td className="py-4 px-6 text-sm text-slate-400">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
+                                                    <td className="py-4 px-6 text-sm text-right text-white">{transfer.total_items}</td>
+                                                    <td className="py-4 px-6 text-sm text-right font-medium text-red-400">{new Intl.NumberFormat('vi-VN').format(transfer.total_value)} đ</td>
+                                                    <td className="py-4 px-6 text-sm text-slate-300">{transfer.created_by_name}</td>
+                                                    <td className="py-4 px-6 text-center">{getStatusBadge(transfer.status)}</td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        <button onClick={() => handleViewDetail(transfer.id)}
+                                                            className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                                                            Chi tiết
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {transfers.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={8} className="py-12 text-center">
+                                                        <div className="flex flex-col items-center gap-3">
+                                                            <span className="text-4xl opacity-50">📤</span>
+                                                            <p className="text-slate-500">Không tìm thấy phiếu xuất kho</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="px-6 py-4 border-t border-slate-700/50">
+                                    <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </>
+            )}
+
+            {/* ==================== TAB 2: ORDER EXPORT SLIPS ==================== */}
+            {activeTab === 'order-slips' && (
+                <>
+                    {/* Status Filter */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+                        {slipStatusTabs.map(tab => (
+                            <button key={tab.value} onClick={() => { setSlipStatusFilter(tab.value); setSlipPage(1); }}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all
+                                    ${slipStatusFilter === tab.value
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                        : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-slate-700/50'
+                                    }`}>
+                                <span>{tab.icon}</span> {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {slipsLoading ? (
+                        <div className="text-center py-16">
+                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <p className="text-slate-400">Đang tải...</p>
+                        </div>
+                    ) : slips.length === 0 ? (
+                        <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+                            <div className="text-6xl mb-4">📭</div>
+                            <p className="text-slate-400">Không có phiếu xuất đơn hàng</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {slips.map(slip => {
+                                const statusInfo = exportSlipService.getStatusInfo(slip.status);
+                                const isExpanded = selectedSlip?.id === slip.id;
+                                const actions = getSlipActionButtons(slip);
+
+                                return (
+                                    <div key={slip.id} className="bg-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden hover:border-slate-600/50 transition-all">
+                                        <div className="p-4 cursor-pointer" onClick={() => handleViewSlipDetail(slip.id)}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-mono text-indigo-300">PXK #{slip.id}</span>
+                                                    <span className="text-xs text-slate-500">→ Đơn #{slip.order_id}</span>
+                                                    <span className="px-3 py-1 rounded-full text-xs font-semibold"
+                                                        style={{ color: statusInfo.color, backgroundColor: statusInfo.bg }}>
+                                                        {statusInfo.text}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {actions.length > 0 && <div className="flex gap-2">{actions}</div>}
+                                                    <span className="text-xs text-slate-500">{formatDate(slip.created_at)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm text-slate-400">
+                                                    <span>👤 Tạo bởi: <span className="text-slate-300">{slip.creator_name || `User #${slip.created_by}`}</span></span>
+                                                    {slip.approver_name && <span className="ml-4">✅ Duyệt bởi: <span className="text-slate-300">{slip.approver_name}</span></span>}
+                                                </div>
+                                                {slip.order_total && <p className="text-lg font-bold text-indigo-300">{formatCurrency(slip.order_total)}</p>}
+                                            </div>
+                                            {slip.order_shipping_name && (
+                                                <p className="text-xs text-slate-500 mt-1">🚚 Giao đến: {slip.order_shipping_name}</p>
+                                            )}
+                                        </div>
+
+                                        {isExpanded && selectedSlip && (
+                                            <div className="border-t border-slate-700/50 bg-slate-900/30 p-4">
+                                                {slipDetailLoading ? (
+                                                    <div className="text-center py-4 text-slate-400"><span className="animate-spin">⏳</span> Đang tải...</div>
+                                                ) : (
+                                                    <>
+                                                        <h4 className="font-semibold text-slate-300 mb-2 text-sm">📦 Chi tiết sản phẩm xuất kho</h4>
+                                                        <div className="space-y-2">
+                                                            {selectedSlip.details.map(item => (
+                                                                <div key={item.id} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-white">{item.product_name || `Product #${item.product_id}`}</p>
+                                                                        {item.variant_sku && <p className="text-xs text-slate-500">SKU: {item.variant_sku}</p>}
+                                                                        {item.current_stock !== undefined && (
+                                                                            <p className="text-xs text-slate-600">Tồn kho hiện tại: {item.current_stock}</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-sm font-semibold text-indigo-300">x{item.quantity}</p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        {selectedSlip.notes && <p className="mt-3 text-sm text-slate-400">📝 {selectedSlip.notes}</p>}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {slipTotalPages > 1 && (
+                                <div className="flex justify-center gap-2 pt-4">
+                                    <button onClick={() => setSlipPage(p => Math.max(1, p - 1))} disabled={slipPage <= 1}
+                                        className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm disabled:opacity-40 hover:bg-slate-700">← Trước</button>
+                                    <span className="px-4 py-2 text-sm text-slate-400">Trang {slipPage}/{slipTotalPages}</span>
+                                    <button onClick={() => setSlipPage(p => Math.min(slipTotalPages, p + 1))} disabled={slipPage >= slipTotalPages}
+                                        className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm disabled:opacity-40 hover:bg-slate-700">Tiếp →</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* ==================== TRANSFER DETAIL MODAL ==================== */}
             {showDetailModal && selectedTransfer && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl shadow-orange-500/10">
@@ -229,7 +472,6 @@ const StockOut: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Items table */}
                         {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                             <div className="mb-4">
                                 <h3 className="font-medium mb-2 text-white">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
@@ -269,10 +511,7 @@ const StockOut: React.FC = () => {
                         )}
 
                         <div className="flex justify-end pt-4 border-t border-slate-700/50">
-                            <button
-                                onClick={() => setShowDetailModal(false)}
-                                className="btn btn-secondary"
-                            >
+                            <button onClick={() => setShowDetailModal(false)} className="btn btn-secondary">
                                 Đóng
                             </button>
                         </div>
