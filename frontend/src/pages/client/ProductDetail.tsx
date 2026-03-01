@@ -86,6 +86,27 @@ const ProductDetail: React.FC = () => {
         if (!product) return;
         if (addingToCart) return;
 
+        // Validate tồn kho: kiểm tra tổng trong giỏ + sắp thêm vs stock
+        const maxStock = selectedVariant?.stock ?? product.total_stock ?? 0;
+        if (maxStock > 0) {
+            const currentCart = cartService.getCart();
+            const existingItem = currentCart.find(item =>
+                item.product_id === product.id &&
+                item.variant_id === (selectedVariant?.id ?? null)
+            );
+            const currentInCart = existingItem?.quantity || 0;
+            if (currentInCart + quantity > maxStock) {
+                const canAdd = maxStock - currentInCart;
+                if (canAdd <= 0) {
+                    setCartMessage({ type: 'error', text: `Bạn đã có ${currentInCart} sản phẩm này trong giỏ hàng (tồn kho: ${maxStock})` });
+                } else {
+                    setCartMessage({ type: 'error', text: `Chỉ có thể thêm tối đa ${canAdd} sản phẩm nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})` });
+                }
+                setTimeout(() => setCartMessage(null), 4000);
+                return;
+            }
+        }
+
         // Tạo label cho biến thể (nếu có)
         let variantLabel: string | null = null;
         if (selectedVariant) {
@@ -528,6 +549,7 @@ const ProductDetail: React.FC = () => {
                                             value={quantity}
                                             min={1}
                                             max={selectedVariant?.stock ?? product.total_stock ?? 999}
+                                            onFocus={(e) => e.target.select()}
                                             onChange={(e) => {
                                                 const val = parseInt(e.target.value) || 1;
                                                 const maxStock = selectedVariant?.stock ?? product.total_stock ?? 999;

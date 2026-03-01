@@ -200,6 +200,27 @@ const ProductList: React.FC = () => {
             return;
         }
 
+        // Validate tồn kho: kiểm tra tổng trong giỏ + sắp thêm vs stock
+        const maxStock = selectedVariant.stock;
+        if (maxStock > 0) {
+            const currentCart = cartService.getCart();
+            const existingItem = currentCart.find(item =>
+                item.product_id === productId &&
+                item.variant_id === selectedVariantId
+            );
+            const currentInCart = existingItem?.quantity || 0;
+            if (currentInCart + quantity > maxStock) {
+                const canAdd = maxStock - currentInCart;
+                if (canAdd <= 0) {
+                    showToast('error', `Đã có ${currentInCart} sản phẩm trong giỏ (tồn kho: ${maxStock})`);
+                } else {
+                    showToast('error', `Chỉ thêm được ${canAdd} nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})`);
+                }
+                setLoadingAdd(prev => ({ ...prev, [productId]: false }));
+                return;
+            }
+        }
+
         // Helper function to add to localStorage
         const addToLocalStorage = () => {
             cartService.addToCart({

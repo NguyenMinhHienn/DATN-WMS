@@ -12,9 +12,15 @@ import * as attributeRepo from '../repositories/attribute.repository';
 
 export const findById = async (id: number): Promise<ProductVariant | null> => {
     const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT pv.*, p.name as product_name, p.sku as product_sku
+        SELECT pv.*, p.name as product_name, p.sku as product_sku,
+               COALESCE(inv.real_stock, 0) as stock
         FROM product_variants pv
         JOIN products p ON pv.product_id = p.id
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
+            FROM inventories WHERE status = 'available'
+            GROUP BY product_id
+        ) inv ON inv.product_id = pv.product_id
         WHERE pv.id = ?
     `, [id]);
 

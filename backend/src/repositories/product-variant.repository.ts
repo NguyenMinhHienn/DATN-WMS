@@ -8,10 +8,16 @@ export class ProductVariantRepository {
      */
     async findByProductId(productId: number): Promise<ProductVariant[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT * FROM product_variants 
-            WHERE product_id = ? AND is_active = 1
-            ORDER BY color
-        `, [productId]);
+        SELECT pv.*, COALESCE(inv.real_stock, 0) as stock
+        FROM product_variants pv
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
+            FROM inventories WHERE status = 'available'
+            GROUP BY product_id
+        ) inv ON inv.product_id = pv.product_id
+        WHERE pv.product_id = ? AND pv.is_active = 1
+        ORDER BY pv.color
+    `, [productId]);
 
         return rows as ProductVariant[];
     }
@@ -191,12 +197,18 @@ export class ProductVariantRepository {
 
         const product = productRows[0] as ProductWithVariants;
 
-        // Get variants
+        // Get variants - đọc stock thực tế từ inventories
         const [variantRows] = await pool.query<RowDataPacket[]>(`
-            SELECT * FROM product_variants 
-            WHERE product_id = ? AND is_active = 1
-            ORDER BY color
-        `, [productId]);
+        SELECT pv.*, COALESCE(inv.real_stock, 0) as stock
+        FROM product_variants pv
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
+            FROM inventories WHERE status = 'available'
+            GROUP BY product_id
+        ) inv ON inv.product_id = pv.product_id
+        WHERE pv.product_id = ? AND pv.is_active = 1
+        ORDER BY pv.color
+    `, [productId]);
 
         product.variants = variantRows as ProductVariant[];
 
@@ -255,8 +267,15 @@ export class ProductVariantRepository {
      */
     async hasStock(variantId: number, quantity: number = 1): Promise<boolean> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT stock FROM product_variants WHERE id = ? AND is_active = 1
-        `, [variantId]);
+        SELECT COALESCE(inv.real_stock, 0) as stock
+        FROM product_variants pv
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
+            FROM inventories WHERE status = 'available'
+            GROUP BY product_id
+        ) inv ON inv.product_id = pv.product_id
+        WHERE pv.id = ? AND pv.is_active = 1
+    `, [variantId]);
 
         if (rows.length === 0) return false;
         return rows[0].stock >= quantity;

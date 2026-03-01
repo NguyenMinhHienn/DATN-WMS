@@ -315,6 +315,7 @@ const Cart: React.FC = () => {
                                                                 className="w-8 h-8 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center">−</button>
                                                             <input type="number" min="1" max={item.max_stock || 999} value={item.quantity}
                                                                 onChange={(e) => handleQuantityChange(item, e.target.value)} disabled={isUpdating}
+                                                                onFocus={(e) => e.target.select()}
                                                                 className="w-14 h-8 text-center border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 disabled:bg-slate-100" />
                                                             <button onClick={() => increaseQuantity(item)} disabled={(item.max_stock !== null && item.quantity >= item.max_stock) || isUpdating}
                                                                 className="w-8 h-8 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center">+</button>
