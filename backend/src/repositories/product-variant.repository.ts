@@ -8,13 +8,8 @@ export class ProductVariantRepository {
      */
     async findByProductId(productId: number): Promise<ProductVariant[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT pv.*, COALESCE(inv.real_stock, 0) as stock
+        SELECT pv.*
         FROM product_variants pv
-        LEFT JOIN (
-            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
-            FROM inventories WHERE status = 'available'
-            GROUP BY product_id
-        ) inv ON inv.product_id = pv.product_id
         WHERE pv.product_id = ? AND pv.is_active = 1
         ORDER BY pv.color
     `, [productId]);
@@ -197,15 +192,10 @@ export class ProductVariantRepository {
 
         const product = productRows[0] as ProductWithVariants;
 
-        // Get variants - đọc stock thực tế từ inventories
+        // Get variants - đọc stock thực tế từ product_variants (đã được cập nhật chuẩn xác qua file approve)
         const [variantRows] = await pool.query<RowDataPacket[]>(`
-        SELECT pv.*, COALESCE(inv.real_stock, 0) as stock
+        SELECT pv.*
         FROM product_variants pv
-        LEFT JOIN (
-            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
-            FROM inventories WHERE status = 'available'
-            GROUP BY product_id
-        ) inv ON inv.product_id = pv.product_id
         WHERE pv.product_id = ? AND pv.is_active = 1
         ORDER BY pv.color
     `, [productId]);
@@ -267,13 +257,8 @@ export class ProductVariantRepository {
      */
     async hasStock(variantId: number, quantity: number = 1): Promise<boolean> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT COALESCE(inv.real_stock, 0) as stock
+        SELECT pv.stock
         FROM product_variants pv
-        LEFT JOIN (
-            SELECT product_id, SUM(quantity_on_hand - quantity_reserved) as real_stock 
-            FROM inventories WHERE status = 'available'
-            GROUP BY product_id
-        ) inv ON inv.product_id = pv.product_id
         WHERE pv.id = ? AND pv.is_active = 1
     `, [variantId]);
 

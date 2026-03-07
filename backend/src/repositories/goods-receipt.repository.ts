@@ -156,12 +156,13 @@ export class GoodsReceiptRepository {
                 const lineTotal = item.quantity_expected * item.unit_cost;
                 await connection.query(`
           INSERT INTO goods_receipt_items (
-            goods_receipt_id, product_id, location_id, quantity_expected,
+            goods_receipt_id, product_id, product_variant_id, location_id, quantity_expected,
             unit_cost, line_total, batch_number, manufacturing_date, expiry_date
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
                     receiptId,
                     item.product_id,
+                    item.product_variant_id || null, // Thêm variant_id
                     item.location_id || null,
                     item.quantity_expected,
                     item.unit_cost,
@@ -276,6 +277,32 @@ export class GoodsReceiptRepository {
           SET quantity_received = quantity_expected, quality_status = 'passed'
           WHERE id = ?
         `, [item.id]);
+
+                // === THÊM MỚI: Update variant stock + MWA ===
+                if (item.product_variant_id) {
+                    const [vr] = await connection.query<RowDataPacket[]>(
+                        'SELECT stock, average_cost FROM product_variants WHERE id = ?',
+                        [item.product_variant_id]
+                    );
+
+                    if (vr.length > 0) {
+                        const oldStock = Number(vr[0].stock) || 0;
+                        const oldAvg = Number(vr[0].average_cost) || 0;
+                        const newQty = item.quantity_expected;
+                        const totalStock = oldStock + newQty;
+
+                        // Tính MWA
+                        const newAvg = totalStock > 0
+                            ? Math.round(((oldStock * oldAvg) + (newQty * item.unit_cost)) / totalStock)
+                            : item.unit_cost;
+
+                        await connection.query(
+                            'UPDATE product_variants SET stock = ?, average_cost = ?, updated_at = NOW() WHERE id = ?',
+                            [totalStock, newAvg, item.product_variant_id]
+                        );
+                    }
+                }
+                // === KẾT THÚC THÊM MỚI ===
             }
 
             // Update receipt status

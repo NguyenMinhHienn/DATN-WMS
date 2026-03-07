@@ -68,9 +68,11 @@ class ProductVariantService {
         }
 
         // Check if color already exists for this product
-        const existingColor = await productVariantRepository.findByAttributes(dto.product_id, dto.color);
-        if (existingColor) {
-            throw new Error(`Variant with color '${dto.color}' already exists for this product`);
+        if (dto.color) {
+            const existingColor = await productVariantRepository.findByAttributes(dto.product_id, dto.color);
+            if (existingColor) {
+                throw new Error(`Variant with color '${dto.color}' already exists for this product`);
+            }
         }
 
         // Create variant
