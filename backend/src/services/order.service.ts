@@ -74,9 +74,14 @@ class OrderService {
             const lineTotal = cartItem.quantity * cartItem.unit_price;
             totalAmount += lineTotal;
 
-            // Lấy cost_price từ products để snapshot tại thời điểm tạo đơn
+            // Lấy cost_price từ variant (MWA) để snapshot tại thời điểm tạo đơn
+            // Nếu chưa có MWA (0), fallback về giá vốn mặc định của sản phẩm, tuyệt đối KHÔNG dùng giá bán (variant.price)
             const product = await productRepository.findById(cartItem.product_id);
-            const costPriceSnapshot = product?.cost_price || 0;
+            const costPriceSnapshot = Number(variant.average_cost) > 0
+                ? Number(variant.average_cost)
+                : Number(product?.cost_price) > 0
+                    ? Number(product?.cost_price)
+                    : 0;
 
             orderItems.push({
                 product_id: cartItem.product_id,
@@ -149,7 +154,8 @@ class OrderService {
             throw new AppError(`Không thể hủy đơn ở trạng thái "${order.status}"`, 400);
         }
 
-        await orderRepository.updateOrderStatus(orderId, 'cancelled');
+        // Hủy đơn và restore stock
+        await orderRepository.cancelOrderAndRestoreStock(orderId, order.items);
     }
 
     /**

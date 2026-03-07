@@ -74,30 +74,33 @@ class ExportSlipService {
             throw new AppError(`Đơn hàng không ở trạng thái "confirmed". Trạng thái: "${order.status}"`, 400);
         }
 
-        // Kiểm tra tồn kho cho từng item
-        for (const detail of slip.details) {
-            if (detail.variant_id) {
-                const currentStock = await exportSlipRepository.getVariantStock(detail.variant_id);
-                if (currentStock < detail.quantity) {
-                    throw new AppError(
-                        `Không đủ tồn kho cho sản phẩm "${detail.product_name || detail.product_id}". Cần: ${detail.quantity}, Còn: ${currentStock}`,
-                        400
-                    );
-                }
-            }
-        }
+        // BỎ QUA KIỂM TRA TỒN KHO VÀ TRỪ TỒN KHO: 
+        // Vì số lượng tồn kho đã được trừ NGAY LẬP TỨC từ khi khách hàng bấm Đặt Hàng (thành công ở bước Order).
+        // Phiếu xuất kho hiện tại chỉ mang tính chất minh chứng giao dịch và tính toán giá vốn (COGS).
 
         // Transaction: Trừ kho + cập nhật status
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
 
-            // Trừ tồn kho
+            // Trừ tồn kho và ghi COGS
             for (const detail of slip.details) {
                 if (detail.variant_id) {
+                    // Lấy average_cost để tính COGS
+                    const [vRows] = await connection.execute<any[]>(
+                        'SELECT stock, average_cost FROM product_variants WHERE id = ?',
+                        [detail.variant_id]
+                    );
+                    const avgCost = Number(vRows[0]?.average_cost) || 0;
+                    const cogs = detail.quantity * avgCost;
+
+                    // Bỏ lệnh trừ tồn kho:
+                    // Đã trừ ở OrderRepository.createOrder
+
+                    // Ghi COGS snapshot
                     await connection.execute(
-                        'UPDATE product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [detail.quantity, detail.variant_id]
+                        'UPDATE export_slip_details SET unit_cost_snapshot = ?, cost_of_goods_sold = ? WHERE id = ?',
+                        [avgCost, cogs, detail.id]
                     );
                 }
             }

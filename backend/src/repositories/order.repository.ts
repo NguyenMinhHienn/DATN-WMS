@@ -80,13 +80,22 @@ class OrderRepository {
             );
             const orderId = orderResult.insertId;
 
-            // Insert order items
+            // Insert order items and deduct stock
             for (const item of items) {
+                // 1. Insert order item
                 await connection.execute<ResultSetHeader>(
                     `INSERT INTO order_items (order_id, product_id, variant_id, product_name, variant_sku, quantity, unit_price, cost_price_snapshot, variant_attributes)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [orderId, item.product_id, item.variant_id, item.product_name, item.variant_sku, item.quantity, item.unit_price, item.cost_price_snapshot, item.variant_attributes]
                 );
+
+                // 2. Thêm logic: Trừ tồn kho NGAY LẬP TỨC 
+                if (item.variant_id) {
+                    await connection.execute(
+                        'UPDATE product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                        [item.quantity, item.variant_id]
+                    );
+                }
             }
 
             await connection.commit();
@@ -217,6 +226,39 @@ class OrderRepository {
             'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
             [status, orderId]
         );
+    }
+
+    /**
+     * Hủy đơn hàng và tự động hoàn lại tồn kho
+     */
+    async cancelOrderAndRestoreStock(orderId: number, items: OrderItemRow[]): Promise<void> {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // 1. Chuyển trạng thái đơn hàng thành cancelled
+            await connection.execute(
+                'UPDATE orders SET status = "cancelled", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                [orderId]
+            );
+
+            // 2. Đi qua từng item và cộng lại tồn kho
+            for (const item of items) {
+                if (item.variant_id) {
+                    await connection.execute(
+                        'UPDATE product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                        [item.quantity, item.variant_id]
+                    );
+                }
+            }
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     /**
