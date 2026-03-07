@@ -174,9 +174,12 @@ export class StockTransferRepository {
      */
     async getItems(transferId: number): Promise<StockTransferItem[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT sti.*, p.name as product_name, p.sku
+            SELECT sti.*, p.name as product_name, p.sku,
+                   pv.sku as variant_sku,
+                   CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label
             FROM stock_transfer_items sti
             INNER JOIN products p ON sti.product_id = p.id
+            LEFT JOIN product_variants pv ON sti.product_variant_id = pv.id
             WHERE sti.stock_transfer_id = ?
         `, [transferId]);
 
@@ -281,13 +284,14 @@ export class StockTransferRepository {
 
                 await connection.query(`
                     INSERT INTO stock_transfer_items (
-                        stock_transfer_id, product_id,
+                        stock_transfer_id, product_id, product_variant_id,
                         quantity_requested, unit_cost, line_total,
                         batch_number, expiry_date, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
                 `, [
                     transferId,
                     productId,
+                    item.product_variant_id || null,
                     qty,
                     cost,
                     lineTotal,
@@ -420,25 +424,78 @@ export class StockTransferRepository {
                             transfer.transfer_number,
                             adminUserId
                         );
-                        // LƯU Ý: Sản phẩm mới vẫn giữ status = 'draft' sau khi duyệt
-                        // Admin cần vào trang Quản lý Sản phẩm để:
-                        // 1. Thiết lập danh mục, biến thể
-                        // 2. Bật status = 'active' khi sẵn sàng bán
+
+                        // Cập nhật product_variants.stock + tính MWA (giá bình quân gia quyền)
+                        if (item.product_variant_id) {
+                            const [variantRows] = await connection.query<RowDataPacket[]>(
+                                'SELECT stock, average_cost FROM product_variants WHERE id = ?',
+                                [item.product_variant_id]
+                            );
+                            if (variantRows.length > 0) {
+                                const oldStock = Number(variantRows[0].stock) || 0;
+                                const oldAvgCost = Number(variantRows[0].average_cost) || 0;
+                                const newQty = item.quantity_requested;
+                                const newCost = item.unit_cost;
+                                const totalStock = oldStock + newQty;
+                                // MWA: (old_stock * old_avg + new_qty * new_cost) / (old_stock + new_qty)
+                                const newAvgCost = totalStock > 0
+                                    ? Math.round(((oldStock * oldAvgCost) + (newQty * newCost)) / totalStock)
+                                    : newCost;
+
+                                await connection.query(
+                                    'UPDATE product_variants SET stock = ?, average_cost = ?, updated_at = NOW() WHERE id = ?',
+                                    [totalStock, newAvgCost, item.product_variant_id]
+                                );
+                                console.log(`[Approve IMPORT] Variant ${item.product_variant_id}: stock ${oldStock} -> ${totalStock}, avg_cost ${oldAvgCost} -> ${newAvgCost}`);
+                            }
+                        }
                         break;
 
                     case 'EXPORT':
-                        // Xuất kho: Trừ từ kho nguồn (kiểm tra đủ tồn)
-                        const exportCheck = await this.checkSufficientStock(
-                            transfer.source_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested
-                        );
-                        if (!exportCheck.sufficient) {
-                            throw new Error(
-                                `Insufficient stock for product ID ${item.product_id}. ` +
-                                `Required: ${item.quantity_requested}, Available: ${exportCheck.available}`
+                        // Kiểm tra tồn kho variant trước
+                        if (item.product_variant_id) {
+                            const [vRows] = await connection.query<RowDataPacket[]>(
+                                'SELECT stock, average_cost FROM product_variants WHERE id = ?',
+                                [item.product_variant_id]
                             );
+                            const variantStock = vRows.length > 0 ? Number(vRows[0].stock) : 0;
+                            const avgCost = vRows.length > 0 ? Number(vRows[0].average_cost) : 0;
+
+                            if (variantStock < item.quantity_requested) {
+                                throw new Error(
+                                    `Không đủ tồn kho variant ID ${item.product_variant_id}. ` +
+                                    `Yêu cầu: ${item.quantity_requested}, Tồn: ${variantStock}`
+                                );
+                            }
+
+                            // Lưu giá vốn hàng bán (COGS)
+                            const cogs = item.quantity_requested * avgCost;
+                            await connection.query(
+                                'UPDATE stock_transfer_items SET cost_of_goods_sold = ? WHERE id = ?',
+                                [cogs, item.id]
+                            );
+
+                            // Trừ stock variant
+                            await connection.query(
+                                'UPDATE product_variants SET stock = stock - ?, updated_at = NOW() WHERE id = ?',
+                                [item.quantity_requested, item.product_variant_id]
+                            );
+                            console.log(`[Approve EXPORT] Variant ${item.product_variant_id}: stock -= ${item.quantity_requested}, COGS = ${cogs}`);
+                        } else {
+                            // Fallback: kiểm tra kho cũ
+                            const exportCheck = await this.checkSufficientStock(
+                                transfer.source_warehouse_id!,
+                                item.product_id,
+                                item.quantity_requested
+                            );
+                            if (!exportCheck.sufficient) {
+                                throw new Error(
+                                    `Insufficient stock for product ID ${item.product_id}. ` +
+                                    `Required: ${item.quantity_requested}, Available: ${exportCheck.available}`
+                                );
+                            }
                         }
+                        // Trừ inventories table
                         await this.subtractFromInventory(
                             connection,
                             transfer.source_warehouse_id!,
@@ -451,17 +508,32 @@ export class StockTransferRepository {
                         break;
 
                     case 'TRANSFER':
-                        // Chuyển kho: Trừ nguồn + Cộng đích
-                        const transferCheck = await this.checkSufficientStock(
-                            transfer.source_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested
-                        );
-                        if (!transferCheck.sufficient) {
-                            throw new Error(
-                                `Insufficient stock for product ID ${item.product_id}. ` +
-                                `Required: ${item.quantity_requested}, Available: ${transferCheck.available}`
+                        // Kiểm tra tồn kho variant
+                        if (item.product_variant_id) {
+                            const [tvRows] = await connection.query<RowDataPacket[]>(
+                                'SELECT stock FROM product_variants WHERE id = ?',
+                                [item.product_variant_id]
                             );
+                            const tvStock = tvRows.length > 0 ? Number(tvRows[0].stock) : 0;
+                            if (tvStock < item.quantity_requested) {
+                                throw new Error(
+                                    `Không đủ tồn kho variant ID ${item.product_variant_id}. ` +
+                                    `Yêu cầu: ${item.quantity_requested}, Tồn: ${tvStock}`
+                                );
+                            }
+                            // Transfer không đổi tổng stock variant, chỉ đổi kho
+                        } else {
+                            const transferCheck = await this.checkSufficientStock(
+                                transfer.source_warehouse_id!,
+                                item.product_id,
+                                item.quantity_requested
+                            );
+                            if (!transferCheck.sufficient) {
+                                throw new Error(
+                                    `Insufficient stock for product ID ${item.product_id}. ` +
+                                    `Required: ${item.quantity_requested}, Available: ${transferCheck.available}`
+                                );
+                            }
                         }
                         // Trừ kho nguồn
                         await this.subtractFromInventory(

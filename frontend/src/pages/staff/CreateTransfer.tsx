@@ -1,36 +1,54 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
 import { Warehouse, Product } from '../../interface';
-import ImageCropper from '../../components/ImageCropper';
 
 /**
- * CreateTransfer - Light theme modern
- * Tạo phiếu NHẬP/XUẤT/CHUYỂN KHO cho STAFF
+ * CreateTransfer - Variant-aware stock transfer form
+ * Staff tạo phiếu NHẬP/XUẤT/CHUYỂN KHO
+ * 
+ * Flow: Chọn sản phẩm (autocomplete) → Chọn variant → Hiển thị tồn kho/giá vốn → Nhập SL/đơn giá
  */
 
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
+interface VariantInfo {
+    id: number;
+    sku: string;
+    price: number;
+    stock: number;
+    average_cost: number;
+    label: string; // e.g. "Đỏ / 128GB"
+    image_url?: string;
+}
+
 interface FormItem {
     product_id?: number;
     product_name: string;
-    product_sku: string;
-    product_image_url: string;
+    product_variant_id?: number;
+    variant_sku: string;
     quantity: number;
     unit_price: number;
     notes: string;
+    // Loaded data
+    variants: VariantInfo[];
+    loadingVariants: boolean;
+    selectedVariant?: VariantInfo;
 }
 
 const emptyItem: FormItem = {
-    product_id: 0,
+    product_id: undefined,
     product_name: '',
-    product_sku: '',
-    product_image_url: '',
+    product_variant_id: undefined,
+    variant_sku: '',
     quantity: 1,
     unit_price: 0,
-    notes: ''
+    notes: '',
+    variants: [],
+    loadingVariants: false,
+    selectedVariant: undefined,
 };
 
 const CreateTransfer: React.FC = () => {
@@ -50,15 +68,34 @@ const CreateTransfer: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
 
+    // Autocomplete state
+    const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
+    const [searchTerms, setSearchTerms] = useState<Record<number, string>>({});
+    const searchRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
     useEffect(() => {
         loadData();
     }, []);
+
+    // Close autocomplete dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (activeSearchIndex !== null) {
+                const ref = searchRefs.current[activeSearchIndex];
+                if (ref && !ref.contains(e.target as Node)) {
+                    setActiveSearchIndex(null);
+                }
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [activeSearchIndex]);
 
     const loadData = async () => {
         try {
             const [warehouseRes, productRes] = await Promise.all([
                 warehouseService.getAll(),
-                productService.getAll(1, 100)
+                productService.getAll(1, 200)
             ]);
             setWarehouses(warehouseRes || []);
             setProducts(productRes.data || []);
@@ -68,6 +105,67 @@ const CreateTransfer: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Build variant label from attributes
+    const buildVariantLabel = (v: any): string => {
+        const parts = [v.color, v.size, v.storage, v.ram, v.material, v.capacity]
+            .filter(Boolean)
+            .join(' / ');
+        return parts || 'Mặc định';
+    };
+
+    // Load variants for a product
+    const loadVariants = async (index: number, productId: number) => {
+        const updated = [...formItems];
+        updated[index].loadingVariants = true;
+        updated[index].variants = [];
+        updated[index].product_variant_id = undefined;
+        updated[index].selectedVariant = undefined;
+        updated[index].variant_sku = '';
+        setFormItems(updated);
+
+        try {
+            const variants = await productService.getProductVariants(productId);
+            const mapped: VariantInfo[] = variants.map((v: any) => ({
+                id: v.id,
+                sku: v.sku || '',
+                price: Number(v.price) || 0,
+                stock: Number(v.stock) || 0,
+                average_cost: Number(v.average_cost) || 0,
+                label: buildVariantLabel(v),
+                image_url: v.image_url,
+            }));
+
+            const final = [...formItems];
+            final[index].variants = mapped;
+            final[index].loadingVariants = false;
+
+            // Auto-select if only one variant
+            if (mapped.length === 1) {
+                final[index].product_variant_id = mapped[0].id;
+                final[index].selectedVariant = mapped[0];
+                final[index].variant_sku = mapped[0].sku;
+                final[index].unit_price = transferType === 'EXPORT' ? mapped[0].price : (mapped[0].average_cost || mapped[0].price);
+            }
+
+            setFormItems(final);
+        } catch (err) {
+            console.error('Failed to load variants:', err);
+            const final = [...formItems];
+            final[index].loadingVariants = false;
+            setFormItems(final);
+        }
+    };
+
+    // Filter products by search term
+    const getFilteredProducts = (index: number) => {
+        const term = (searchTerms[index] || '').toLowerCase().trim();
+        if (!term) return products.slice(0, 20);
+        return products.filter(p =>
+            p.name.toLowerCase().includes(term) ||
+            p.sku?.toLowerCase().includes(term)
+        ).slice(0, 20);
     };
 
     // Tính thành tiền
@@ -96,18 +194,26 @@ const CreateTransfer: React.FC = () => {
             return;
         }
 
-        // Validate items
-        const validItems = formItems.filter(i => {
-            if (transferType === 'IMPORT') {
-                return i.product_name.trim().length > 0 && i.quantity > 0;
-            } else {
-                return i.product_id && i.product_id > 0 && i.quantity > 0;
-            }
-        });
+        // Validate items - must have product + variant
+        const validItems = formItems.filter(i =>
+            i.product_id && i.product_id > 0 &&
+            i.product_variant_id && i.product_variant_id > 0 &&
+            i.quantity > 0
+        );
 
         if (validItems.length === 0) {
-            setError('Vui lòng thêm ít nhất một sản phẩm hợp lệ');
+            setError('Vui lòng thêm ít nhất một sản phẩm với biến thể hợp lệ');
             return;
+        }
+
+        // Check export stock
+        if (transferType === 'EXPORT' || transferType === 'TRANSFER') {
+            for (const item of validItems) {
+                if (item.selectedVariant && item.quantity > item.selectedVariant.stock) {
+                    setError(`Sản phẩm "${item.product_name}" - SL yêu cầu (${item.quantity}) vượt quá tồn kho (${item.selectedVariant.stock})`);
+                    return;
+                }
+            }
         }
 
         setSubmitting(true);
@@ -118,24 +224,13 @@ const CreateTransfer: React.FC = () => {
                 source_warehouse_id: sourceWarehouseId,
                 destination_warehouse_id: destWarehouseId,
                 reason: reason,
-                items: validItems.map(item => {
-                    if (transferType === 'IMPORT') {
-                        return {
-                            product_name: item.product_name,
-                            product_sku: item.product_sku || undefined,
-                            product_image_url: item.product_image_url || undefined,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            notes: item.notes || undefined
-                        };
-                    } else {
-                        return {
-                            product_id: item.product_id,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price
-                        };
-                    }
-                })
+                items: validItems.map(item => ({
+                    product_id: item.product_id,
+                    product_variant_id: item.product_variant_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    notes: item.notes || undefined
+                }))
             };
 
             await stockTransferService.createTransfer(payload as any);
@@ -159,25 +254,55 @@ const CreateTransfer: React.FC = () => {
     const removeItem = (index: number) => {
         if (formItems.length > 1) {
             setFormItems(formItems.filter((_, i) => i !== index));
+            // Clean up search terms
+            const newTerms = { ...searchTerms };
+            delete newTerms[index];
+            setSearchTerms(newTerms);
         }
     };
 
-    const updateItem = (index: number, field: keyof FormItem, value: any) => {
+    // Select product from autocomplete
+    const selectProduct = (index: number, product: Product) => {
         const updated = [...formItems];
-        (updated[index] as any)[field] = value;
+        updated[index].product_id = product.id;
+        updated[index].product_name = product.name;
+        updated[index].unit_price = transferType === 'EXPORT' ? (product.selling_price || 0) : (product.cost_price || 0);
+        // Reset variant
+        updated[index].product_variant_id = undefined;
+        updated[index].selectedVariant = undefined;
+        updated[index].variant_sku = '';
+        updated[index].variants = [];
+        setFormItems(updated);
+        setActiveSearchIndex(null);
+        setSearchTerms({ ...searchTerms, [index]: product.name });
 
-        // Auto-fill price từ product
-        if (field === 'product_id') {
-            const product = products.find(p => p.id === value);
-            if (product) {
-                updated[index].unit_price = product.cost_price || 0;
-            }
+        // Load variants
+        loadVariants(index, product.id);
+    };
+
+    // Select variant
+    const selectVariant = (index: number, variantId: number) => {
+        const updated = [...formItems];
+        const variant = updated[index].variants.find(v => v.id === variantId);
+        if (variant) {
+            updated[index].product_variant_id = variant.id;
+            updated[index].selectedVariant = variant;
+            updated[index].variant_sku = variant.sku;
+            updated[index].unit_price = transferType === 'EXPORT' ? variant.price : (variant.average_cost || variant.price);
         }
-
         setFormItems(updated);
     };
 
-    const getProduct = (id: number) => products.find(p => p.id === id);
+    const updateItemField = (index: number, field: 'quantity' | 'unit_price' | 'notes', value: any) => {
+        const updated = [...formItems];
+        (updated[index] as any)[field] = value;
+        setFormItems(updated);
+    };
+
+    // Check if form can submit
+    const canSubmit = formItems.some(i =>
+        i.product_id && i.product_variant_id && i.quantity > 0
+    );
 
     if (loading) {
         return (
@@ -203,7 +328,7 @@ const CreateTransfer: React.FC = () => {
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold text-slate-800">Tạo phiếu kho</h1>
-                        <p className="text-slate-500">Chọn loại phiếu và nhập thông tin sản phẩm</p>
+                        <p className="text-slate-500">Chọn sản phẩm + biến thể → nhập số lượng và đơn giá</p>
                     </div>
                 </div>
             </div>
@@ -230,6 +355,7 @@ const CreateTransfer: React.FC = () => {
                                 onClick={() => {
                                     setTransferType(item.type);
                                     setFormItems([{ ...emptyItem }]);
+                                    setSearchTerms({});
                                 }}
                                 className={`p-5 rounded-2xl border-2 text-left transition-all duration-300 ${transferType === item.type
                                     ? `bg-gradient-to-br ${item.gradient} text-white border-transparent shadow-lg scale-[1.02]`
@@ -328,114 +454,170 @@ const CreateTransfer: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* IMPORT: Nhập thông tin sản phẩm mới */}
-                                {transferType === 'IMPORT' ? (
-                                    <>
-                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                                            <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Tên SP *</label>
-                                                <input
-                                                    type="text"
-                                                    value={item.product_name}
-                                                    onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    placeholder="Tên sản phẩm"
-                                                    required
-                                                />
+                                {/* Row 1: Product Search + Variant + SKU */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    {/* Product Autocomplete */}
+                                    <div className="relative" ref={(el) => { searchRefs.current[index] = el; }}>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Sản phẩm *</label>
+                                        <input
+                                            type="text"
+                                            value={activeSearchIndex === index ? (searchTerms[index] ?? '') : (item.product_name || '')}
+                                            onChange={(e) => {
+                                                setSearchTerms({ ...searchTerms, [index]: e.target.value });
+                                                setActiveSearchIndex(index);
+                                            }}
+                                            onFocus={() => {
+                                                setActiveSearchIndex(index);
+                                                if (!searchTerms[index] && item.product_name) {
+                                                    setSearchTerms({ ...searchTerms, [index]: item.product_name });
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                            placeholder="🔍 Tìm theo tên hoặc SKU..."
+                                            autoComplete="off"
+                                        />
+                                        {/* Autocomplete dropdown */}
+                                        {activeSearchIndex === index && (
+                                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                                {getFilteredProducts(index).length === 0 ? (
+                                                    <div className="p-3 text-sm text-slate-500 text-center">Không tìm thấy sản phẩm</div>
+                                                ) : (
+                                                    getFilteredProducts(index).map(p => (
+                                                        <button
+                                                            key={p.id}
+                                                            type="button"
+                                                            onClick={() => selectProduct(index, p)}
+                                                            className={`w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${item.product_id === p.id ? 'bg-indigo-50' : ''}`}
+                                                        >
+                                                            {p.image_url && (
+                                                                <img src={p.image_url} className="w-10 h-10 rounded-lg object-cover border border-slate-200" alt="" />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-slate-800 truncate">{p.name}</p>
+                                                                <p className="text-xs text-slate-500">{p.sku}</p>
+                                                            </div>
+                                                            <span className="text-xs text-indigo-500 font-mono">
+                                                                {transferType === 'EXPORT' ? p.selling_price?.toLocaleString() : p.cost_price?.toLocaleString()}đ
+                                                            </span>
+                                                        </button>
+                                                    ))
+                                                )}
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Mã SKU</label>
-                                                <input
-                                                    type="text"
-                                                    value={item.product_sku}
-                                                    onChange={(e) => updateItem(index, 'product_sku', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    placeholder="Tự động"
-                                                />
+                                        )}
+                                    </div>
+
+                                    {/* Variant Selection */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            Biến thể *
+                                            {item.loadingVariants && <span className="ml-1 text-indigo-500">⏳</span>}
+                                        </label>
+                                        {!item.product_id ? (
+                                            <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-sm">
+                                                Chọn sản phẩm trước
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
-                                                <input
-                                                    type="number" min="1" value={item.quantity}
-                                                    onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    required
-                                                />
+                                        ) : item.loadingVariants ? (
+                                            <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-sm">
+                                                Đang tải biến thể...
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Đơn giá</label>
-                                                <input
-                                                    type="number" min="0" value={item.unit_price}
-                                                    onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                />
+                                        ) : item.variants.length === 0 ? (
+                                            <div className="w-full px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
+                                                Sản phẩm chưa có biến thể
                                             </div>
-                                        </div>
-                                        {/* Hình ảnh */}
-                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Hình ảnh sản phẩm</label>
-                                                <ImageCropper
-                                                    value={item.product_image_url}
-                                                    onChange={(url) => updateItem(index, 'product_image_url', url)}
-                                                    maxSize={400}
-                                                    aspectRatio={1}
-                                                    placeholder="📷 Chọn hình"
-                                                />
+                                        ) : item.variants.length === 1 ? (
+                                            <div className="w-full px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                                                ✓ {item.variants[0].label} ({item.variants[0].sku})
                                             </div>
-                                            <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-slate-500 mb-1">Ghi chú</label>
-                                                <input type="text" value={item.notes}
-                                                    onChange={(e) => updateItem(index, 'notes', e.target.value)}
-                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                    placeholder="Ghi chú (hàng dễ vỡ, bảo quản lạnh...)" />
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    /* EXPORT/TRANSFER: Chọn sản phẩm có sẵn */
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs font-medium text-slate-500 mb-1">Sản phẩm *</label>
+                                        ) : (
                                             <select
-                                                value={item.product_id || ''}
-                                                onChange={(e) => updateItem(index, 'product_id', Number(e.target.value))}
+                                                value={item.product_variant_id || ''}
+                                                onChange={(e) => selectVariant(index, Number(e.target.value))}
                                                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                                 required
                                             >
-                                                <option value="">-- Chọn sản phẩm --</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>
+                                                <option value="">-- Chọn biến thể --</option>
+                                                {item.variants.map(v => (
+                                                    <option key={v.id} value={v.id}>
+                                                        {v.label} | SKU: {v.sku} | Tồn: {v.stock}
+                                                    </option>
                                                 ))}
                                             </select>
-                                            {item.product_id && getProduct(item.product_id) && (
-                                                <div className="mt-2 flex items-center gap-2">
-                                                    {getProduct(item.product_id)?.image_url && (
-                                                        <img src={getProduct(item.product_id)?.image_url} className="h-10 w-10 rounded-lg object-cover border border-slate-200 shadow-sm" />
-                                                    )}
-                                                    <span className="text-sm text-slate-600">{getProduct(item.product_id)?.name}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
-                                            <input
-                                                type="number" min="1" value={item.quantity}
-                                                onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1">Đơn giá</label>
-                                            <input
-                                                type="number" min="0" value={item.unit_price}
-                                                onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                            />
+                                        )}
+                                    </div>
+
+                                    {/* SKU (readonly) */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Mã SKU</label>
+                                        <input
+                                            type="text"
+                                            value={item.variant_sku}
+                                            readOnly
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 font-mono text-sm cursor-not-allowed"
+                                            placeholder="Tự động từ biến thể"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Row 2: Stock Info + Quantity + Price */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    {/* Stock info (readonly) */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">📊 Tồn kho hiện tại</label>
+                                        <div className={`w-full px-3 py-2 rounded-lg text-sm font-semibold border ${item.selectedVariant
+                                            ? item.selectedVariant.stock > 0
+                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                : 'bg-red-50 border-red-200 text-red-600'
+                                            : 'bg-slate-50 border-slate-200 text-slate-400'
+                                            }`}>
+                                            {item.selectedVariant ? `${item.selectedVariant.stock.toLocaleString()} SP` : '—'}
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* Average cost (readonly) */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">💰 Giá vốn BQ</label>
+                                        <div className={`w-full px-3 py-2 rounded-lg text-sm font-semibold border ${item.selectedVariant
+                                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                            : 'bg-slate-50 border-slate-200 text-slate-400'
+                                            }`}>
+                                            {item.selectedVariant ? `${item.selectedVariant.average_cost.toLocaleString()} đ` : '—'}
+                                        </div>
+                                    </div>
+
+                                    {/* Quantity */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={item.quantity}
+                                            onChange={(e) => updateItemField(index, 'quantity', Number(e.target.value))}
+                                            disabled={!item.product_variant_id}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            required
+                                        />
+                                        {/* Stock warning for EXPORT */}
+                                        {(transferType === 'EXPORT' || transferType === 'TRANSFER') &&
+                                            item.selectedVariant && item.quantity > item.selectedVariant.stock && (
+                                                <p className="text-xs text-red-500 mt-1">⚠️ Vượt quá tồn kho!</p>
+                                            )}
+                                    </div>
+
+                                    {/* Unit price */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            {transferType === 'EXPORT' ? 'Đơn giá xuất / bán' : 'Đơn giá nhập'}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={item.unit_price}
+                                            onChange={(e) => updateItemField(index, 'unit_price', Number(e.target.value))}
+                                            disabled={!item.product_variant_id}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
 
                                 {/* Thành tiền */}
                                 <div className="mt-4 text-right">
@@ -470,7 +652,7 @@ const CreateTransfer: React.FC = () => {
                         </button>
                         <button
                             type="submit"
-                            disabled={submitting}
+                            disabled={submitting || !canSubmit}
                             className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 font-medium flex items-center gap-2"
                         >
                             {submitting ? (

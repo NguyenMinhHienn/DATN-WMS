@@ -124,8 +124,9 @@ export class StockTransferService {
 
         // Chuẩn hóa items - giữ nguyên thông tin sản phẩm mới
         const normalizedItems: CreateStockTransferItemDto[] = (dto.items || []).map(item => ({
-            // Thông tin sản phẩm có thể là ID hoặc thông tin mới
+            // Thông tin sản phẩm
             product_id: item.product_id,
+            product_variant_id: item.product_variant_id,
             product_name: item.product_name,
             product_sku: item.product_sku,
             product_image_url: item.product_image_url,

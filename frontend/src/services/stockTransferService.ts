@@ -89,12 +89,18 @@ export interface CreateStockTransferData {
 }
 
 export interface CreateStockTransferItemData {
-    product_id: number;
-    quantity?: number;           // Simpler format
-    quantity_requested?: number; // Alias
-    unit_price?: number;         // Simpler format
-    unit_cost?: number;          // Alias
+    product_id?: number;
+    product_variant_id?: number;
+    // Legacy fields for backward compat
+    product_name?: string;
+    product_sku?: string;
+    product_image_url?: string;
+    quantity?: number;
+    quantity_requested?: number;
+    unit_price?: number;
+    unit_cost?: number;
     batch_number?: string;
     expiry_date?: string;
+    notes?: string;
 }
 
