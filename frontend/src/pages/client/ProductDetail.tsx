@@ -78,8 +78,8 @@ const ProductDetail: React.FC = () => {
         return opt?.label || value;
     };
 
-    // Get display price (variant price or product base price)
-    const displayPrice = selectedVariant?.price ?? product?.selling_price ?? 0;
+    // Get display price (Fix: Luôn ưu tiên dùng giá bán cơ bản của sản phẩm thay vì giá của variant)
+    const displayPrice = product?.selling_price ?? 0;
 
     // Xử lý thêm vào giỏ hàng
     const handleAddToCart = async () => {

@@ -100,7 +100,8 @@ export const addToCart = async (params: AddToCartParams): Promise<AddToCartResul
         itemId = existingItem.id;
     } else {
         // Add new item
-        const unitPrice = variant.price || product.selling_price;
+        // Fix: Luôn dùng giá bán cơ bản của sản phẩm theo yêu cầu
+        const unitPrice = product.selling_price;
         itemId = await cartRepository.addCartItem(cart.id, productId, variantId, quantity, unitPrice);
         isNewItem = true;
     }

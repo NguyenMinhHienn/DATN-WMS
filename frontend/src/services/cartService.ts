@@ -12,6 +12,7 @@ const CART_STORAGE_KEY = 'wms_cart';
 // ==================== Interfaces ====================
 
 export interface CartItem {
+    id?: number;
     product_id: number;
     variant_id: number | null;       // null nếu sản phẩm không có biến thể
     name: string;
@@ -77,6 +78,7 @@ const getItemKey = (productId: number, variantId: number | null): string => {
  * Chuyển đổi từ API item sang CartItem format
  */
 const convertAPIItemToCartItem = (apiItem: CartItemFromAPI): CartItem => ({
+    id: apiItem.id, // Fix: Added id for update and remove operations
     product_id: apiItem.product_id,
     variant_id: apiItem.product_variant_id,
     name: apiItem.product_name,
