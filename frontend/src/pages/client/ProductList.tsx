@@ -228,7 +228,7 @@ const ProductList: React.FC = () => {
                 variant_id: selectedVariantId,
                 name: product.name,
                 variant_label: getVariantLabel(selectedVariant),
-                price: selectedVariant.price || product.selling_price,
+                price: product.selling_price, // Fix: Use base selling price
                 quantity: quantity,
                 image_url: selectedVariant.image_url || product.image_url,
                 sku: selectedVariant.sku || product.sku,

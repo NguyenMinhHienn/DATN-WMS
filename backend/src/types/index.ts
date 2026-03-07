@@ -99,6 +99,7 @@ export interface ProductVariant {
     sku: string;
     price: number;
     stock: number;
+    average_cost?: number; // MWA cost
     image_url?: string;
     is_active: boolean;
     created_at: Date;
@@ -356,6 +357,7 @@ export interface GoodsReceiptItem {
     id: number;
     goods_receipt_id: number;
     product_id: number;
+    product_variant_id?: number;
     location_id?: number;
     quantity_expected: number;
     quantity_received: number;
@@ -585,6 +587,7 @@ export interface CreateGoodsReceiptDto {
 
 export interface CreateGoodsReceiptItemDto {
     product_id: number;
+    product_variant_id?: number;
     location_id?: number;
     quantity_expected: number;
     unit_cost: number;
@@ -700,8 +703,11 @@ export interface StockTransferItem {
     id: number;
     stock_transfer_id: number;
     product_id: number;
+    product_variant_id?: number;
     product_name?: string;
     sku?: string;
+    variant_sku?: string;
+    variant_label?: string;
     source_inventory_id?: number;
     destination_inventory_id?: number;
     quantity_requested: number;
@@ -711,6 +717,7 @@ export interface StockTransferItem {
     unit_id?: number;
     unit_cost: number;
     line_total: number;
+    cost_of_goods_sold?: number;
     batch_number?: string;
     serial_numbers?: string[];
     expiry_date?: Date;
@@ -733,10 +740,10 @@ export interface CreateStockTransferDto {
 }
 
 export interface CreateStockTransferItemDto {
-    // Có thể chọn product_id (sản phẩm có sẵn) HOẶC nhập thông tin mới
     product_id?: number;
+    product_variant_id?: number;
 
-    // NHẬP MỚI: Thông tin sản phẩm mới (cho phiếu nhập kho)  
+    // Legacy: Thông tin sản phẩm mới (deprecated - giữ backward compat)
     product_name?: string;
     product_sku?: string;
     product_image_url?: string;
