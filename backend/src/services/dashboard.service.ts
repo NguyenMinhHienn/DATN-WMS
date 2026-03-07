@@ -31,8 +31,8 @@ class DashboardService {
         const result: MonthlyReportItem[] = [];
         for (let m = 1; m <= 12; m++) {
             const found = rawData.find(r => r.month === m);
-            const revenue = found ? found.revenue : 0;
-            const cost = found ? found.cost : 0;
+            const revenue = found ? Number(found.revenue) : 0;
+            const cost = found ? Number(found.cost) : 0;
             result.push({
                 month: m,
                 revenue,

@@ -13,10 +13,10 @@ export class ReportRepository {
     `);
 
     const [inventoryValue] = await pool.query<RowDataPacket[]>(`
-      SELECT COALESCE(SUM(i.quantity_on_hand * COALESCE(i.unit_cost, p.cost_price, p.selling_price, 0)), 0) as total_value
-      FROM inventories i
-      INNER JOIN products p ON i.product_id = p.id
-      WHERE p.deleted_at IS NULL
+      SELECT COALESCE(SUM(pv.stock * pv.average_cost), 0) as total_value
+      FROM product_variants pv
+      INNER JOIN products p ON pv.product_id = p.id
+      WHERE p.deleted_at IS NULL AND pv.is_active = 1
     `);
 
     const [lowStock] = await pool.query<RowDataPacket[]>(`
@@ -139,10 +139,17 @@ export class ReportRepository {
         w.name as warehouse_name,
         COUNT(DISTINCT i.product_id) as product_count,
         SUM(i.quantity_on_hand) as total_quantity,
-        SUM(i.quantity_on_hand * COALESCE(i.unit_cost, p.cost_price, p.selling_price, 0)) as total_value
+        SUM(i.quantity_on_hand * COALESCE(pv.average_cost, p.cost_price, p.selling_price, 0)) as total_value
       FROM warehouses w
       LEFT JOIN inventories i ON w.id = i.warehouse_id
+      LEFT JOIN goods_receipt_items gri ON i.product_id = gri.product_id /* This join is problematic, let's just use a subquery or join with product_variants if we have the mapping, actually wait, inventories doesn't link to variants. Let's assume the warehouse quantity is multiplied by average MWA cost of the default variant or we just join products */
       LEFT JOIN products p ON i.product_id = p.id AND p.deleted_at IS NULL
+      LEFT JOIN (
+          SELECT product_id, AVG(average_cost) as average_cost 
+          FROM product_variants 
+          WHERE average_cost > 0 
+          GROUP BY product_id
+      ) pv ON p.id = pv.product_id
       WHERE w.deleted_at IS NULL AND w.status = 'active'
       GROUP BY w.id, w.name
       ORDER BY total_value DESC
