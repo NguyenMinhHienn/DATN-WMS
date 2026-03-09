@@ -109,6 +109,7 @@ export interface ProductVariant {
     product_id: number;
     sku: string;
     price: number;
+    average_cost?: number;
     stock: number;
     image_url?: string;
     is_active: boolean;

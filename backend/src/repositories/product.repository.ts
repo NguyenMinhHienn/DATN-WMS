@@ -13,7 +13,12 @@ export class ProductRepository {
         let countQuery = 'SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL';
         let dataQuery = `
       SELECT p.*, c.name as category_name, u.name as unit_name,
-             COALESCE(SUM(i.quantity_on_hand), 0) as total_quantity
+             COALESCE(SUM(i.quantity_on_hand), 0) as total_quantity,
+             (SELECT sti.unit_cost 
+              FROM stock_transfer_items sti 
+              JOIN stock_transfers st ON sti.stock_transfer_id = st.id 
+              WHERE sti.product_id = p.id AND st.transfer_type = 'IMPORT' AND st.status = 'approved' 
+              ORDER BY st.approved_at DESC LIMIT 1) as latest_import_price
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN units u ON p.unit_id = u.id
@@ -55,8 +60,18 @@ export class ProductRepository {
 
         const [rows] = await pool.query<RowDataPacket[]>(dataQuery, params);
 
+        const mappedRows = rows.map(r => {
+            const newCost = r.latest_import_price !== null && r.latest_import_price !== undefined
+                ? Math.round(Number(r.latest_import_price))
+                : r.cost_price;
+            return {
+                ...r,
+                cost_price: newCost
+            };
+        });
+
         return {
-            data: rows as Product[],
+            data: mappedRows as Product[],
             pagination: {
                 page,
                 limit,
@@ -68,14 +83,29 @@ export class ProductRepository {
 
     async findById(id: number): Promise<Product | null> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-      SELECT p.*, c.name as category_name, u.name as unit_name
+      SELECT p.*, c.name as category_name, u.name as unit_name,
+             (SELECT sti.unit_cost 
+              FROM stock_transfer_items sti 
+              JOIN stock_transfers st ON sti.stock_transfer_id = st.id 
+              WHERE sti.product_id = p.id AND st.transfer_type = 'IMPORT' AND st.status = 'approved' 
+              ORDER BY st.approved_at DESC LIMIT 1) as latest_import_price
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN units u ON p.unit_id = u.id
       WHERE p.id = ? AND p.deleted_at IS NULL
     `, [id]);
 
-        return rows.length > 0 ? (rows[0] as Product) : null;
+        if (rows.length === 0) return null;
+
+        const row = rows[0];
+        const newCost = row.latest_import_price !== null && row.latest_import_price !== undefined
+            ? Math.round(Number(row.latest_import_price))
+            : row.cost_price;
+
+        return {
+            ...row,
+            cost_price: newCost
+        } as Product;
     }
 
     async findBySku(sku: string): Promise<Product | null> {

@@ -181,7 +181,12 @@ export class ProductVariantRepository {
     async getProductWithVariants(productId: number): Promise<ProductWithVariants | null> {
         // Get product info
         const [productRows] = await pool.query<RowDataPacket[]>(`
-            SELECT p.*, c.name as category_name, u.name as unit_name
+            SELECT p.*, c.name as category_name, u.name as unit_name,
+                   (SELECT sti.unit_cost 
+                    FROM stock_transfer_items sti 
+                    JOIN stock_transfers st ON sti.stock_transfer_id = st.id 
+                    WHERE sti.product_id = p.id AND st.transfer_type = 'IMPORT' AND st.status = 'approved' 
+                    ORDER BY st.approved_at DESC LIMIT 1) as latest_import_price
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN units u ON p.unit_id = u.id
@@ -190,7 +195,15 @@ export class ProductVariantRepository {
 
         if (productRows.length === 0) return null;
 
-        const product = productRows[0] as ProductWithVariants;
+        const productRow = productRows[0];
+        const newCost = productRow.latest_import_price !== null && productRow.latest_import_price !== undefined
+            ? Math.round(Number(productRow.latest_import_price))
+            : productRow.cost_price;
+
+        const product = {
+            ...productRow,
+            cost_price: newCost
+        } as ProductWithVariants;
 
         // Get variants - đọc stock thực tế từ product_variants (đã được cập nhật chuẩn xác qua file approve)
         const [variantRows] = await pool.query<RowDataPacket[]>(`

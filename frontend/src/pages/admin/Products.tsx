@@ -931,7 +931,22 @@ const Products: React.FC = () => {
                         </div>
                         <div>
                             <label className="label text-slate-300">Giá nhập *</label>
-                            <input type="number" name="cost_price" value={formData.cost_price} onChange={handleInputChange} className="input" min="0" step="1000" required />
+                            <input
+                                type="number"
+                                name="cost_price"
+                                value={formData.cost_price}
+                                onChange={handleInputChange}
+                                className={`input ${editingProduct ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed border-slate-600' : ''}`}
+                                readOnly={!!editingProduct}
+                                min="0"
+                                step="1000"
+                                required
+                            />
+                            {editingProduct && (
+                                <p className="text-xs text-slate-500 mt-1" title="Giá trị được cập nhật tự động bằng phương pháp bình quân gia quyền từ phiếu nhập">
+                                    *Giá tự động cập nhật từ phiếu nhập kho
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="label text-slate-300">Giá bán cơ bản *</label>
@@ -1218,7 +1233,10 @@ const Products: React.FC = () => {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium">{new Intl.NumberFormat('vi-VN').format(v.price)}₫</span>
+                                            <div className="flex flex-col items-end mr-2">
+                                                <span className="text-sm font-medium text-slate-800" title="Giá bán">Giá bán: {new Intl.NumberFormat('vi-VN').format(v.price)}₫</span>
+                                                <span className="text-xs text-slate-500" title="Giá vốn (Bình quân gia quyền)">Giá vốn: {new Intl.NumberFormat('vi-VN').format(v.average_cost || 0)}₫</span>
+                                            </div>
                                             <span className={`text-xs ${v.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>Tồn: {v.stock}</span>
                                             <button onClick={() => handleEditVariant(v)} className="p-1 hover:bg-slate-100 rounded">✏️</button>
                                             <button onClick={() => handleDeleteVariant(v)} className="p-1 hover:bg-red-50 rounded text-red-500">🗑️</button>
