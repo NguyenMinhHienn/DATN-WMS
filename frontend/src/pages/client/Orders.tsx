@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService, OrderSummary, OrderDetail } from '../../services/orderService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -248,8 +248,8 @@ const OrdersPage: React.FC = () => {
                                 <div
                                     key={order.id}
                                     className={`bg-white rounded-2xl border overflow-hidden transition-all duration-300 ${isExpanded
-                                            ? 'shadow-xl shadow-indigo-100/50 border-indigo-200 ring-1 ring-indigo-100'
-                                            : 'shadow-sm shadow-slate-100 border-slate-100 hover:shadow-md hover:border-slate-200'
+                                        ? 'shadow-xl shadow-indigo-100/50 border-indigo-200 ring-1 ring-indigo-100'
+                                        : 'shadow-sm shadow-slate-100 border-slate-100 hover:shadow-md hover:border-slate-200'
                                         }`}
                                 >
                                     {/* Order Header Card */}
@@ -505,6 +505,11 @@ const OrdersPage: React.FC = () => {
                         )}
                     </div>
                 )}
+            </div>
+            <div className="flex justify-center">
+                <Link to="/products" className="btn btn-primary px-8 py-3 text-lg">
+                    🛍️ Quay lại với nhiều sản phẩm hấp dẫn đang chờ 
+                </Link>
             </div>
         </div>
     );
