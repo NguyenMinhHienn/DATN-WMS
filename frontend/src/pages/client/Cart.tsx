@@ -230,6 +230,7 @@ const Cart: React.FC = () => {
                 const { checkoutUrl } = res.data;
 
                 // redirect sang trang QR PayOS
+                //su ly ben client 
                 window.location.href = checkoutUrl;
             }
 
