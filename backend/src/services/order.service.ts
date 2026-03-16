@@ -44,9 +44,9 @@ class OrderService {
         }
 
         // Chỉ hỗ trợ COD
-        if (paymentMethod !== 'COD') {
-            throw new AppError('Hiện tại chỉ hỗ trợ thanh toán COD', 400);
-        }
+        // if (paymentMethod !== 'COD') {
+        //     throw new AppError('Hiện tại chỉ hỗ trợ thanh toán COD', 400);
+        // }
 
         // Lấy giỏ hàng
         const { cart, items: cartItems } = await cartRepository.getCartWithItems(userId);

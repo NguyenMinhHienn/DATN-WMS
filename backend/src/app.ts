@@ -32,6 +32,11 @@ app.use('/api', routes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// API Payment
+// app.use("/api/payment", routes);
+// app.use("/api/payos", routes);
+
+
 // Start server
 const startServer = async () => {
     try {
