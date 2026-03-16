@@ -198,8 +198,8 @@ router.delete('/cart', authenticate, cartController.clearCart);
 //payment online
 // router.post("/create-payment", createPaymentLink);
 // router.post("/webhook", payosWebhook);
-// router.post("/confirm-webhook", confirmWebhook);
-// router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
+router.post("/confirm-webhook", confirmWebhook);
+router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
 
 
 
