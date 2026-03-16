@@ -374,8 +374,24 @@ const StaffDashboard: React.FC = () => {
                                 <p className="text-xs text-slate-500">Theo dõi đơn hàng</p>
                             </div>
                         </Link>
+
+                        <Link
+                            to="/staff/donhang"
+                            className="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl hover:from-yellow-100 hover:to-amber-100 hover:border-yellow-300 transition-all group"
+>
+                            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl flex items-center justify-center text-lg shadow-md group-hover:scale-110 transition-transform">
+                               📦
+                             </div>
+                            <div>
+                                <p className="font-medium text-slate-800">Đơn hàng </p>
+                                <p className="text-xs text-slate-500">Xem danh sách đơn hàng</p>
+                            </div>
+                        </Link>
                     </div>
                 </div>
+
+
+                
 
                 {/* Recent Transfers */}
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-slate-100">

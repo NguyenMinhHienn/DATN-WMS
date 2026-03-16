@@ -158,4 +158,14 @@ export const orderService = {
     formatCurrency(amount: number): string {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     },
+
+    // ==================== STAFF ====================
+
+
+
+/** Staff: Xem tất cả đơn hàng */
+async getStaffOrders(page = 1, limit = 10): Promise<{ data: OrderSummary[], pagination: Pagination }> {
+    const response = await api.get('/staff/orders', { params: { page, limit } });
+    return { data: response.data.data, pagination: response.data.pagination };
+},
 };

@@ -29,6 +29,7 @@ import CreateTransfer from './pages/staff/CreateTransfer';
 import MyTransfers from './pages/staff/MyTransfers';
 import StaffProducts from './pages/staff/StaffProducts';
 import StaffOrders from './pages/staff/StaffOrders';
+import StaffDonHang from './pages/staff/staffdonhang';
 
 // Client/Public Pages
 import Home from './pages/client/Home';
@@ -124,6 +125,7 @@ const App: React.FC = () => {
                             <Route path="my-transfers" element={<MyTransfers />} />
                             <Route path="products" element={<StaffProducts />} />
                             <Route path="orders" element={<StaffOrders />} />
+                            <Route path="donhang" element={<StaffDonHang />} />
                         </Route>
 
                         {/* ==================== FALLBACK ==================== */}

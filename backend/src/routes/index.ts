@@ -170,6 +170,9 @@ router.put('/orders/:id/shipping', authenticate, isAdmin, orderController.markSh
 router.put('/orders/:id/delivered', authenticate, isAdmin, orderController.markDelivered);
 router.put('/orders/:id/failed', authenticate, isAdmin, orderController.markFailed);
 
+// Staff: chỉ xem đơn hàng
+router.get('/staff/orders', authenticate, isStaff, orderController.getAllOrders);
+
 // ==================== EXPORT SLIP ROUTES (Phiếu xuất kho) ====================
 // Staff: Tạo phiếu và xem phiếu của mình
 router.post('/export-slips', authenticate, isStaff, exportSlipController.createExportSlip);
