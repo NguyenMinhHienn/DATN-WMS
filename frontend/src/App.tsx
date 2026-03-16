@@ -43,6 +43,8 @@ import AccessDenied from './pages/client/AccessDenied';
 import Profile from './pages/Profile';
 import OrdersPage from './pages/client/Orders';
 import SupportPage from './pages/client/SupportTicketsPage';
+import PaymentCancel from './pages/client/PaymentCancel';
+// import PaymentSuccess from './pages/client/PaymentSuccess';
 
 /**
  * App Routing Structure:
@@ -84,6 +86,8 @@ const App: React.FC = () => {
                         <Route path="/orders" element={<OrdersPage />} />
                         <Route path="/orders/:id" element={<OrdersPage />} />
                         <Route path="/support" element={<SupportPage />} />
+                        <Route path="/payment-cancel" element={<PaymentCancel />} />
+                        {/* <Route path="/payment/success" element={<PaymentSuccess />} /> */}
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}

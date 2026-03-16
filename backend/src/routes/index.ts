@@ -20,6 +20,9 @@ import * as orderController from '../controllers/order.controller';
 import * as exportSlipController from '../controllers/export-slip.controller';
 import * as cartController from '../controllers/cart.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
+import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
+import { confirmWebhook } from '../controllers/payosSetup.Controller';
+
 
 const router = Router();
 
@@ -190,5 +193,15 @@ router.get('/cart/count', authenticate, cartController.getCartItemCount);
 router.put('/cart/items/:itemId', authenticate, cartController.updateCartItem);
 router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem);
 router.delete('/cart', authenticate, cartController.clearCart);
+
+
+//payment online
+// router.post("/create-payment", createPaymentLink);
+// router.post("/webhook", payosWebhook);
+// router.post("/confirm-webhook", confirmWebhook);
+// router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
+
+
+
 
 export default router;

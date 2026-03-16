@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cartService, CartItem } from '../../services/cartService';
 import { uploadService } from '../../services/uploadService';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 
 /**
  * Trang Giỏ hàng - Hiển thị, quản lý sản phẩm và đặt hàng
@@ -178,16 +179,18 @@ const Cart: React.FC = () => {
 
     const handlePlaceOrder = async () => {
         const { shipping_name, shipping_phone, shipping_address, payment_method, notes } = checkoutForm;
+
+
         if (!shipping_name.trim()) { alert('Vui lòng nhập tên người nhận'); return; }
         if (!shipping_phone.trim()) { alert('Vui lòng nhập số điện thoại'); return; }
         if (!shipping_address.trim()) { alert('Vui lòng nhập địa chỉ giao hàng'); return; }
 
         setCheckoutLoading(true);
+
         try {
-            // Sync localStorage cart items to backend API before placing order
+
             const localCart = cartService.getCart();
             if (localCart.length > 0) {
-                console.log('Syncing localStorage cart to backend...', localCart.length, 'items');
                 for (const item of localCart) {
                     if (item.variant_id) {
                         try {
@@ -197,37 +200,48 @@ const Cart: React.FC = () => {
                         }
                     }
                 }
-                // Clear localStorage after successful sync
                 cartService.clearCart();
             }
 
-            await orderService.createOrder({
+           
+            const order = await orderService.createOrder({
                 shipping_name: shipping_name.trim(),
                 shipping_phone: shipping_phone.trim(),
                 shipping_address: shipping_address.trim(),
                 payment_method,
                 notes: notes.trim() || undefined,
             });
-            alert('🎉 Đặt hàng thành công! Đơn hàng đã được ghi nhận.');
-            navigate('/orders');
+
+            // Nếu COD → về trang đơn hàng
+            if (payment_method === "COD") {
+                alert('🎉 Đặt hàng thành công!');
+                navigate('/orders');
+                return;
+            }
+
+            // Nếu BANKING → tạo payment link PayOS
+            if (payment_method === "BANKING") {
+
+                const res = await axios.post("/api/create-payment", {
+                    orderId: order.id,
+                    amount: order.total_amount
+                });
+
+                const { checkoutUrl } = res.data;
+
+                // redirect sang trang QR PayOS
+                window.location.href = checkoutUrl;
+            }
+
         } catch (error: any) {
             const msg = error?.response?.data?.message || 'Đặt hàng thất bại!';
             alert(msg);
         } finally {
             setCheckoutLoading(false);
         }
-    };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-500">Đang tải giỏ hàng...</p>
-                </div>
-            </div>
-        );
-    }
+
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -432,4 +446,4 @@ const Cart: React.FC = () => {
     );
 };
 
-export default Cart;
+export default Cart
