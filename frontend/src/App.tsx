@@ -29,6 +29,10 @@ import CreateTransfer from './pages/staff/CreateTransfer';
 import MyTransfers from './pages/staff/MyTransfers';
 import StaffProducts from './pages/staff/StaffProducts';
 import StaffOrders from './pages/staff/StaffOrders';
+import StaffInventoryView from './pages/staff/StaffInventoryView';
+import StaffProductConfigView from './pages/staff/StaffProductConfigView';
+
+// ... rest of imports
 
 // Client/Public Pages
 import Home from './pages/client/Home';
@@ -115,10 +119,12 @@ const App: React.FC = () => {
                     >
                         <Route index element={<Navigate to="/staff/dashboard" replace />} />
                         <Route path="dashboard" element={<StaffDashboard />} />
+                        <Route path="products" element={<StaffProducts />} />
+                        <Route path="product-config" element={<StaffProductConfigView />} />
+                        <Route path="inventory" element={<StaffInventoryView />} />
+                        <Route path="orders" element={<StaffOrders />} />
                         <Route path="create-transfer" element={<CreateTransfer />} />
                         <Route path="my-transfers" element={<MyTransfers />} />
-                        <Route path="products" element={<StaffProducts />} />
-                        <Route path="orders" element={<StaffOrders />} />
                     </Route>
 
                     {/* ==================== FALLBACK ==================== */}
