@@ -33,8 +33,10 @@ export const StaffLayout: React.FC = () => {
     const menuItems = [
         { path: '/staff/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/staff/products', label: 'Xem sản phẩm', icon: '📦' },
-
         { path: '/staff/orders', label: 'Phiếu xuất kho', icon: '📝' },
+        { path: '/staff/product-config', label: 'Cấu hình SP', icon: '⚙️' },
+        { path: '/staff/inventory', label: 'Tồn kho', icon: '📋' },
+        { path: '/staff/orders', label: 'Đơn hàng', icon: '🛒' },
         { path: '/staff/create-transfer', label: 'Tạo phiếu', icon: '➕' },
         { path: '/staff/my-transfers', label: 'Phiếu đã tạo', icon: '📋' },
     ];
@@ -160,3 +162,5 @@ export const StaffLayout: React.FC = () => {
         </div>
     );
 };
+
+{/* Last updated: Tue Mar 17 20:26:32 +07 2026 */}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
 import { isAdmin, isWarehouseManager, isStaff, isViewer } from '../middlewares/role.middleware';
+import { checkViewPermission } from '../middlewares/checkViewPermission';
 
 // Import controllers
 import * as authController from '../controllers/auth.controller';
@@ -79,10 +80,10 @@ router.get('/warehouses/:id/locations', authenticate, isViewer, warehouseControl
 router.post('/warehouses/:id/locations', authenticate, isWarehouseManager, warehouseController.createWarehouseLocation);
 
 // ==================== INVENTORY ROUTES ====================
-router.get('/inventory', authenticate, isViewer, inventoryController.getAllInventory);
-router.get('/inventory/low-stock', authenticate, isViewer, inventoryController.getLowStockItems);
-router.get('/inventory/movements', authenticate, isViewer, inventoryController.getMovementLogs);
-router.get('/inventory/:id', authenticate, isViewer, inventoryController.getInventoryById);
+router.get('/inventory', authenticate, checkViewPermission('view_inventory'), inventoryController.getAllInventory);
+router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getLowStockItems);
+router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
+router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);
 router.post('/inventory/adjust', authenticate, isStaff, inventoryController.adjustInventory);
 
 // ==================== GOODS RECEIPT (STOCK IN) ROUTES ====================
@@ -126,9 +127,9 @@ router.get('/dashboard/monthly-report', authenticate, isAdmin, dashboardControll
 
 // ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
 // Public: Get all attributes (for product forms)
-router.get('/attributes', authenticate, isViewer, attributeController.getAllAttributes);
-router.get('/attributes/:id', authenticate, isViewer, attributeController.getAttributeById);
-router.get('/attributes/:id/values', authenticate, isViewer, attributeController.getAttributeValues);
+router.get('/attributes', authenticate, checkViewPermission('view_product_config'), attributeController.getAllAttributes);
+router.get('/attributes/:id', authenticate, checkViewPermission('view_product_config'), attributeController.getAttributeById);
+router.get('/attributes/:id/values', authenticate, checkViewPermission('view_product_config'), attributeController.getAttributeValues);
 
 // Admin: Manage attributes
 router.post('/attributes', authenticate, isAdmin, attributeController.createAttribute);
@@ -141,7 +142,7 @@ router.put('/attributes/:id/values/:valueId', authenticate, isAdmin, attributeCo
 router.delete('/attributes/:id/values/:valueId', authenticate, isAdmin, attributeController.deleteAttributeValue);
 
 // Get attributes used by a product
-router.get('/products/:productId/attributes', authenticate, isViewer, attributeController.getProductAttributes);
+router.get('/products/:productId/attributes', authenticate, checkViewPermission('view_product_config'), attributeController.getProductAttributes);
 
 // ==================== PRODUCT SPECIFICATION ROUTES ====================
 // View specifications (any authenticated user)
@@ -208,3 +209,4 @@ router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
 
 
 export default router;
+// Last updated: Tue Mar 17 20:26:32 +07 2026
