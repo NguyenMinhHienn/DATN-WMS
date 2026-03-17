@@ -282,3 +282,5 @@ const StaffProductConfigView: React.FC = () => {
 };
 
 export default StaffProductConfigView;
+
+{/* Last updated: Tue Mar 17 20:26:32 +07 2026 */}

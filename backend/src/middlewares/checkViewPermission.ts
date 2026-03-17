@@ -42,3 +42,5 @@ export const checkViewPermission = (permission: string) => {
         return next(new AppError('Insufficient permissions', 403));
     };
 };
+
+// Last updated: Tue Mar 17 20:26:32 +07 2026

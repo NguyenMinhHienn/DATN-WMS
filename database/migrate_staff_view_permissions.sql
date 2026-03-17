@@ -16,3 +16,5 @@ WHERE name = 'staff' AND JSON_CONTAINS(permissions, '"view_inventory"') = 0;
 
 -- Verification
 SELECT name, permissions FROM roles WHERE name IN ('admin', 'staff');
+
+-- Last updated: Tue Mar 17 20:26:32 +07 2026
