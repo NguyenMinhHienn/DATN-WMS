@@ -5,12 +5,6 @@ import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
 import { Warehouse, Product } from '../../interface';
 
-/**
- * CreateTransfer - Variant-aware stock transfer form
- * Staff tạo phiếu NHẬP/XUẤT/CHUYỂN KHO
- * 
- * Flow: Chọn sản phẩm (autocomplete) → Chọn variant → Hiển thị tồn kho/giá vốn → Nhập SL/đơn giá
- */
 
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
@@ -20,7 +14,7 @@ interface VariantInfo {
     price: number;
     stock: number;
     average_cost: number;
-    label: string; // e.g. "Đỏ / 128GB"
+    label: string;
     image_url?: string;
 }
 
@@ -100,16 +94,16 @@ const CreateTransfer: React.FC = () => {
             ]);
             setWarehouses(warehouseRes || []);
             setProducts(productRes.data || []);
-            
+
             // Check if nav state exists (coming from specific order)
             if (location.state?.fromOrder) {
                 setTransferType('EXPORT');
                 setReason(location.state.reason || '');
-                
+
                 const orderItems = location.state.orderItems || [];
                 if (orderItems.length > 0) {
                     // Pre-fetch all variants for the given products concurrently
-                    const variantPromises = orderItems.map((item: any) => 
+                    const variantPromises = orderItems.map((item: any) =>
                         productService.getProductVariants(item.product_id).catch(() => [])
                     );
                     const allVariants = await Promise.all(variantPromises);
@@ -125,7 +119,7 @@ const CreateTransfer: React.FC = () => {
                             label: buildVariantLabel(v),
                             image_url: v.image_url,
                         }));
-                        
+
                         const targetVariant = mapped.find(v => v.id === item.variant_id);
 
                         return {
@@ -141,9 +135,9 @@ const CreateTransfer: React.FC = () => {
                             selectedVariant: targetVariant,
                         };
                     });
-                    
+
                     setFormItems(newFormItems);
-                    
+
                     // Also populate searchTerms for the autocomplete inputs
                     const newSearchTerms: Record<number, string> = {};
                     orderItems.forEach((item: any, i: number) => {
