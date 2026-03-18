@@ -169,10 +169,10 @@ router.put('/orders/:id/cancel', authenticate, orderController.cancelOrder);
 router.get('/orders', authenticate, isAdmin, orderController.getAllOrders);
 router.get('/orders/confirmed', authenticate, isStaff, orderController.getConfirmedOrders);
 router.get('/orders/:id', authenticate, isStaff, orderController.getOrderById);
-router.put('/orders/:id/confirm', authenticate, isAdmin, orderController.confirmOrder);
-router.put('/orders/:id/shipping', authenticate, isAdmin, orderController.markShipping);
-router.put('/orders/:id/delivered', authenticate, isAdmin, orderController.markDelivered);
-router.put('/orders/:id/failed', authenticate, isAdmin, orderController.markFailed);
+router.put('/orders/:id/confirm', authenticate, isStaff, orderController.confirmOrder);
+router.put('/orders/:id/shipping', authenticate, isStaff, orderController.markShipping);
+router.put('/orders/:id/delivered', authenticate, isStaff, orderController.markDelivered);
+router.put('/orders/:id/failed', authenticate, isStaff, orderController.markFailed);
 
 // Staff: chỉ xem đơn hàng
 router.get('/staff/orders', authenticate, isStaff, orderController.getAllOrders);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
@@ -53,6 +53,7 @@ const emptyItem: FormItem = {
 
 const CreateTransfer: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Form state
     const [transferType, setTransferType] = useState<TransferType>('IMPORT');
@@ -99,6 +100,58 @@ const CreateTransfer: React.FC = () => {
             ]);
             setWarehouses(warehouseRes || []);
             setProducts(productRes.data || []);
+            
+            // Check if nav state exists (coming from specific order)
+            if (location.state?.fromOrder) {
+                setTransferType('EXPORT');
+                setReason(location.state.reason || '');
+                
+                const orderItems = location.state.orderItems || [];
+                if (orderItems.length > 0) {
+                    // Pre-fetch all variants for the given products concurrently
+                    const variantPromises = orderItems.map((item: any) => 
+                        productService.getProductVariants(item.product_id).catch(() => [])
+                    );
+                    const allVariants = await Promise.all(variantPromises);
+
+                    const newFormItems: FormItem[] = orderItems.map((item: any, index: number) => {
+                        const variants = allVariants[index] || [];
+                        const mapped: VariantInfo[] = variants.map((v: any) => ({
+                            id: v.id,
+                            sku: v.sku || '',
+                            price: Number(v.price) || 0,
+                            stock: Number(v.stock) || 0,
+                            average_cost: Number(v.average_cost) || 0,
+                            label: buildVariantLabel(v),
+                            image_url: v.image_url,
+                        }));
+                        
+                        const targetVariant = mapped.find(v => v.id === item.variant_id);
+
+                        return {
+                            ...emptyItem,
+                            product_id: item.product_id,
+                            product_name: item.product_name,
+                            product_variant_id: targetVariant?.id,
+                            variant_sku: targetVariant?.sku || item.variant_sku,
+                            quantity: item.quantity,
+                            unit_price: item.unit_price,
+                            variants: mapped,
+                            loadingVariants: false,
+                            selectedVariant: targetVariant,
+                        };
+                    });
+                    
+                    setFormItems(newFormItems);
+                    
+                    // Also populate searchTerms for the autocomplete inputs
+                    const newSearchTerms: Record<number, string> = {};
+                    orderItems.forEach((item: any, i: number) => {
+                        newSearchTerms[i] = item.product_name;
+                    });
+                    setSearchTerms(newSearchTerms);
+                }
+            }
         } catch (err) {
             console.error('Failed to load data:', err);
             setError('Không thể tải dữ liệu.');
@@ -116,13 +169,18 @@ const CreateTransfer: React.FC = () => {
     };
 
     // Load variants for a product
-    const loadVariants = async (index: number, productId: number) => {
+    const loadVariants = async (index: number, productId: number, autoSelectVariantId?: number) => {
         const updated = [...formItems];
-        updated[index].loadingVariants = true;
-        updated[index].variants = [];
-        updated[index].product_variant_id = undefined;
-        updated[index].selectedVariant = undefined;
-        updated[index].variant_sku = '';
+        // Only reset variant if we are not auto-selecting (e.g., from order)
+        if (!autoSelectVariantId) {
+            updated[index].loadingVariants = true;
+            updated[index].variants = [];
+            updated[index].product_variant_id = undefined;
+            updated[index].selectedVariant = undefined;
+            updated[index].variant_sku = '';
+        } else {
+            updated[index].loadingVariants = true;
+        }
         setFormItems(updated);
 
         try {
@@ -141,8 +199,16 @@ const CreateTransfer: React.FC = () => {
             final[index].variants = mapped;
             final[index].loadingVariants = false;
 
-            // Auto-select if only one variant
-            if (mapped.length === 1) {
+            // Auto-select logic
+            if (autoSelectVariantId) {
+                const target = mapped.find(v => v.id === autoSelectVariantId);
+                if (target) {
+                    final[index].product_variant_id = target.id;
+                    final[index].selectedVariant = target;
+                    final[index].variant_sku = target.sku;
+                    // Don't overwrite unit_price if coming from order (it's the selling price)
+                }
+            } else if (mapped.length === 1) {
                 final[index].product_variant_id = mapped[0].id;
                 final[index].selectedVariant = mapped[0];
                 final[index].variant_sku = mapped[0].sku;
