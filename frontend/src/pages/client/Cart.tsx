@@ -6,6 +6,7 @@ import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
+
 /**
  * Trang Giỏ hàng - Hiển thị, quản lý sản phẩm và đặt hàng
  */
@@ -72,6 +73,8 @@ const Cart: React.FC = () => {
     }, [isAuthenticated]);
 
     useEffect(() => { loadCart(); }, [loadCart]);
+    
+   
 
     const selectedTotal = useMemo(() => {
         return cartService.getSelectedTotal(cart, selectedItems);
@@ -203,7 +206,7 @@ const Cart: React.FC = () => {
                 cartService.clearCart();
             }
 
-           
+
             const order = await orderService.createOrder({
                 shipping_name: shipping_name.trim(),
                 shipping_phone: shipping_phone.trim(),
