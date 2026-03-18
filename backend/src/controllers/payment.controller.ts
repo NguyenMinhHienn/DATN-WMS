@@ -15,21 +15,11 @@ export const createPaymentLink = async (req: Request, res: Response) => {
         );
 
         // trừ kho
-        for (const item of items) {
-
-            await pool.query(
-                `UPDATE product_variants
-                 SET stock = stock - ?
-                 WHERE id = ?`,
-                [item.quantity, item.variant_id]
-            );
-
-        }
 
         const paymentData = {
-            orderCode: Date.now(),
+            orderCode: Number(orderId),
             amount: Number(amount),
-            description: `DH${orderId}`,
+            description: `DH ${orderId}`,
             cancelUrl: `${process.env.FRONTEND_URL}/payment-cancel?orderId=${orderId}`,
             returnUrl: `${process.env.FRONTEND_URL}/client/cart`,
             items: [
@@ -62,7 +52,8 @@ export const payosWebhook = async (req: Request, res: Response) => {
     try {
 
         const body = req.body;
-       
+        // console.log("Webhook body:", body);
+
         // kiểm tra dữ liệu webhook
         if (!body || !body.data) {
             return res.status(400).json({ message: "Invalid webhook" });
@@ -75,13 +66,14 @@ export const payosWebhook = async (req: Request, res: Response) => {
 
             const [result]: any = await pool.query(
                 `UPDATE orders 
-     SET payment_status = 'paid'
+     SET payment_status = 'paid',
+         status = 'pending'
      WHERE id = ?`,
                 [orderCode]
             );
-
             // console.log("OrderCode:", orderCode);
             // console.log("Update result:", result);
+            console.log("🔥 WEBHOOK:", JSON.stringify(body, null, 2));
 
             // nếu không update được dòng nào
             if (result.affectedRows === 0) {
@@ -90,6 +82,7 @@ export const payosWebhook = async (req: Request, res: Response) => {
                 console.log("✅ Order updated to PAID:", orderCode);
             }
         }
+
 
         return res.json({ success: true });
 
@@ -100,13 +93,13 @@ export const payosWebhook = async (req: Request, res: Response) => {
     }
 };
 export const cancelPaymentOrder = async (req: Request, res: Response) => {
-
     const orderId = req.params.id;
 
     try {
 
+        //  lấy order
         const [orders]: any = await pool.query(
-            "SELECT * FROM orders WHERE id = ?",
+            "SELECT status FROM orders WHERE id = ?",
             [orderId]
         );
 
@@ -114,13 +107,26 @@ export const cancelPaymentOrder = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Order not found" });
         }
 
+        const order = orders[0];
+
+        //  nếu đã cancel rồi → KHÔNG làm gì nữa
+        if (order.status === "cancelled") {
+            return res.json({ message: "Order already cancelled" });
+        }
+
+        //  nếu đã thanh toán → không cho cancel
+        if (order.status === "confirmed") {
+            return res.status(400).json({ message: "Order already paid" });
+        }
+
+        // lấy items
         const [items]: any = await pool.query(
             "SELECT variant_id, quantity FROM order_items WHERE order_id = ?",
             [orderId]
         );
 
+        //  hoàn kho (CHỈ 1 LẦN)
         for (const item of items) {
-
             if (!item.variant_id) continue;
 
             await pool.query(
@@ -129,29 +135,24 @@ export const cancelPaymentOrder = async (req: Request, res: Response) => {
                  WHERE id = ?`,
                 [item.quantity, item.variant_id]
             );
-
         }
 
+        //  chỉ update trạng thái (KHÔNG xóa)
         await pool.query(
-            "DELETE FROM order_items WHERE order_id = ?",
+            `UPDATE orders 
+             SET status = 'cancelled'
+             WHERE id = ?`,
             [orderId]
         );
 
-        await pool.query(
-            "DELETE FROM orders WHERE id = ?",
-            [orderId]
-        );
-
-        res.json({ message: "Order cancelled and stock restored" });
+        return res.json({ message: "Order cancelled and stock restored correctly" });
 
     } catch (error) {
-
         console.error("Cancel order error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Cancel order failed",
             error
         });
-
     }
 };
