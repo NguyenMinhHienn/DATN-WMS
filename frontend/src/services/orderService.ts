@@ -163,9 +163,11 @@ export const orderService = {
 
 
 
-/** Staff: Xem tất cả đơn hàng */
-async getStaffOrders(page = 1, limit = 10): Promise<{ data: OrderSummary[], pagination: Pagination }> {
-    const response = await api.get('/staff/orders', { params: { page, limit } });
+/** Staff: Xem tất cả đơn hàng (có filter status) */
+async getStaffOrders(page = 1, limit = 15, status?: string): Promise<{ data: OrderSummary[], pagination: Pagination }> {
+    const params: any = { page, limit };
+    if (status) params.status = status;
+    const response = await api.get('/staff/orders', { params });
     return { data: response.data.data, pagination: response.data.pagination };
 },
 };

@@ -28,8 +28,7 @@ import StaffDashboard from './pages/staff/StaffDashboard';
 import CreateTransfer from './pages/staff/CreateTransfer';
 import MyTransfers from './pages/staff/MyTransfers';
 import StaffProducts from './pages/staff/StaffProducts';
-import StaffOrders from './pages/staff/StaffOrders';
-import StaffDonHang from './pages/staff/staffdonhang';
+import StaffDonHang from './pages/staff/StaffDonHang';
 import StaffInventoryView from './pages/staff/StaffInventoryView';
 import StaffProductConfigView from './pages/staff/StaffProductConfigView';
 
@@ -129,31 +128,13 @@ const App: React.FC = () => {
                         >
                             <Route index element={<Navigate to="/staff/dashboard" replace />} />
                             <Route path="dashboard" element={<StaffDashboard />} />
+                            <Route path="products" element={<StaffProducts />} />
+                            <Route path="product-config" element={<StaffProductConfigView />} />
+                            <Route path="inventory" element={<StaffInventoryView />} />
+                            <Route path="donhang" element={<StaffDonHang />} />
                             <Route path="create-transfer" element={<CreateTransfer />} />
                             <Route path="my-transfers" element={<MyTransfers />} />
-                            <Route path="products" element={<StaffProducts />} />
-                            <Route path="orders" element={<StaffOrders />} />
-                            <Route path="donhang" element={<StaffDonHang />} />
                         </Route>
-                    {/* ==================== STAFF ROUTES ==================== */}
-                    {/* Chỉ role 'staff' - Tạo phiếu, xem phiếu đã tạo */}
-                    <Route
-                        path="/staff"
-                        element={
-                            <StaffRoute>
-                                <StaffLayout />
-                            </StaffRoute>
-                        }
-                    >
-                        <Route index element={<Navigate to="/staff/dashboard" replace />} />
-                        <Route path="dashboard" element={<StaffDashboard />} />
-                        <Route path="products" element={<StaffProducts />} />
-                        <Route path="product-config" element={<StaffProductConfigView />} />
-                        <Route path="inventory" element={<StaffInventoryView />} />
-                        <Route path="orders" element={<StaffOrders />} />
-                        <Route path="create-transfer" element={<CreateTransfer />} />
-                        <Route path="my-transfers" element={<MyTransfers />} />
-                    </Route>
 
                         {/* ==================== FALLBACK ==================== */}
                         <Route path="*" element={<Navigate to="/" replace />} />
