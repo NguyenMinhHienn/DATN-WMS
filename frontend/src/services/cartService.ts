@@ -110,7 +110,9 @@ export const cartService = {
                 variantId,
                 quantity
             });
+            window.dispatchEvent(new Event("cartUpdated"));
             return response.data;
+            
         } catch (error: any) {
             console.error('API addToCart error:', error);
             return {
@@ -143,6 +145,7 @@ export const cartService = {
     async updateCartItemAPI(itemId: number, quantity: number): Promise<{ success: boolean; message: string }> {
         try {
             const response = await api.put(`/cart/items/${itemId}`, { quantity });
+            window.dispatchEvent(new Event("cartUpdated"));
             return response.data;
         } catch (error: any) {
             console.error('API updateCartItem error:', error);
@@ -159,6 +162,7 @@ export const cartService = {
     async removeCartItemAPI(itemId: number): Promise<{ success: boolean; message: string }> {
         try {
             const response = await api.delete(`/cart/items/${itemId}`);
+            window.dispatchEvent(new Event("cartUpdated"));
             return response.data;
         } catch (error: any) {
             console.error('API removeCartItem error:', error);
@@ -175,6 +179,7 @@ export const cartService = {
     async clearCartAPI(): Promise<{ success: boolean; message: string }> {
         try {
             const response = await api.delete('/cart');
+            window.dispatchEvent(new Event("cartUpdated"));
             return response.data;
         } catch (error: any) {
             console.error('API clearCart error:', error);
@@ -237,6 +242,7 @@ export const cartService = {
 
         const existingIndex = cart.findIndex(item =>
             getItemKey(item.product_id, item.variant_id) === itemKey
+            
         );
 
         if (existingIndex >= 0) {

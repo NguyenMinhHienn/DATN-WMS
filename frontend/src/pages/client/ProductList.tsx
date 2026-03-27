@@ -6,6 +6,8 @@ import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
 import { Product, Category, PaginationInfo, ProductVariant } from '../../interface';
 import { Pagination } from '../../components/Pagination';
+import MiniCart from './Minicarts';
+
 
 /**
  * Product List Page - Client
@@ -28,7 +30,7 @@ const ProductList: React.FC = () => {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [sortBy, setSortBy] = useState<string>('newest');
 
     // Quick Add states - cho từng sản phẩm
@@ -37,6 +39,9 @@ const ProductList: React.FC = () => {
     const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
     const [loadingAdd, setLoadingAdd] = useState<{ [key: number]: boolean }>({});
     const [loadingVariants, setLoadingVariants] = useState<{ [key: number]: boolean }>({});
+
+    //gio hang cua user
+
 
     // Toast notifications
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -162,7 +167,10 @@ const ProductList: React.FC = () => {
                     sku: product.sku,
                     max_stock: 999, // Không giới hạn vì không có variant stock
                 });
+
                 showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+                window.dispatchEvent(new CustomEvent('cartUpdated'));
+                console.log("EVENT FIRED");
             };
 
             try {
@@ -235,6 +243,8 @@ const ProductList: React.FC = () => {
                 max_stock: selectedVariant.stock,
             });
             showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+            console.log("EVENT FIRED");
         };
 
         try {
@@ -281,6 +291,7 @@ const ProductList: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+
             {/* Toast Notifications */}
             <div className="fixed top-4 right-4 z-50 space-y-2">
                 {toasts.map(toast => (
@@ -323,6 +334,8 @@ const ProductList: React.FC = () => {
                                 )}
                             </p>
                         </div>
+
+
 
                         {/* Quick Stats */}
                         <div className="flex items-center gap-4">
@@ -383,16 +396,18 @@ const ProductList: React.FC = () => {
                                 <option value="name">Tên A-Z</option>
                             </select>
                         </div>
-
+                        <div className="">
+                        <MiniCart />
+                        </div>
                         {/* View Mode Toggle */}
                         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
-                            <button
+                            {/* <button
                                 onClick={() => setViewMode('grid')}
                                 className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 title="Hiển thị dạng lưới"
                             >
                                 ▦
-                            </button>
+                            </button> */}
                             <button
                                 onClick={() => setViewMode('list')}
                                 className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -402,6 +417,8 @@ const ProductList: React.FC = () => {
                             </button>
                         </div>
                     </div>
+
+
 
                     {/* Active Filters */}
                     {(search || selectedCategory) && (
@@ -429,6 +446,7 @@ const ProductList: React.FC = () => {
                     )}
                 </div>
 
+
                 {/* ========== CATEGORY PILLS ========== */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
                     <button
@@ -453,6 +471,7 @@ const ProductList: React.FC = () => {
                         </button>
                     ))}
                 </div>
+
 
                 {/* ========== PRODUCTS DISPLAY ========== */}
                 {loading ? (
