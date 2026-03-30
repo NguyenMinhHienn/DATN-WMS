@@ -47,6 +47,20 @@ export const productService = {
         return response.data.data || [];
     },
 
+    async createCategory(data: any): Promise<any> {
+        const response = await api.post<ApiResponse<any>>('/categories', data);
+        return response.data;
+    },
+
+    async updateCategory(id: number, data: any): Promise<any> {
+        const response = await api.put<ApiResponse<any>>(`/categories/${id}`, data);
+        return response.data;
+    },
+
+    async deleteCategory(id: number): Promise<void> {
+        await api.delete(`/categories/${id}`);
+    },
+
     async getUnits(): Promise<Unit[]> {
         const response = await api.get<ApiResponse<Unit[]>>('/units');
         return response.data.data || [];

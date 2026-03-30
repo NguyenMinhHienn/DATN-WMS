@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cartService, CartItem } from '../../services/cartService';
 import { uploadService } from '../../services/uploadService';
 import { orderService } from '../../services/orderService';
@@ -20,7 +20,6 @@ const Cart: React.FC = () => {
     const navigate = useNavigate();
     const [cart, setCart] = useState<CartItemWithId[]>([]);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Set<string>>(new Set());
 
     // Checkout state
@@ -36,7 +35,6 @@ const Cart: React.FC = () => {
 
     // Load giỏ hàng
     const loadCart = useCallback(async () => {
-        setLoading(true);
         try {
             let cartItems: CartItemWithId[] = [];
             if (isAuthenticated) {
@@ -67,8 +65,6 @@ const Cart: React.FC = () => {
                 cartService.getItemKey(item.product_id, item.variant_id)
             ));
             setSelectedItems(allKeys);
-        } finally {
-            setLoading(false);
         }
     }, [isAuthenticated]);
 

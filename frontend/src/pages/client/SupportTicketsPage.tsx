@@ -362,7 +362,6 @@ const TicketDetailModal: React.FC<{
     const [replying, setReplying] = useState(false);
 
     const statusInfo = supportService.getStatusText(ticket.status);
-    const priorityInfo = supportService.getPriorityText(ticket.priority);
 
     const handleSubmitReply = async (e: React.FormEvent) => {
         e.preventDefault();

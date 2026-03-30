@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { productService } from '../services/product.service';
-import { AuthRequest, ApiResponse, CreateProductDto, UpdateProductDto } from '../types';
+import { AuthRequest, ApiResponse, CreateProductDto, UpdateProductDto, CreateCategoryDto, UpdateCategoryDto } from '../types';
 import { asyncHandler } from '../middlewares/error.middleware';
 
 export const getAllProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -117,6 +117,54 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
     res.json({
         success: true,
         data: categories,
+    } as ApiResponse);
+});
+
+export const createCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const dto: CreateCategoryDto = req.body;
+    
+    if (!dto.name || !dto.code) {
+        return res.status(400).json({
+            success: false,
+            message: 'Tên và mã danh mục là bắt buộc',
+        } as ApiResponse);
+    }
+
+    const categoryId = await productService.createCategory(dto);
+
+    res.status(201).json({
+        success: true,
+        message: 'Category created successfully',
+        data: { id: categoryId }
+    } as ApiResponse);
+});
+
+export const updateCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const dto: UpdateCategoryDto = req.body;
+
+    if (dto.name !== undefined && dto.name.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Tên danh mục không được để trống',
+        } as ApiResponse);
+    }
+
+    await productService.updateCategory(id, dto);
+
+    res.json({
+        success: true,
+        message: 'Category updated successfully',
+    } as ApiResponse);
+});
+
+export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    await productService.deleteCategory(id);
+
+    res.json({
+        success: true,
+        message: 'Category deleted successfully',
     } as ApiResponse);
 });
 

@@ -1,4 +1,3 @@
-import { ApiResponse } from '../interface';
 
 export interface SupportTicket {
     id: number;

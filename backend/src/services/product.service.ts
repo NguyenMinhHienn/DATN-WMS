@@ -1,5 +1,5 @@
 import { productRepository } from '../repositories/product.repository';
-import { CreateProductDto, UpdateProductDto, Product, PaginatedResult, Category, Unit } from '../types';
+import { CreateProductDto, UpdateProductDto, Product, PaginatedResult, Category, Unit, CreateCategoryDto, UpdateCategoryDto } from '../types';
 import { AppError } from '../middlewares/error.middleware';
 
 export class ProductService {
@@ -76,6 +76,31 @@ export class ProductService {
 
     async getCategories(): Promise<Category[]> {
         return productRepository.getCategories();
+    }
+
+    async createCategory(dto: CreateCategoryDto): Promise<number> {
+        return productRepository.createCategory(dto);
+    }
+
+    async updateCategory(id: number, dto: UpdateCategoryDto): Promise<void> {
+        const updated = await productRepository.updateCategory(id, dto);
+        if (!updated) {
+            throw new AppError('Category not found or could not be updated', 404);
+        }
+    }
+
+    async deleteCategory(id: number): Promise<void> {
+        try {
+            const deleted = await productRepository.deleteCategory(id);
+            if (!deleted) {
+                throw new AppError('Category not found', 404);
+            }
+        } catch (error: any) {
+            if (error.message === 'CATEGORY_HAS_PRODUCTS') {
+                throw new AppError('Không thể xóa danh mục đang có sản phẩm', 400);
+            }
+            throw error;
+        }
     }
 
     async getUnits(): Promise<Unit[]> {
