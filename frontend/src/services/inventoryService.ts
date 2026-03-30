@@ -48,6 +48,7 @@ export const inventoryService = {
     async getMovements(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
@@ -56,6 +57,7 @@ export const inventoryService = {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('limit', limit.toString());
+        if (inventoryId) params.append('inventory_id', inventoryId.toString());
         if (productId) params.append('product_id', productId.toString());
         if (warehouseId) params.append('warehouse_id', warehouseId.toString());
         if (startDate) params.append('start_date', startDate);
@@ -67,4 +69,9 @@ export const inventoryService = {
             pagination: response.data.pagination!,
         };
     },
+
+    async getMetrics(id: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
+        const response = await api.get<ApiResponse<any>>(`/inventory/${id}/metrics`);
+        return response.data.data;
+    }
 };

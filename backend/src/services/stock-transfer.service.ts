@@ -147,6 +147,11 @@ export class StockTransferService {
             destination_warehouse_id: dto.destination_warehouse_id,
             transfer_date: dto.transfer_date || new Date().toISOString().split('T')[0],
             expected_arrival_date: dto.expected_arrival_date,
+            supplier_id: dto.supplier_id,
+            delivery_person: dto.delivery_person,
+            storekeeper: dto.storekeeper,
+            receiver_name: dto.receiver_name,
+            receiver_department: dto.receiver_department,
             reason: dto.reason,
             notes: dto.notes,
             items: normalizedItems,
@@ -241,7 +246,8 @@ export class StockTransferService {
                 const stockCheck = await stockTransferRepository.checkSufficientStock(
                     dto.source_warehouse_id,
                     item.product_id,
-                    qty
+                    qty,
+                    item.product_variant_id
                 );
 
                 if (!stockCheck.sufficient) {

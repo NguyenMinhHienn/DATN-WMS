@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
-import { warehouseService } from '../../services/warehouseService';
 import { productService } from '../../services/productService';
-import { Warehouse, Product } from '../../interface';
+import { supplierService, Supplier } from '../../services/supplierService';
+import { useAuth } from '../../context/AuthContext';
+import { Product } from '../../interface';
 
 
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
@@ -48,17 +49,25 @@ const emptyItem: FormItem = {
 const CreateTransfer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
 
     // Form state
     const [transferType, setTransferType] = useState<TransferType>('IMPORT');
-    const [sourceWarehouseId, setSourceWarehouseId] = useState<number | undefined>();
-    const [destWarehouseId, setDestWarehouseId] = useState<number | undefined>();
     const [formItems, setFormItems] = useState<FormItem[]>([{ ...emptyItem }]);
     const [reason, setReason] = useState('');
+    const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split('T')[0]);
+    const [supplierId, setSupplierId] = useState<number | undefined>();
+    const [isCustomSupplier, setIsCustomSupplier] = useState(false);
+    const [customSupplierName, setCustomSupplierName] = useState('');
+    const [deliveryPerson, setDeliveryPerson] = useState('');
+    const [storekeeperName, setStorekeeperName] = useState(user?.full_name || '');
+    const [receiverName, setReceiverName] = useState('');
+    const [receiverDepartment, setReceiverDepartment] = useState('');
+    const [exportNote, setExportNote] = useState('');
 
     // Reference data
-    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -71,6 +80,10 @@ const CreateTransfer: React.FC = () => {
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (!storekeeperName && user) setStorekeeperName(user.full_name);
+    }, [user]);
 
     // Close autocomplete dropdown when clicking outside
     useEffect(() => {
@@ -88,12 +101,12 @@ const CreateTransfer: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [warehouseRes, productRes] = await Promise.all([
-                warehouseService.getAll(),
-                productService.getAll(1, 200)
+            const [productRes, supplierRes] = await Promise.all([
+                productService.getAll(1, 200),
+                supplierService.getAll(),
             ]);
-            setWarehouses(warehouseRes || []);
             setProducts(productRes.data || []);
+            setSuppliers(supplierRes || []);
 
             // Check if nav state exists (coming from specific order)
             if (location.state?.fromOrder) {
@@ -203,10 +216,11 @@ const CreateTransfer: React.FC = () => {
                     // Don't overwrite unit_price if coming from order (it's the selling price)
                 }
             } else if (mapped.length === 1) {
+                const product = products.find(p => p.id === productId);
                 final[index].product_variant_id = mapped[0].id;
                 final[index].selectedVariant = mapped[0];
                 final[index].variant_sku = mapped[0].sku;
-                final[index].unit_price = transferType === 'EXPORT' ? mapped[0].price : (mapped[0].average_cost || mapped[0].price);
+                final[index].unit_price = transferType === 'EXPORT' ? mapped[0].price : (product?.cost_price || mapped[0].average_cost || 0);
             }
 
             setFormItems(final);
@@ -241,15 +255,15 @@ const CreateTransfer: React.FC = () => {
         setError('');
 
         // Validate warehouse
-        if (transferType === 'IMPORT' && !destWarehouseId) {
+        if (transferType === 'IMPORT' && !1) {
             setError('Vui lòng chọn kho nhập');
             return;
         }
-        if (transferType === 'EXPORT' && !sourceWarehouseId) {
+        if (transferType === 'EXPORT' && !1) {
             setError('Vui lòng chọn kho xuất');
             return;
         }
-        if (transferType === 'TRANSFER' && (!sourceWarehouseId || !destWarehouseId)) {
+        if (transferType === 'TRANSFER' && (!1 || !1)) {
             setError('Vui lòng chọn kho nguồn và kho đích');
             return;
         }
@@ -267,7 +281,11 @@ const CreateTransfer: React.FC = () => {
         }
 
         // Check export stock
-        if (transferType === 'EXPORT' || transferType === 'TRANSFER') {
+        if (transferType === 'EXPORT') {
+            if (!reason.trim()) {
+                setError('Vui lòng chọn Lý do xuất kho');
+                return;
+            }
             for (const item of validItems) {
                 if (item.selectedVariant && item.quantity > item.selectedVariant.stock) {
                     setError(`Sản phẩm "${item.product_name}" - SL yêu cầu (${item.quantity}) vượt quá tồn kho (${item.selectedVariant.stock})`);
@@ -279,11 +297,28 @@ const CreateTransfer: React.FC = () => {
         setSubmitting(true);
 
         try {
+            let finalSupplierId = supplierId;
+            if (transferType === 'IMPORT' && isCustomSupplier) {
+                if (!customSupplierName.trim()) {
+                    setError('Vui lòng nhập tên nhà cung cấp mới');
+                    setSubmitting(false);
+                    return;
+                }
+                const newSup = await supplierService.create({ name: customSupplierName.trim(), status: 'active' });
+                finalSupplierId = newSup.id;
+            }
+
             const payload = {
                 type: transferType,
-                source_warehouse_id: sourceWarehouseId,
-                destination_warehouse_id: destWarehouseId,
-                reason: reason,
+                source_warehouse_id: 1,
+                destination_warehouse_id: 1,
+                transfer_date: receiptDate,
+                reason: transferType === 'EXPORT' ? (exportNote ? `${reason} - ${exportNote}` : reason) : reason,
+                supplier_id: transferType === 'IMPORT' ? finalSupplierId : undefined,
+                delivery_person: deliveryPerson || undefined,
+                storekeeper: storekeeperName || undefined,
+                receiver_name: transferType === 'EXPORT' ? receiverName || undefined : undefined,
+                receiver_department: transferType === 'EXPORT' ? receiverDepartment || undefined : undefined,
                 items: validItems.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -340,15 +375,16 @@ const CreateTransfer: React.FC = () => {
         loadVariants(index, product.id);
     };
 
-    // Select variant
     const selectVariant = (index: number, variantId: number) => {
         const updated = [...formItems];
         const variant = updated[index].variants.find(v => v.id === variantId);
-        if (variant) {
+        const product = products.find(p => p.id === updated[index].product_id);
+        
+        if (variant && product) {
             updated[index].product_variant_id = variant.id;
             updated[index].selectedVariant = variant;
             updated[index].variant_sku = variant.sku;
-            updated[index].unit_price = transferType === 'EXPORT' ? variant.price : (variant.average_cost || variant.price);
+            updated[index].unit_price = transferType === 'EXPORT' ? variant.price : (product.cost_price || variant.average_cost || 0);
         }
         setFormItems(updated);
     };
@@ -403,11 +439,10 @@ const CreateTransfer: React.FC = () => {
                 {/* Transfer Type Selection */}
                 <div className="p-6 border-b border-slate-100">
                     <label className="block text-sm font-semibold text-slate-700 mb-4">Loại phiếu *</label>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         {[
                             { type: 'IMPORT' as const, icon: '📥', label: 'Nhập kho', desc: 'Nhập sản phẩm mới vào kho', gradient: 'from-emerald-500 to-green-600', border: 'border-emerald-200', bg: 'bg-emerald-50' },
                             { type: 'EXPORT' as const, icon: '📤', label: 'Xuất kho', desc: 'Xuất hàng khỏi kho', gradient: 'from-orange-500 to-amber-500', border: 'border-orange-200', bg: 'bg-orange-50' },
-                            { type: 'TRANSFER' as const, icon: '🔄', label: 'Chuyển kho', desc: 'Chuyển giữa 2 kho', gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-200', bg: 'bg-purple-50' },
                         ].map((item) => (
                             <button
                                 key={item.type}
@@ -430,55 +465,199 @@ const CreateTransfer: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Warehouse Selection */}
+                {/* General Info */}
                 <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                    <div className="grid grid-cols-2 gap-6">
-                        {(transferType === 'EXPORT' || transferType === 'TRANSFER') && (
+                    <label className="block text-sm font-semibold text-indigo-700 mb-4 flex items-center gap-2"><span>📄</span> Thông tin chung</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-2">Số phiếu</label>
+                            <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-medium italic cursor-not-allowed">
+                                (Tự động tạo)
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-2">Trạng thái phiếu</label>
+                            <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-600 font-medium cursor-not-allowed flex items-center">
+                                ⏳ Chưa duyệt
+                            </div>
+                        </div>
+                        {transferType === 'IMPORT' && (
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    Kho nguồn <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={sourceWarehouseId || ''}
-                                    onChange={(e) => setSourceWarehouseId(Number(e.target.value) || undefined)}
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                    required
-                                >
-                                    <option value="">-- Chọn kho nguồn --</option>
-                                    {warehouses.map(w => (
-                                        <option key={w.id} value={w.id}>{w.name}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-xs font-medium text-slate-500 mb-2">Kho nhập</label>
+                                <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium cursor-not-allowed">
+                                    🏭 Kho Tổng
+                                </div>
                             </div>
                         )}
-                        {(transferType === 'IMPORT' || transferType === 'TRANSFER') && (
+                        {transferType === 'EXPORT' && (
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    Kho đích <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={destWarehouseId || ''}
-                                    onChange={(e) => setDestWarehouseId(Number(e.target.value) || undefined)}
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                    required
-                                >
-                                    <option value="">-- Chọn kho đích --</option>
-                                    {warehouses.filter(w => w.id !== sourceWarehouseId).map(w => (
-                                        <option key={w.id} value={w.id}>{w.name}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-xs font-medium text-slate-500 mb-2">Kho xuất</label>
+                                <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium cursor-not-allowed">
+                                    🏭 Kho Tổng
+                                </div>
                             </div>
                         )}
-                        <div className={transferType === 'IMPORT' ? 'col-span-1' : ''}>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Lý do</label>
+
+                        {transferType === 'EXPORT' ? (
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-2">Lý do xuất *</label>
+                                <select
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                >
+                                    <option value="">-- Chọn lý do xuất --</option>
+                                    <option value="Bán hàng">Bán hàng</option>
+                                    <option value="Xuất nội bộ">Xuất nội bộ</option>
+                                    <option value="Hủy / hỏng">Hủy / hỏng</option>
+                                </select>
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-2">Ghi chú phiếu (Lý do)</label>
+                                <input
+                                    type="text"
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="Nhập ghi chú / lý do..."
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Business Details */}
+                <div className="p-6 border-b border-slate-100 bg-white">
+                    <label className="block text-sm font-semibold text-indigo-700 mb-4 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Ngày lập phiếu *</label>
                             <input
-                                type="text"
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
+                                type="date"
+                                value={receiptDate}
+                                onChange={(e) => setReceiptDate(e.target.value)}
                                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                placeholder="Nhập lý do..."
                             />
                         </div>
+                        {transferType === 'IMPORT' && (
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Nhà cung cấp (<a href="/staff/suppliers" target="_blank" className="text-indigo-500 hover:text-indigo-600">Thêm mới</a>)</label>
+                                <select
+                                    value={isCustomSupplier ? 'custom' : (supplierId || '')}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'custom') {
+                                            setIsCustomSupplier(true);
+                                            setCustomSupplierName('');
+                                            setSupplierId(undefined);
+                                        } else if (val.startsWith('custom_')) {
+                                            setIsCustomSupplier(true);
+                                            setCustomSupplierName(val.replace('custom_', ''));
+                                            setSupplierId(undefined);
+                                        } else {
+                                            setIsCustomSupplier(false);
+                                            setSupplierId(Number(val) || undefined);
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                >
+                                    <option value="">-- Chọn nhà cung cấp --</option>
+                                    {suppliers.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                    <optgroup label="Thương hiệu nổi tiếng">
+                                        <option value="custom_Zara">Zara</option>
+                                        <option value="custom_H&M">H&M</option>
+                                        <option value="custom_Uniqlo">Uniqlo</option>
+                                        <option value="custom_Gucci">Gucci</option>
+                                        <option value="custom_Dior">Dior</option>
+                                        <option value="custom_Louis Vuitton">Louis Vuitton</option>
+                                    </optgroup>
+                                    <option value="custom">➕ Khác (Tự nhập tên)...</option>
+                                </select>
+                                {isCustomSupplier && (
+                                    <input
+                                        type="text"
+                                        value={customSupplierName}
+                                        onChange={e => setCustomSupplierName(e.target.value)}
+                                        placeholder="Nhập tên nhà cung cấp mới..."
+                                        className="mt-2 w-full px-4 py-2 bg-indigo-50 border border-indigo-300 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                        autoFocus
+                                    />
+                                )}
+                            </div>
+                        )}
+                        {(transferType === 'IMPORT' || transferType === 'EXPORT') && (
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Người giao hàng</label>
+                                <input
+                                    type="text"
+                                    value={deliveryPerson}
+                                    onChange={(e) => setDeliveryPerson(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="Tên người giao"
+                                />
+                            </div>
+                        )}
+                        {transferType === 'EXPORT' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Người nhận</label>
+                                    <input
+                                        type="text"
+                                        value={receiverName}
+                                        onChange={(e) => setReceiverName(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        placeholder="Tên người nhận (không bắt buộc)"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Bộ phận nhận</label>
+                                    <input
+                                        type="text"
+                                        value={receiverDepartment}
+                                        onChange={(e) => setReceiverDepartment(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        placeholder="Bộ phận (không bắt buộc)"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Ghi chú xuất kho</label>
+                                    <input
+                                        type="text"
+                                        value={exportNote}
+                                        onChange={(e) => setExportNote(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        placeholder="Ghi chú thêm..."
+                                    />
+                                </div>
+                            </>
+                        )}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Người lập phiếu</label>
+                            <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed">
+                                {user?.full_name || ''}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Thủ kho</label>
+                            <input
+                                type="text"
+                                value={storekeeperName}
+                                onChange={(e) => setStorekeeperName(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                placeholder="Tên thủ kho"
+                                readOnly={true}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Người duyệt</label>
+                            <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 italic cursor-not-allowed">
+                                (Sẽ cập nhật khi duyệt)
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -557,7 +736,7 @@ const CreateTransfer: React.FC = () => {
                                                                 <p className="text-xs text-slate-500">{p.sku}</p>
                                                             </div>
                                                             <span className="text-xs text-indigo-500 font-mono">
-                                                                {transferType === 'EXPORT' ? p.selling_price?.toLocaleString() : p.cost_price?.toLocaleString()}đ
+                                                                {transferType === 'EXPORT' ? p.selling_price?.toLocaleString() : p.cost_price?.toLocaleString()} đ
                                                             </span>
                                                         </button>
                                                     ))
@@ -646,7 +825,9 @@ const CreateTransfer: React.FC = () => {
 
                                     {/* Quantity */}
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">Số lượng *</label>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            Số lượng {item.product_id ? `(${products.find(p => p.id === item.product_id)?.unit_name || 'SP'})` : ''} *
+                                        </label>
                                         <input
                                             type="number"
                                             min="1"
@@ -668,14 +849,17 @@ const CreateTransfer: React.FC = () => {
                                         <label className="block text-xs font-medium text-slate-500 mb-1">
                                             {transferType === 'EXPORT' ? 'Đơn giá xuất / bán' : 'Đơn giá nhập'}
                                         </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={item.unit_price}
-                                            onChange={(e) => updateItemField(index, 'unit_price', Number(e.target.value))}
-                                            disabled={!item.product_variant_id}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={item.unit_price}
+                                                onChange={(e) => updateItemField(index, 'unit_price', Number(e.target.value))}
+                                                disabled={!item.product_variant_id}
+                                                className="w-full px-3 py-2 pr-8 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">đ</span>
+                                        </div>
                                     </div>
                                 </div>
 

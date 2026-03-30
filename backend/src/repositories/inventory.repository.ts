@@ -12,11 +12,15 @@ export class InventoryRepository {
     ): Promise<PaginatedResult<Inventory & { product_name: string; warehouse_name: string }>> {
         let countQuery = 'SELECT COUNT(*) as total FROM inventories i WHERE 1=1';
         let dataQuery = `
-      SELECT i.*, p.name as product_name, p.sku, w.name as warehouse_name, sl.code as location_code
+      SELECT i.*, p.name as product_name, p.sku, w.name as warehouse_name, sl.code as location_code,
+             pv.sku as variant_sku, pv.price as variant_price,
+             CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+             (i.quantity_on_hand - i.quantity_reserved) as quantity_available
       FROM inventories i
       INNER JOIN products p ON i.product_id = p.id
       INNER JOIN warehouses w ON i.warehouse_id = w.id
       LEFT JOIN storage_locations sl ON i.location_id = sl.id
+      LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
       WHERE 1=1
     `;
         const params: any[] = [];
@@ -207,6 +211,7 @@ export class InventoryRepository {
     async getMovementLogs(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
@@ -223,6 +228,13 @@ export class InventoryRepository {
     `;
         const params: any[] = [];
         const countParams: any[] = [];
+
+        if (inventoryId) {
+            dataQuery += ' AND il.inventory_id = ?';
+            countQuery += ' AND inventory_id = ?';
+            params.push(inventoryId);
+            countParams.push(inventoryId);
+        }
 
         if (productId) {
             dataQuery += ' AND il.product_id = ?';
@@ -271,6 +283,40 @@ export class InventoryRepository {
             },
         };
     }
-}
+    async getProductPerformanceMetrics(inventoryId: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
+        // Find the variant_id for this inventory item
+        const [invRows] = await pool.query<RowDataPacket[]>(
+            `SELECT product_variant_id FROM inventories WHERE id = ?`,
+            [inventoryId]
+        );
 
+        if (invRows.length === 0 || !invRows[0].product_variant_id) {
+            return { totalCompletedOrders: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0 };
+        }
+
+        const variantId = invRows[0].product_variant_id;
+
+        const [metricsRows] = await pool.query<RowDataPacket[]>(
+            `SELECT 
+                COUNT(DISTINCT o.id) as total_completed_orders,
+                COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total_revenue,
+                COALESCE(SUM(oi.quantity * oi.cost_price_snapshot), 0) as total_cost
+             FROM order_items oi
+             JOIN orders o ON oi.order_id = o.id
+             WHERE oi.variant_id = ? AND o.status = 'delivered'`,
+            [variantId]
+        );
+
+        const metrics = metricsRows[0];
+        const revenue = Number(metrics.total_revenue);
+        const cost = Number(metrics.total_cost);
+
+        return {
+            totalCompletedOrders: Number(metrics.total_completed_orders),
+            totalRevenue: revenue,
+            totalCost: cost,
+            totalProfit: revenue - cost
+        };
+    }
+}
 export const inventoryRepository = new InventoryRepository();
