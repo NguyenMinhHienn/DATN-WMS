@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { goodsReceiptService } from '../services/goods-receipt.service';
-import { AuthRequest, ApiResponse, CreateGoodsReceiptDto } from '../types';
+import { exportReceiptService } from '../services/export-receipt.service';
+import { AuthRequest, ApiResponse, CreateExportReceiptDto } from '../types';
 import { asyncHandler } from '../middlewares/error.middleware';
 
 export const getAllReceipts = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -11,7 +11,7 @@ export const getAllReceipts = asyncHandler(async (req: AuthRequest, res: Respons
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
 
-    const result = await goodsReceiptService.getAllReceipts(page, limit, warehouseId, status, startDate, endDate);
+    const result = await exportReceiptService.getAllReceipts(page, limit, warehouseId, status, startDate, endDate);
 
     res.json({
         success: true,
@@ -22,7 +22,7 @@ export const getAllReceipts = asyncHandler(async (req: AuthRequest, res: Respons
 
 export const getReceiptById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
-    const receipt = await goodsReceiptService.getReceiptById(id);
+    const receipt = await exportReceiptService.getReceiptById(id);
 
     res.json({
         success: true,
@@ -31,45 +31,34 @@ export const getReceiptById = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 export const createReceipt = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const dto: CreateGoodsReceiptDto = req.body;
+    const dto: CreateExportReceiptDto = req.body;
     const userId = req.user?.userId;
-    const receipt = await goodsReceiptService.createReceipt(dto, userId);
+    const receipt = await exportReceiptService.createReceipt(dto, userId);
 
     res.status(201).json({
         success: true,
-        message: 'Tạo phiếu nhập kho thành công',
+        message: 'Tạo phiếu xuất kho thành công',
         data: receipt,
-    } as ApiResponse);
-});
-
-export const updateReceiptStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const id = parseInt(req.params.id, 10);
-    const { status } = req.body;
-    await goodsReceiptService.updateStatus(id, status);
-
-    res.json({
-        success: true,
-        message: 'Cập nhật trạng thái thành công',
     } as ApiResponse);
 });
 
 export const approveReceipt = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const userId = req.user?.userId;
-    await goodsReceiptService.approveReceipt(id, userId);
+    await exportReceiptService.approveReceipt(id, userId);
 
     res.json({
         success: true,
-        message: 'Duyệt phiếu nhập kho thành công. Tồn kho đã được cập nhật.',
+        message: 'Duyệt phiếu xuất kho thành công. Tồn kho đã được cập nhật.',
     } as ApiResponse);
 });
 
 export const deleteReceipt = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
-    await goodsReceiptService.deleteReceipt(id);
+    await exportReceiptService.deleteReceipt(id);
 
     res.json({
         success: true,
-        message: 'Xóa phiếu nhập kho thành công',
+        message: 'Xóa phiếu xuất kho thành công',
     } as ApiResponse);
 });

@@ -36,8 +36,8 @@ export const stockService = {
         return response.data.data!;
     },
 
-    async completeReceipt(id: number): Promise<void> {
-        await api.post(`/goods-receipts/${id}/complete`);
+    async approveReceipt(id: number): Promise<void> {
+        await api.post(`/goods-receipts/${id}/approve`);
     },
 
     async deleteReceipt(id: number): Promise<void> {
