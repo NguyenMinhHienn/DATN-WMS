@@ -19,8 +19,10 @@ import * as attributeController from '../controllers/attribute.controller';
 import * as specificationController from '../controllers/specification.controller';
 import * as orderController from '../controllers/order.controller';
 import * as exportSlipController from '../controllers/export-slip.controller';
+import * as exportReceiptController from '../controllers/export-receipt.controller';
 import * as cartController from '../controllers/cart.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
+import supplierRoutes from './supplier.routes';
 import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 
@@ -51,6 +53,9 @@ router.post('/products', authenticate, isWarehouseManager, productController.cre
 router.put('/products/:id', authenticate, isWarehouseManager, productController.updateProduct);
 router.delete('/products/:id', authenticate, isAdmin, productController.deleteProduct);
 router.get('/categories', authenticate, isViewer, productController.getCategories);
+router.post('/categories', authenticate, isAdmin, productController.createCategory);
+router.put('/categories/:id', authenticate, isAdmin, productController.updateCategory);
+router.delete('/categories/:id', authenticate, isAdmin, productController.deleteCategory);
 router.get('/units', authenticate, isViewer, productController.getUnits);
 
 // ==================== PRODUCT VARIANT ROUTES ====================
@@ -83,6 +88,7 @@ router.post('/warehouses/:id/locations', authenticate, isWarehouseManager, wareh
 router.get('/inventory', authenticate, checkViewPermission('view_inventory'), inventoryController.getAllInventory);
 router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getLowStockItems);
 router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
+router.get('/inventory/:id/metrics', authenticate, checkViewPermission('view_inventory'), inventoryController.getPerformanceMetrics);
 router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);
 router.post('/inventory/adjust', authenticate, isStaff, inventoryController.adjustInventory);
 
@@ -91,7 +97,7 @@ router.get('/goods-receipts', authenticate, isViewer, goodsReceiptController.get
 router.get('/goods-receipts/:id', authenticate, isViewer, goodsReceiptController.getReceiptById);
 router.post('/goods-receipts', authenticate, isStaff, goodsReceiptController.createReceipt);
 router.put('/goods-receipts/:id/status', authenticate, isStaff, goodsReceiptController.updateReceiptStatus);
-router.post('/goods-receipts/:id/complete', authenticate, isWarehouseManager, goodsReceiptController.completeReceipt);
+router.post('/goods-receipts/:id/approve', authenticate, isWarehouseManager, goodsReceiptController.approveReceipt);
 router.delete('/goods-receipts/:id', authenticate, isWarehouseManager, goodsReceiptController.deleteReceipt);
 
 // ==================== GOODS ISSUE (STOCK OUT) ROUTES ====================
@@ -189,6 +195,13 @@ router.put('/export-slips/:id/approve', authenticate, isAdmin, exportSlipControl
 router.put('/export-slips/:id/complete', authenticate, isAdmin, exportSlipController.completeDelivery);
 router.put('/export-slips/:id/fail', authenticate, isAdmin, exportSlipController.failDelivery);
 
+// ==================== EXPORT RECEIPT ROUTES (Phiếu xuất kho độc lập) ====================
+router.get('/export-receipts', authenticate, isStaff, exportReceiptController.getAllReceipts);
+router.get('/export-receipts/:id', authenticate, isStaff, exportReceiptController.getReceiptById);
+router.post('/export-receipts', authenticate, isStaff, exportReceiptController.createReceipt);
+router.post('/export-receipts/:id/approve', authenticate, isWarehouseManager, exportReceiptController.approveReceipt);
+router.delete('/export-receipts/:id', authenticate, isWarehouseManager, exportReceiptController.deleteReceipt);
+
 // ==================== CART ROUTES (User) ====================
 // Giỏ hàng cho user đã đăng nhập
 router.post('/cart/add', authenticate, cartController.addToCart);
@@ -197,6 +210,9 @@ router.get('/cart/count', authenticate, cartController.getCartItemCount);
 router.put('/cart/items/:itemId', authenticate, cartController.updateCartItem);
 router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem);
 router.delete('/cart', authenticate, cartController.clearCart);
+
+// ==================== SUPPLIERS ROUTES ====================
+router.use('/suppliers', supplierRoutes);
 
 
 //payment online

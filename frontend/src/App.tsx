@@ -22,6 +22,7 @@ import Reports from './pages/admin/Reports';
 import ProductConfig from './pages/admin/ProductConfig';
 import AdminOrders from './pages/admin/AdminOrders';
 import FinancialReport from './pages/admin/FinancialReport';
+import ExportReceipt from './pages/admin/ExportReceipt';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
@@ -113,6 +114,7 @@ const App: React.FC = () => {
                             <Route path="reports" element={<Reports />} />
                             <Route path="product-config" element={<ProductConfig />} />
                             <Route path="orders" element={<AdminOrders />} />
+                            <Route path="export-receipts" element={<ExportReceipt />} />
                             <Route path="financial-report" element={<FinancialReport />} />
                         </Route>
 
