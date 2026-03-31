@@ -296,7 +296,8 @@ export class InventoryRepository {
 
         const variantId = invRows[0].product_variant_id;
 
-        const [metricsRows] = await pool.query<RowDataPacket[]>(
+        // 1. Get metrics from Customer Orders
+        const [orderMetricsRows] = await pool.query<RowDataPacket[]>(
             `SELECT 
                 COUNT(DISTINCT o.id) as total_completed_orders,
                 COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total_revenue,
@@ -307,12 +308,27 @@ export class InventoryRepository {
             [variantId]
         );
 
-        const metrics = metricsRows[0];
-        const revenue = Number(metrics.total_revenue);
-        const cost = Number(metrics.total_cost);
+        // 2. Get metrics from Export Slips
+        const [exportMetricsRows] = await pool.query<RowDataPacket[]>(
+            `SELECT 
+                COUNT(DISTINCT st.id) as export_completed_orders,
+                COALESCE(SUM(sti.line_total), 0) as export_revenue,
+                COALESCE(SUM(sti.cost_of_goods_sold), 0) as export_cost
+             FROM stock_transfer_items sti
+             JOIN stock_transfers st ON sti.stock_transfer_id = st.id
+             WHERE sti.product_variant_id = ? AND st.transfer_type = 'EXPORT' AND st.status = 'approved'`,
+            [variantId]
+        );
+
+        const orderMetrics = orderMetricsRows[0];
+        const exportMetrics = exportMetricsRows[0];
+
+        const totalOrders = Number(orderMetrics.total_completed_orders) + Number(exportMetrics.export_completed_orders);
+        const revenue = Number(orderMetrics.total_revenue) + Number(exportMetrics.export_revenue);
+        const cost = Number(orderMetrics.total_cost) + Number(exportMetrics.export_cost);
 
         return {
-            totalCompletedOrders: Number(metrics.total_completed_orders),
+            totalCompletedOrders: totalOrders,
             totalRevenue: revenue,
             totalCost: cost,
             totalProfit: revenue - cost

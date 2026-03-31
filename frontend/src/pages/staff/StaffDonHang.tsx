@@ -166,6 +166,9 @@ const StaffDonHang: React.FC = () => {
                     orderId: detail.id,
                     orderItems,
                     reason: `Xuất kho cho đơn hàng #${detail.id} - ${detail.shipping_name}`,
+                    shippingName: detail.shipping_name,
+                    shippingAddress: detail.shipping_address,
+                    shippingPhone: detail.shipping_phone,
                 }
             });
         } catch (err) {

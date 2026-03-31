@@ -439,6 +439,8 @@ export interface StockTransfer {
     storekeeper?: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     rejection_reason?: string;
     approved_by_name?: string;
     approved_at?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { exportReceiptService, ExportReceiptSummary, ExportReceiptFull } from '../../services/exportReceiptService';
-
+import { orderService, OrderSummary } from '../../services/orderService';
 import { productVariantService } from '../../services/productVariantService';
 import { productService } from '../../services/productService';
 import { Pagination } from '../../components/Pagination';
@@ -41,6 +41,8 @@ const ExportReceipt: React.FC = () => {
         warehouse_id: 1,
         receiver_name: '',
         receiver_department: '',
+        receiver_address: '',
+        receiver_phone: '',
         delivery_person: '',
         storekeeper: '',
         reference_document: '',
@@ -49,6 +51,11 @@ const ExportReceipt: React.FC = () => {
     const [formItems, setFormItems] = useState<ReceiptItem[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [approving, setApproving] = useState('');
+
+    // Order selection for auto-fill
+    const [confirmedOrders, setConfirmedOrders] = useState<OrderSummary[]>([]);
+    const [showOrderPicker, setShowOrderPicker] = useState(false);
+    const [loadingOrders, setLoadingOrders] = useState(false);
 
     useEffect(() => { loadReceipts(); }, [pagination.page, selectedStatus]);
 
@@ -79,6 +86,8 @@ const ExportReceipt: React.FC = () => {
                 warehouse_id: 1,
                 receiver_name: '',
                 receiver_department: '',
+                receiver_address: '',
+                receiver_phone: '',
                 delivery_person: '',
                 storekeeper: '',
                 reference_document: '',
@@ -89,6 +98,76 @@ const ExportReceipt: React.FC = () => {
         } catch (err) {
             alert('Không thể tải dữ liệu');
         }
+    };
+
+    // Load confirmed orders for auto-fill
+    const loadConfirmedOrders = async () => {
+        setLoadingOrders(true);
+        try {
+            const res = await orderService.getAllOrders(1, 50, 'confirmed');
+            setConfirmedOrders(res.data || []);
+            setShowOrderPicker(true);
+        } catch (err) {
+            alert('Không thể tải danh sách đơn hàng');
+        } finally {
+            setLoadingOrders(false);
+        }
+    };
+
+    // Auto-fill from order
+    const fillFromOrder = async (order: OrderSummary) => {
+        setFormData(prev => ({
+            ...prev,
+            receiver_name: order.shipping_name || '',
+            receiver_address: order.shipping_address || '',
+            receiver_phone: order.shipping_phone || '',
+            notes: `Xuất theo đơn hàng #${order.id}`,
+            reference_document: `ĐH-${order.id}`,
+        }));
+
+        // Load order items to auto-add to export
+        try {
+            const detail = await orderService.getOrderById(order.id);
+            if (detail.items && detail.items.length > 0) {
+                const prRes = await productService.getAll(1, 200);
+                setProducts(prRes.data || []);
+                
+                const newItems: ReceiptItem[] = [];
+                for (const item of detail.items) {
+                    const product = prRes.data?.find((p: any) => p.id === item.product_id);
+                    let currentStock = 0;
+                    let variantSku = item.variant_sku || '';
+                    
+                    if (item.variant_id) {
+                        try {
+                            const variants = await productVariantService.getByProduct(item.product_id);
+                            const v = variants?.find((v: any) => v.id === item.variant_id);
+                            if (v) {
+                                currentStock = Number(v.stock) || 0;
+                                variantSku = v.sku || variantSku;
+                            }
+                        } catch {}
+                    }
+                    
+                    newItems.push({
+                        product_id: item.product_id,
+                        product_variant_id: item.variant_id || undefined,
+                        product_name: item.product_name || product?.name || '',
+                        variant_sku: variantSku,
+                        unit_name: product?.unit_name || 'Cái',
+                        quantity_requested: item.quantity,
+                        quantity_actual: item.quantity,
+                        unit_price: item.unit_price || 0,
+                        current_stock: currentStock,
+                    });
+                }
+                setFormItems(newItems);
+            }
+        } catch (err) {
+            console.error('Could not load order items:', err);
+        }
+
+        setShowOrderPicker(false);
     };
 
     const loadVariants = async (productId: number) => {
@@ -164,6 +243,8 @@ const ExportReceipt: React.FC = () => {
                 export_reason: formData.export_reason || 'sale',
                 receiver_name: formData.receiver_name || undefined,
                 receiver_department: formData.receiver_department || undefined,
+                receiver_address: formData.receiver_address || undefined,
+                receiver_phone: formData.receiver_phone || undefined,
                 delivery_person: formData.delivery_person || undefined,
                 storekeeper: formData.storekeeper || undefined,
                 reference_document: formData.reference_document || undefined,
@@ -362,7 +443,16 @@ const ExportReceipt: React.FC = () => {
                     <div className="bg-slate-800 rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
                         <div className="flex justify-between items-start mb-6">
                             <h2 className="text-xl font-bold text-white">📤 Tạo Phiếu Xuất Kho (Trừ Tồn Kho)</h2>
-                            <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={loadConfirmedOrders}
+                                    disabled={loadingOrders}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium transition-all disabled:opacity-50"
+                                >
+                                    {loadingOrders ? '⏳ Đang tải...' : '📋 Tạo từ đơn hàng'}
+                                </button>
+                                <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                            </div>
                         </div>
 
                         {/* Form fields */}
@@ -370,6 +460,12 @@ const ExportReceipt: React.FC = () => {
                             <div>
                                 <label className="block text-sm text-slate-400 mb-1">Kho xuất</label>
                                 <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300">🏭 Kho tổng</div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
+                                <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 text-sm">
+                                    Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm text-slate-400 mb-1">Lý do xuất *</label>
@@ -388,6 +484,14 @@ const ExportReceipt: React.FC = () => {
                             <div>
                                 <label className="block text-sm text-slate-400 mb-1">Người nhận hàng</label>
                                 <input type="text" value={formData.receiver_name} onChange={(e) => setFormData({ ...formData, receiver_name: e.target.value })} className="input w-full" placeholder="Tên NV/KH" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-1">📞 SĐT người nhận</label>
+                                <input type="text" value={formData.receiver_phone} onChange={(e) => setFormData({ ...formData, receiver_phone: e.target.value })} className="input w-full" placeholder="Số điện thoại" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm text-slate-400 mb-1">🏠 Địa chỉ người nhận</label>
+                                <input type="text" value={formData.receiver_address} onChange={(e) => setFormData({ ...formData, receiver_address: e.target.value })} className="input w-full" placeholder="Địa chỉ giao hàng" />
                             </div>
                             <div>
                                 <label className="block text-sm text-slate-400 mb-1">Bộ phận nhận (nội bộ)</label>
@@ -531,6 +635,10 @@ const ExportReceipt: React.FC = () => {
                                 <p className="font-semibold text-white">{selectedReceipt.warehouse_name}</p>
                             </div>
                             <div>
+                                <span className="text-slate-500 font-medium">📍 Địa chỉ kho:</span>
+                                <p className="font-semibold text-white text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</p>
+                            </div>
+                            <div>
                                 <span className="text-slate-500 font-medium">Lý do xuất:</span>
                                 <p className="font-semibold text-white"><span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded text-xs">{exportReceiptService.getExportReasonLabel(selectedReceipt.export_reason)}</span></p>
                             </div>
@@ -542,6 +650,14 @@ const ExportReceipt: React.FC = () => {
                             <div>
                                 <span className="text-slate-500 font-medium">Người nhận hàng:</span>
                                 <p className="font-semibold text-white">{selectedReceipt.receiver_name || '-'}</p>
+                            </div>
+                            <div>
+                                <span className="text-slate-500 font-medium">📞 SĐT người nhận:</span>
+                                <p className="font-semibold text-white">{selectedReceipt.receiver_phone || '-'}</p>
+                            </div>
+                            <div className="lg:col-span-2">
+                                <span className="text-slate-500 font-medium">🏠 Địa chỉ người nhận:</span>
+                                <p className="font-semibold text-white">{selectedReceipt.receiver_address || '-'}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">Phòng ban (nội bộ):</span>
@@ -643,6 +759,55 @@ const ExportReceipt: React.FC = () => {
                                 <button onClick={() => setShowDetailModal(false)} className="btn btn-secondary">Đóng</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================== ORDER PICKER MODAL ==================== */}
+            {showOrderPicker && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
+                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-white">📋 Chọn đơn hàng đã duyệt</h2>
+                                <p className="text-slate-400 text-sm mt-1">Chọn đơn hàng để tự động điền thông tin người nhận và sản phẩm</p>
+                            </div>
+                            <button onClick={() => setShowOrderPicker(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                        </div>
+
+                        {confirmedOrders.length === 0 ? (
+                            <div className="text-center py-12">
+                                <span className="text-4xl mb-3 block">📦</span>
+                                <p className="text-slate-400">Không có đơn hàng nào đã duyệt (confirmed)</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {confirmedOrders.map(order => (
+                                    <div
+                                        key={order.id}
+                                        onClick={() => fillFromOrder(order)}
+                                        className="p-4 bg-slate-700/50 rounded-xl border border-slate-600/50 hover:border-blue-500/50 hover:bg-slate-700 cursor-pointer transition-all group"
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold text-white">ĐH #{order.id}</span>
+                                                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">Đã duyệt</span>
+                                                </div>
+                                                <p className="text-slate-300 text-sm">👤 {order.shipping_name}</p>
+                                                <p className="text-slate-400 text-sm">📞 {order.shipping_phone}</p>
+                                                <p className="text-slate-400 text-sm">🏠 {order.shipping_address}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-orange-400">{Number(order.total_amount).toLocaleString('vi-VN')} đ</p>
+                                                <p className="text-slate-500 text-xs mt-1">{new Date(order.created_at).toLocaleDateString('vi-VN')}</p>
+                                                <span className="text-blue-400 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">→ Chọn đơn này</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

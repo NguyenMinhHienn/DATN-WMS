@@ -88,6 +88,8 @@ export interface CreateStockTransferData {
     storekeeper?: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     reason?: string;
     notes?: string;
     items: CreateStockTransferItemData[];

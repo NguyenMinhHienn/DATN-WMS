@@ -635,6 +635,8 @@ export interface ExportReceipt {
     receipt_date: Date;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     export_reason: 'sale' | 'internal' | 'disposal' | 'transfer';
     warehouse_id: number;
     notes?: string;
@@ -679,6 +681,8 @@ export interface CreateExportReceiptDto {
     receipt_date: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     export_reason?: 'sale' | 'internal' | 'disposal' | 'transfer';
     warehouse_id: number;
     notes?: string;
@@ -839,6 +843,8 @@ export interface CreateStockTransferDto {
     storekeeper?: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     reason?: string;
     notes?: string;
     items: CreateStockTransferItemDto[];

@@ -132,15 +132,18 @@ export class ExportReceiptRepository {
             const [result] = await connection.query<ResultSetHeader>(`
         INSERT INTO export_receipts (
           receipt_number, receipt_date, receiver_name, receiver_department,
+          receiver_address, receiver_phone,
           export_reason, warehouse_id, notes, reference_document,
           delivery_person, storekeeper, total_items, total_quantity, total_amount,
           created_by, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
       `, [
                 receiptNumber,
                 dto.receipt_date,
                 dto.receiver_name || null,
                 dto.receiver_department || null,
+                dto.receiver_address || null,
+                dto.receiver_phone || null,
                 dto.export_reason || 'sale',
                 dto.warehouse_id,
                 dto.notes || null,

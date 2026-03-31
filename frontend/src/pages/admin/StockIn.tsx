@@ -405,6 +405,12 @@ const StockIn: React.FC = () => {
                                     <label className="block text-sm text-slate-400 mb-1">Kho nhập</label>
                                     <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px]">🏭 Kho tổng</div>
                                 </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
+                                    <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px] text-sm">
+                                        Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                                    </div>
+                                </div>
                                 <div className="col-span-2">
                                     <label className="block text-sm text-slate-400 mb-1">Ghi chú phiếu</label>
                                     <textarea value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input w-full" rows={2} placeholder="Nhập ghi chú (không bắt buộc)..." />
@@ -604,6 +610,10 @@ const StockIn: React.FC = () => {
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Kho nhập:</span>
                                         <span className="font-medium text-white">{selectedReceipt.warehouse_name}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">📍 Địa chỉ kho:</span>
+                                        <span className="font-medium text-white text-right">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Ngày lập:</span>

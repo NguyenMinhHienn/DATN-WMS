@@ -63,6 +63,8 @@ const CreateTransfer: React.FC = () => {
     const [storekeeperName, setStorekeeperName] = useState(user?.full_name || '');
     const [receiverName, setReceiverName] = useState('');
     const [receiverDepartment, setReceiverDepartment] = useState('');
+    const [receiverAddress, setReceiverAddress] = useState('');
+    const [receiverPhone, setReceiverPhone] = useState('');
     const [exportNote, setExportNote] = useState('');
 
     // Reference data
@@ -112,6 +114,10 @@ const CreateTransfer: React.FC = () => {
             if (location.state?.fromOrder) {
                 setTransferType('EXPORT');
                 setReason(location.state.reason || '');
+                // Auto-fill receiver info from order
+                if (location.state.shippingName) setReceiverName(location.state.shippingName);
+                if (location.state.shippingAddress) setReceiverAddress(location.state.shippingAddress);
+                if (location.state.shippingPhone) setReceiverPhone(location.state.shippingPhone);
 
                 const orderItems = location.state.orderItems || [];
                 if (orderItems.length > 0) {
@@ -319,6 +325,8 @@ const CreateTransfer: React.FC = () => {
                 storekeeper: storekeeperName || undefined,
                 receiver_name: transferType === 'EXPORT' ? receiverName || undefined : undefined,
                 receiver_department: transferType === 'EXPORT' ? receiverDepartment || undefined : undefined,
+                receiver_address: transferType === 'EXPORT' ? receiverAddress || undefined : undefined,
+                receiver_phone: transferType === 'EXPORT' ? receiverPhone || undefined : undefined,
                 items: validItems.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -497,6 +505,12 @@ const CreateTransfer: React.FC = () => {
                                 </div>
                             </div>
                         )}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 mb-2">📍 Địa chỉ kho</label>
+                            <div className="w-full px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-slate-700 text-sm cursor-not-allowed">
+                                Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                            </div>
+                        </div>
 
                         {transferType === 'EXPORT' ? (
                             <div>
@@ -609,7 +623,27 @@ const CreateTransfer: React.FC = () => {
                                         value={receiverName}
                                         onChange={(e) => setReceiverName(e.target.value)}
                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                        placeholder="Tên người nhận (không bắt buộc)"
+                                        placeholder="Tên người nhận"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">📞 SĐT người nhận</label>
+                                    <input
+                                        type="text"
+                                        value={receiverPhone}
+                                        onChange={(e) => setReceiverPhone(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        placeholder="Số điện thoại"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">🏠 Địa chỉ người nhận</label>
+                                    <input
+                                        type="text"
+                                        value={receiverAddress}
+                                        onChange={(e) => setReceiverAddress(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        placeholder="Địa chỉ giao hàng"
                                     />
                                 </div>
                                 <div>

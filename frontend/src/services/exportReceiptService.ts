@@ -8,6 +8,8 @@ export interface ExportReceiptSummary {
     receipt_date: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     export_reason: 'sale' | 'internal' | 'disposal' | 'transfer';
     warehouse_id: number;
     warehouse_name?: string;
@@ -53,6 +55,8 @@ export interface CreateExportReceiptPayload {
     receipt_date: string;
     receiver_name?: string;
     receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     export_reason?: string;
     warehouse_id: number;
     notes?: string;

@@ -452,6 +452,21 @@ const Home: React.FC = () => {
                                 StockFlow là đồ án tốt nghiệp, xây dựng trên nền tảng công nghệ hiện đại với React, TypeScript, Node.js và MySQL.
                                 Hệ thống cung cấp giải pháp quản lý kho hàng toàn diện cho doanh nghiệp vừa và nhỏ.
                             </p>
+
+                            {/* Thông tin địa chỉ kho */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
+                                <div className="flex items-start gap-3">
+                                    <div className="text-2xl mt-0.5">📍</div>
+                                    <div>
+                                        <h4 className="font-semibold text-white mb-1">Địa chỉ kho hàng</h4>
+                                        <p className="text-slate-300 text-sm leading-relaxed">
+                                            Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                                        </p>
+                                        <p className="text-slate-400 text-xs mt-1">🏭 Kho tổng - StockFlow Warehouse</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex flex-wrap gap-3">
                                 <span className="px-3 py-1 bg-white/10 rounded-full text-sm">React</span>
                                 <span className="px-3 py-1 bg-white/10 rounded-full text-sm">TypeScript</span>
@@ -521,6 +536,13 @@ const Home: React.FC = () => {
                                 Hệ thống quản lý kho hàng thông minh.<br />
                                 Đồ án tốt nghiệp - 2026
                             </p>
+                            <div className="flex items-start gap-2 text-sm">
+                                <span>📍</span>
+                                <p className="text-slate-400 leading-relaxed">
+                                    Số 1, Phố Trịnh Văn Bô,<br />
+                                    Phương Canh, Hà Nội
+                                </p>
+                            </div>
                         </div>
                         <div>
                             <h4 className="font-semibold text-white mb-4">Liên kết</h4>

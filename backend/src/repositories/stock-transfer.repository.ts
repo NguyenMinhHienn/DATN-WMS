@@ -250,8 +250,9 @@ export class StockTransferRepository {
                     total_items, total_quantity, total_value,
                     status, reason, notes,
                     delivery_person, storekeeper, receiver_name, receiver_department,
+                    receiver_address, receiver_phone,
                     requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 transferNumber,
                 dto.transfer_type || 'IMPORT',
@@ -269,6 +270,8 @@ export class StockTransferRepository {
                 dto.storekeeper || null,
                 dto.receiver_name || null,
                 dto.receiver_department || null,
+                dto.receiver_address || null,
+                dto.receiver_phone || null,
                 userId,
                 userId,
             ]);

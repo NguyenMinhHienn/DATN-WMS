@@ -275,6 +275,10 @@ const MyTransfers: React.FC = () => {
                                                 <span className="font-medium text-slate-800">{selectedTransfer.source_warehouse_name}</span>
                                             </div>
                                         )}
+                                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                                            <span className="text-slate-500">📍 Địa chỉ kho:</span>
+                                            <span className="font-medium text-slate-800 text-right text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
+                                        </div>
                                         {selectedTransfer.transfer_type === 'TRANSFER' && (
                                             <>
                                                 {selectedTransfer.source_warehouse_name && (
@@ -335,6 +339,27 @@ const MyTransfers: React.FC = () => {
                                             <span className="text-slate-500">Người duyệt:</span>
                                             <span className="font-medium text-slate-800">{selectedTransfer.approved_by_name || '-'}</span>
                                         </div>
+
+                                        {selectedTransfer.transfer_type === 'EXPORT' && (
+                                            <>
+                                                <div className="flex justify-between border-t border-slate-100 pt-3">
+                                                    <span className="text-slate-500">Người nhận hàng:</span>
+                                                    <span className="font-medium text-slate-800">{selectedTransfer.receiver_name || '-'}</span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                                    <span className="text-slate-500">📞 SĐT người nhận:</span>
+                                                    <span className="font-medium text-slate-800">{selectedTransfer.receiver_phone || '-'}</span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                                    <span className="text-slate-500">🏠 Địa chỉ người nhận:</span>
+                                                    <span className="font-medium text-slate-800 text-right">{selectedTransfer.receiver_address || '-'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Phòng ban (nội bộ):</span>
+                                                    <span className="font-medium text-slate-800">{selectedTransfer.receiver_department || '-'}</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

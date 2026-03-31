@@ -152,6 +152,8 @@ export class StockTransferService {
             storekeeper: dto.storekeeper,
             receiver_name: dto.receiver_name,
             receiver_department: dto.receiver_department,
+            receiver_address: dto.receiver_address,
+            receiver_phone: dto.receiver_phone,
             reason: dto.reason,
             notes: dto.notes,
             items: normalizedItems,
