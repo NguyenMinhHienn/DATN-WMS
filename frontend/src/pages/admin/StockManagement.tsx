@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { stockTransferService } from '../../services/stockTransferService';
 import { StockTransfer, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
+import { numberToWords } from '../../utils/numberToWords';
 
 /**
  * Unified Stock Management Page
@@ -12,12 +13,11 @@ import { Pagination } from '../../components/Pagination';
  * qua StaffOrders.tsx (staff) và export-slip endpoints (admin)
  */
 
-type TabType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
+type TabType = 'IMPORT' | 'EXPORT';
 
 const TAB_CONFIG: Record<string, { label: string; icon: string; activeColor: string; textColor: string; borderColor: string; emptyText: string; warehouseLabel: string }> = {
     IMPORT: { label: 'Nhập kho', icon: '📥', activeColor: '#10b981', textColor: '#34d399', borderColor: '#10b981', emptyText: 'Không tìm thấy phiếu nhập kho', warehouseLabel: 'Kho nhập' },
     EXPORT: { label: 'Xuất kho', icon: '📤', activeColor: '#f97316', textColor: '#fb923c', borderColor: '#f97316', emptyText: 'Không tìm thấy phiếu xuất kho', warehouseLabel: 'Kho xuất' },
-    TRANSFER: { label: 'Chuyển kho', icon: '🔄', activeColor: '#a855f7', textColor: '#c084fc', borderColor: '#a855f7', emptyText: 'Không tìm thấy phiếu chuyển kho', warehouseLabel: 'Kho' },
 };
 
 const StockManagement: React.FC = () => {
@@ -207,14 +207,7 @@ const StockManagement: React.FC = () => {
                                 <thead className="bg-slate-800/50 border-b border-slate-700/50">
                                     <tr>
                                         <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        {activeTab === 'TRANSFER' ? (
-                                            <>
-                                                <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Kho nguồn</th>
-                                                <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Kho đích</th>
-                                            </>
-                                        ) : (
-                                            <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">{config.warehouseLabel}</th>
-                                        )}
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">{config.warehouseLabel}</th>
                                         <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Ngày</th>
                                         <th className="text-right py-4 px-5 text-sm font-medium text-slate-300">Số SP</th>
                                         <th className="text-right py-4 px-5 text-sm font-medium text-slate-300">Tổng tiền</th>
@@ -227,16 +220,9 @@ const StockManagement: React.FC = () => {
                                     {transfers.map(t => (
                                         <tr key={t.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${t.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
                                             <td className="py-4 px-5 font-mono text-sm font-medium" style={{ color: config.textColor }}>{t.transfer_number}</td>
-                                            {activeTab === 'TRANSFER' ? (
-                                                <>
-                                                    <td className="py-4 px-5 text-sm text-slate-300">{t.source_warehouse_name}</td>
-                                                    <td className="py-4 px-5 text-sm text-slate-300">{t.destination_warehouse_name}</td>
-                                                </>
-                                            ) : (
-                                                <td className="py-4 px-5 text-sm text-slate-300">
-                                                    {activeTab === 'IMPORT' ? t.destination_warehouse_name : t.source_warehouse_name}
-                                                </td>
-                                            )}
+                                            <td className="py-4 px-5 text-sm text-slate-300">
+                                                {activeTab === 'IMPORT' ? t.destination_warehouse_name : t.source_warehouse_name}
+                                            </td>
                                             <td className="py-4 px-5 text-sm text-slate-400">{new Date(t.transfer_date).toLocaleDateString('vi-VN')}</td>
                                             <td className="py-4 px-5 text-sm text-right text-white">{t.total_items}</td>
                                             <td className="py-4 px-5 text-sm text-right font-medium" style={{ color: config.textColor }}>
@@ -269,7 +255,7 @@ const StockManagement: React.FC = () => {
                                     ))}
                                     {transfers.length === 0 && (
                                         <tr>
-                                            <td colSpan={activeTab === 'TRANSFER' ? 9 : 8} className="py-12 text-center">
+                                            <td colSpan={8} className="py-12 text-center">
                                                 <div className="flex flex-col items-center gap-3">
                                                     <span className="text-4xl opacity-50">{config.icon}</span>
                                                     <p className="text-slate-500">{config.emptyText}</p>
@@ -299,55 +285,88 @@ const StockManagement: React.FC = () => {
                             <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                            {selectedTransfer.source_warehouse_name && (
-                                <div>
-                                    <span className="text-slate-500">Kho nguồn:</span>
-                                    <p className="font-medium text-white">{selectedTransfer.source_warehouse_name}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            {/* Thông tin chung */}
+                            <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
+                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
+                                <div className="space-y-3 text-sm">
+                                    {selectedTransfer.transfer_type === 'IMPORT' && selectedTransfer.destination_warehouse_name && (
+                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                            <span className="text-slate-400">Kho nhập:</span>
+                                            <span className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</span>
+                                        </div>
+                                    )}
+                                    {selectedTransfer.transfer_type === 'EXPORT' && selectedTransfer.source_warehouse_name && (
+                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                            <span className="text-slate-400">Kho xuất:</span>
+                                            <span className="font-medium text-white">{selectedTransfer.source_warehouse_name}</span>
+                                        </div>
+                                    )}
+                                    {selectedTransfer.transfer_type === 'TRANSFER' && (
+                                        <>
+                                            {selectedTransfer.source_warehouse_name && (
+                                                <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                                    <span className="text-slate-400">Kho nguồn:</span>
+                                                    <span className="font-medium text-white">{selectedTransfer.source_warehouse_name}</span>
+                                                </div>
+                                            )}
+                                            {selectedTransfer.destination_warehouse_name && (
+                                                <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                                    <span className="text-slate-400">Kho đích:</span>
+                                                    <span className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Ngày tạo:</span>
+                                        <span className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Ghi chú:</span>
+                                        <span className="font-medium text-white">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-2 border-t border-slate-600/50 mt-2">
+                                        <span className="text-slate-300 font-medium">Tổng giá trị:</span>
+                                        <div className="text-right">
+                                            <div className="font-bold text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()} đ</div>
+                                            <div className="text-xs text-slate-400 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                            {selectedTransfer.destination_warehouse_name && (
-                                <div>
-                                    <span className="text-slate-500">Kho đích:</span>
-                                    <p className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</p>
+                            </div>
+
+                            {/* Thông tin nghiệp vụ */}
+                            <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
+                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
+                                <div className="space-y-3 text-sm">
+                                    {selectedTransfer.transfer_type === 'IMPORT' && (
+                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                            <span className="text-slate-400">Nhà cung cấp:</span>
+                                            <span className="font-medium text-white">{selectedTransfer.supplier_name || '-'}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Người giao hàng:</span>
+                                        <span className="font-medium text-white">{selectedTransfer.delivery_person || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Người lập phiếu:</span>
+                                        <span className="font-medium text-white">{selectedTransfer.created_by_name || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Thủ kho:</span>
+                                        <span className="font-medium text-white">{selectedTransfer.storekeeper || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Người duyệt:</span>
+                                        <span className="font-medium text-white">{selectedTransfer.approved_by_name || '-'}</span>
+                                    </div>
                                 </div>
-                            )}
-                            <div>
-                                <span className="text-slate-500">Ngày:</span>
-                                <p className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
                             </div>
-                            <div>
-                                <span className="text-slate-500">Người tạo:</span>
-                                <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-500">Tổng giá trị:</span>
-                                <p className="font-medium text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()} đ</p>
-                            </div>
-                            {selectedTransfer.reason && (
-                                <div className="col-span-2">
-                                    <span className="text-slate-500">Lý do:</span>
-                                    <p className="font-medium text-white">{selectedTransfer.reason}</p>
-                                </div>
-                            )}
                         </div>
 
-                        {/* Transfer Direction for TRANSFER type */}
-                        {activeTab === 'TRANSFER' && (
-                            <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg mb-4">
-                                <div className="flex items-center justify-center gap-4">
-                                    <div className="text-center">
-                                        <p className="text-sm text-slate-400">Kho nguồn</p>
-                                        <p className="font-bold text-purple-400">{selectedTransfer.source_warehouse_name}</p>
-                                    </div>
-                                    <div className="text-3xl text-purple-500">→</div>
-                                    <div className="text-center">
-                                        <p className="text-sm text-slate-400">Kho đích</p>
-                                        <p className="font-bold text-purple-400">{selectedTransfer.destination_warehouse_name}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+
 
                         {selectedTransfer.status === 'rejected' && selectedTransfer.rejection_reason && (
                             <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg mb-4">

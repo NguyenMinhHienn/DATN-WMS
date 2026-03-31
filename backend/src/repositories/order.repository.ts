@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { inventoryCoreService } from '../services/inventory-core.service';
 
 /**
  * Order Repository
@@ -80,7 +81,7 @@ class OrderRepository {
             );
             const orderId = orderResult.insertId;
 
-            // Insert order items and deduct stock
+            // Insert order items and RESERVE stock (instead of deducting)
             for (const item of items) {
                 // 1. Insert order item
                 await connection.execute<ResultSetHeader>(
@@ -89,12 +90,19 @@ class OrderRepository {
                     [orderId, item.product_id, item.variant_id, item.product_name, item.variant_sku, item.quantity, item.unit_price, item.cost_price_snapshot, item.variant_attributes]
                 );
 
-                // 2. Thêm logic: Trừ tồn kho NGAY LẬP TỨC 
+                // 2. GIỮ HÀNG (RESERVE) thay vì trừ stock trực tiếp
                 if (item.variant_id) {
-                    await connection.execute(
-                        'UPDATE product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [item.quantity, item.variant_id]
-                    );
+                    await inventoryCoreService.reserveStock({
+                        connection,
+                        productId: item.product_id,
+                        variantId: item.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: item.quantity,
+                        referenceType: 'order',
+                        referenceId: orderId,
+                        referenceNumber: `ORD-${orderId}`,
+                        userId: userId,
+                    });
                 }
             }
 
@@ -242,13 +250,20 @@ class OrderRepository {
                 [orderId]
             );
 
-            // 2. Đi qua từng item và cộng lại tồn kho
+            // 2. HỦY GIỮ HÀNG (RELEASE) thay vì cộng lại stock trực tiếp
             for (const item of items) {
                 if (item.variant_id) {
-                    await connection.execute(
-                        'UPDATE product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [item.quantity, item.variant_id]
-                    );
+                    await inventoryCoreService.releaseStock({
+                        connection,
+                        productId: item.product_id,
+                        variantId: item.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: item.quantity,
+                        referenceType: 'order',
+                        referenceId: orderId,
+                        referenceNumber: `ORD-${orderId}`,
+                        reason: 'Order cancelled',
+                    });
                 }
             }
 

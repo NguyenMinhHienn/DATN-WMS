@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { productService } from '../../services/productService';
 import { productVariantService } from '../../services/productVariantService';
 import { attributeService } from '../../services/attributeService';
 import {
-    Product, Category, Unit, ProductFormData, PaginationInfo,
+    Product, Category, ProductFormData, PaginationInfo,
     ProductVariant, ProductVariantFormData,
-    Attribute, AttributeValue, VARIANT_TYPES_CONFIG
+    Attribute
 } from '../../interface';
 import { Modal } from '../../components/Modal';
 import { Pagination } from '../../components/Pagination';
@@ -32,7 +32,6 @@ const Products: React.FC = () => {
     // State
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
     const [attributes, setAttributes] = useState<Attribute[]>([]); // Flexible attributes from API
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 1, limit: 10, total: 0, totalPages: 0
@@ -63,7 +62,6 @@ const Products: React.FC = () => {
     const [formError, setFormError] = useState('');
 
     // === NEW: 2-Step Form State ===
-    const [formStep, setFormStep] = useState(1); // 1 = Product Info, 2 = Variant Setup
     const [hasVariants, setHasVariants] = useState(false); // Toggle: Sản phẩm có biến thể?
     const [selectedAttributes, setSelectedAttributes] = useState<{
         attribute_id: number;
@@ -71,18 +69,11 @@ const Products: React.FC = () => {
         attribute_display_name: string;
         value_ids: number[];
     }[]>([]);
-    const [generatedVariants, setGeneratedVariants] = useState<ProductVariant[]>([]);
-    const [variantPrices, setVariantPrices] = useState<{ [sku: string]: number }>({});
-    const [variantStocks, setVariantStocks] = useState<{ [sku: string]: number }>({});
     const [generatingVariants, setGeneratingVariants] = useState(false);
     const [customValues, setCustomValues] = useState<{ [attr_id: number]: string }>({});
-    const [initialStock, setInitialStock] = useState(0); // Initial stock for new variants
 
     // Variants in form state (legacy - kept for existing form)
     const [formVariants, setFormVariants] = useState<TempVariant[]>([]);
-    const [newVariantData, setNewVariantData] = useState<Partial<TempVariant>>({});
-    const [newVariantPrice, setNewVariantPrice] = useState(0);
-    const [newVariantStock, setNewVariantStock] = useState(0);
 
     // Separate Variant Modal
     const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
@@ -101,53 +92,6 @@ const Products: React.FC = () => {
     const canEdit = hasAnyRole(['admin', 'warehouse_manager']);
     const canDelete = hasAnyRole(['admin']);
 
-    // Get active variant types based on selected category
-    // Default: show color variant if category has no specific variant_types configured
-    const activeVariantTypes = useMemo(() => {
-        if (!formData.category_id) {
-            // If no category selected, default to color only
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        // Convert to number for comparison (form select values are strings)
-        const categoryId = Number(formData.category_id);
-        const category = categories.find(c => c.id === categoryId);
-
-        console.log('Category lookup:', { categoryId, category, variant_types: category?.variant_types });
-
-        // If category not found or has no variant_types, default to color
-        if (!category) {
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        // Get variant_types - could be JSON string, array, or null
-        let types: string[] = [];
-        const vt = category.variant_types;
-
-        if (!vt) {
-            // No variant types configured
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        if (typeof vt === 'string') {
-            try {
-                types = JSON.parse(vt);
-            } catch {
-                return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-            }
-        } else if (Array.isArray(vt)) {
-            types = vt;
-        }
-
-        // If parsed types is empty, default to color
-        if (!types || types.length === 0) {
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        console.log('Parsed variant types:', types);
-        return VARIANT_TYPES_CONFIG.filter(vtConfig => types.includes(vtConfig.key));
-    }, [formData.category_id, categories]);
-
     // Debounce search: chờ 400ms sau lần gõ cuối mới gọi API
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -160,7 +104,6 @@ const Products: React.FC = () => {
     useEffect(() => {
         loadProducts();
         loadCategories();
-        loadUnits();
         loadAttributes(); // Load flexible attributes from API
     }, [pagination.page, debouncedSearch, selectedCategory, selectedStatus]);
 
@@ -189,15 +132,6 @@ const Products: React.FC = () => {
             setCategories(data);
         } catch (error) {
             console.error('Failed to load categories:', error);
-        }
-    };
-
-    const loadUnits = async () => {
-        try {
-            const data = await productService.getUnits();
-            setUnits(data);
-        } catch (error) {
-            console.error('Failed to load units:', error);
         }
     };
 
@@ -276,18 +210,10 @@ const Products: React.FC = () => {
             status: 'draft',
         });
         // Reset 2-step form state
-        setFormStep(1);
         setHasVariants(false);
         setSelectedAttributes([]);
-        setGeneratedVariants([]);
-        setVariantPrices({});
-        setVariantStocks({});
-        setInitialStock(0);
         // Legacy reset
         setFormVariants([]);
-        setNewVariantData({});
-        setNewVariantPrice(0);
-        setNewVariantStock(0);
         setFormError('');
         setIsModalOpen(true);
     };
@@ -298,12 +224,7 @@ const Products: React.FC = () => {
         setFormVariants([]);
         setSelectedAttributes([]);
         setCustomValues({});
-        setGeneratedVariants([]);
-        setVariantPrices({});
-        setVariantStocks({});
-        setInitialStock(0);
         setHasVariants(false);
-        setFormStep(1);
         setFormError('');
 
         // Now set the new product data
@@ -349,65 +270,8 @@ const Products: React.FC = () => {
             setFormVariants([]);
         }
 
-        setNewVariantData({});
-        setNewVariantPrice(product.selling_price);
-        setNewVariantStock(0);
-        setIsModalOpen(true);
-    };
-
-    // Generate SKU for variant based on selected attributes
-    const generateVariantSku = (attrs: Partial<TempVariant>) => {
-        const parts = [formData.sku];
-        if (attrs.color) parts.push(attrs.color.toUpperCase());
-        if (attrs.size) parts.push(attrs.size);
-        if (attrs.storage) parts.push(attrs.storage);
-        if (attrs.ram) parts.push(attrs.ram);
-        if (attrs.material) parts.push(attrs.material.toUpperCase().slice(0, 3));
-        if (attrs.capacity) parts.push(attrs.capacity);
-        return parts.join('-');
-    };
-
-    // Add variant to form
-    const handleAddVariant = () => {
-        // Check all required variant types are selected
-        const missingTypes = activeVariantTypes.filter(vt => !newVariantData[vt.key]);
-        if (missingTypes.length > 0) {
-            setFormError(`Vui lòng chọn: ${missingTypes.map(t => t.label).join(', ')}`);
-            return;
-        }
-
-        // Check duplicate combination
-        const isDuplicate = formVariants.some(v => {
-            return activeVariantTypes.every(vt => v[vt.key] === newVariantData[vt.key]);
-        });
-        if (isDuplicate) {
-            setFormError('Tổ hợp này đã tồn tại!');
-            return;
-        }
-
-        const newVariant: TempVariant = {
-            ...newVariantData,
-            sku: generateVariantSku(newVariantData),
-            price: newVariantPrice || formData.selling_price,
-            stock: newVariantStock,
-            isNew: true
-        };
-
-        setFormVariants([...formVariants, newVariant]);
-        setNewVariantData({});
-        setNewVariantPrice(formData.selling_price);
-        setNewVariantStock(0);
         setFormError('');
-    };
-
-    const handleRemoveVariant = (index: number) => {
-        setFormVariants(formVariants.filter((_, i) => i !== index));
-    };
-
-    const handleUpdateVariantField = (index: number, field: keyof TempVariant, value: any) => {
-        const updated = [...formVariants];
-        (updated[index] as any)[field] = value;
-        setFormVariants(updated);
+        setIsModalOpen(true);
     };
 
     // Validate product form before submit
@@ -489,7 +353,7 @@ const Products: React.FC = () => {
                                 value_ids: sa.value_ids
                             })),
                             base_price: formData.selling_price,
-                            base_stock: initialStock
+                            base_stock: 0
                         });
                         console.log('Generated variants:', generatedVariants);
                     } catch (genError) {
@@ -534,7 +398,7 @@ const Products: React.FC = () => {
                                 value_ids: sa.value_ids
                             })),
                             base_price: formData.selling_price,
-                            base_stock: initialStock
+                            base_stock: 0
                         });
                         console.log('Generated variants:', generatedVariants);
                     } catch (genError: any) {
@@ -566,11 +430,11 @@ const Products: React.FC = () => {
                 } else if (!hasVariants) {
                     // No variants selected - create default variant with initial stock
                     try {
-                        console.log('Creating default variant with stock:', initialStock);
+                        console.log('Creating default variant with stock: 0');
                         await productVariantService.create(productId, {
                             sku: `${autoSku}-DEFAULT`,
                             price: formData.selling_price,
-                            stock: initialStock
+                            stock: 0
                         });
                         console.log('Default variant created successfully');
                     } catch (defaultVariantError: any) {
@@ -664,14 +528,9 @@ const Products: React.FC = () => {
         const newValue = type === 'number' ? parseFloat(value) || 0 : value;
         setFormData(prev => ({ ...prev, [name]: newValue }));
 
-        if (name === 'selling_price') {
-            setNewVariantPrice(parseFloat(value) || 0);
-        }
-
         // Reset variants when category changes (different variant types)
         if (name === 'category_id') {
             setFormVariants([]);
-            setNewVariantData({});
         }
     };
 
@@ -683,25 +542,6 @@ const Products: React.FC = () => {
             ...prev,
             [name]: type === 'number' ? parseFloat(value) || 0 : value,
         }));
-    };
-
-    // Get display label for variant attributes
-    const getVariantLabel = (variant: TempVariant): string => {
-        const parts: string[] = [];
-        activeVariantTypes.forEach(vt => {
-            const val = variant[vt.key];
-            if (val) {
-                const opt = vt.options.find(o => o.value === val);
-                parts.push(opt?.label || val);
-            }
-        });
-        return parts.join(' / ') || 'Default';
-    };
-
-    const getColorHex = (colorValue: string): string => {
-        const colorConfig = VARIANT_TYPES_CONFIG.find(c => c.key === 'color');
-        const opt = colorConfig?.options.find(o => o.value === colorValue);
-        return opt?.hex || '#6B7280';
     };
 
     return (
@@ -1092,25 +932,7 @@ const Products: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Initial Stock Input */}
-                                    {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
-                                        <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                                            <label className="block text-sm font-medium text-emerald-400 mb-2">
-                                                📦 Số lượng tồn kho ban đầu (cho mỗi biến thể)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={initialStock}
-                                                onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
-                                                className="input w-full"
-                                                min="0"
-                                                placeholder="Nhập số lượng..."
-                                            />
-                                            <p className="text-xs text-emerald-400/70 mt-1">
-                                                Mỗi biến thể sẽ có số lượng này. Bạn có thể chỉnh sửa riêng từng biến thể sau.
-                                            </p>
-                                        </div>
-                                    )}
+                                    {/* Initial Stock Input Removed */}
 
                                     {/* Generate Variants Button */}
                                     {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
@@ -1127,7 +949,7 @@ const Products: React.FC = () => {
                                                         // Calculate number of variants
                                                         const count = selectedAttributes.reduce((acc, sa) => acc * sa.value_ids.length, 1);
                                                         setFormError('');
-                                                        alert(`Sẽ tạo ${count} biến thể với ${initialStock} sản phẩm mỗi biến thể khi lưu.`);
+                                                        alert(`Sẽ tạo ${count} biến thể khi lưu.`);
                                                     } finally {
                                                         setGeneratingVariants(false);
                                                     }
@@ -1135,8 +957,7 @@ const Products: React.FC = () => {
                                                 disabled={generatingVariants}
                                                 className="btn btn-primary w-full"
                                             >
-                                                {generatingVariants ? '⏳ Đang xử lý...' : `🚀 Xem trước biến thể (${selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)
-                                                    } tổ hợp x ${initialStock} SP)`}
+                                                {generatingVariants ? '⏳ Đang xử lý...' : `🚀 Xem trước biến thể (${selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)} tổ hợp)`}
                                             </button>
                                             <p className="text-xs text-slate-500 mt-2 text-center">
                                                 Biến thể sẽ được tạo khi bạn bấm "Thêm mới" hoặc "Cập nhật"
@@ -1154,26 +975,7 @@ const Products: React.FC = () => {
                             </div>
                         )}
 
-                        {/* No variants - show initial stock input */}
-                        {!hasVariants && (
-                            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                                <h4 className="font-medium text-amber-400 mb-3">📦 Số lượng sản phẩm ban đầu</h4>
-                                <p className="text-sm text-amber-400/70 mb-3">
-                                    Sản phẩm này không có biến thể. Nhập số lượng tồn kho ban đầu:
-                                </p>
-                                <input
-                                    type="number"
-                                    value={initialStock}
-                                    onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="input w-full"
-                                    min="0"
-                                    placeholder="Nhập số lượng..."
-                                />
-                                <p className="text-xs text-amber-400/60 mt-2">
-                                    💡 Bạn có thể cập nhật số lượng sau bằng cách quản lý biến thể.
-                                </p>
-                            </div>
-                        )}
+                        {/* No variants - show initial stock input removed */}
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700/50">
@@ -1197,7 +999,7 @@ const Products: React.FC = () => {
                         {variantFormError && (
                             <div className="mb-3 p-2 bg-red-100 text-red-700 rounded text-sm">{variantFormError}</div>
                         )}
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs text-slate-600">SKU</label>
                                 <input name="sku" value={variantFormData.sku} onChange={handleVariantInputChange} className="input text-sm" required />
@@ -1205,10 +1007,6 @@ const Products: React.FC = () => {
                             <div>
                                 <label className="text-xs text-slate-600">Giá</label>
                                 <input type="number" name="price" value={variantFormData.price} onChange={handleVariantInputChange} className="input text-sm" min="0" required />
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-600">Tồn kho</label>
-                                <input type="number" name="stock" value={variantFormData.stock} onChange={handleVariantInputChange} className="input text-sm" min="0" />
                             </div>
                         </div>
                         <div className="flex justify-end mt-3">

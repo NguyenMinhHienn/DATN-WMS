@@ -39,27 +39,35 @@ export class GoodsReceiptService {
         return receipt;
     }
 
-    async completeReceipt(id: number, userId?: number): Promise<boolean> {
+    async approveReceipt(id: number, userId?: number): Promise<boolean> {
         const receipt = await goodsReceiptRepository.findById(id);
         if (!receipt) {
-            throw new AppError('Goods receipt not found', 404);
+            throw new AppError('Phiếu nhập không tồn tại', 404);
         }
 
-        if (receipt.status === 'completed') {
-            throw new AppError('Receipt is already completed', 400);
+        if (receipt.status === 'APPROVED') {
+            throw new AppError('Phiếu đã được duyệt', 400);
         }
 
-        if (receipt.status === 'cancelled') {
-            throw new AppError('Cannot complete a cancelled receipt', 400);
+        if (receipt.status === 'CANCELLED') {
+            throw new AppError('Không thể duyệt phiếu đã hủy', 400);
         }
 
-        return goodsReceiptRepository.completeReceipt(id, userId);
+        if (receipt.status !== 'PENDING') {
+            throw new AppError('Chỉ có thể duyệt phiếu ở trạng thái PENDING', 400);
+        }
+
+        return goodsReceiptRepository.approveReceipt(id, userId);
     }
 
     async updateStatus(id: number, status: string): Promise<boolean> {
         const receipt = await goodsReceiptRepository.findById(id);
         if (!receipt) {
-            throw new AppError('Goods receipt not found', 404);
+            throw new AppError('Phiếu nhập không tồn tại', 404);
+        }
+
+        if (receipt.status === 'APPROVED') {
+            throw new AppError('Không thể thay đổi trạng thái phiếu đã duyệt', 400);
         }
 
         return goodsReceiptRepository.updateStatus(id, status);
@@ -68,11 +76,11 @@ export class GoodsReceiptService {
     async deleteReceipt(id: number): Promise<void> {
         const receipt = await goodsReceiptRepository.findById(id);
         if (!receipt) {
-            throw new AppError('Goods receipt not found', 404);
+            throw new AppError('Phiếu nhập không tồn tại', 404);
         }
 
-        if (receipt.status !== 'draft') {
-            throw new AppError('Only draft receipts can be deleted', 400);
+        if (receipt.status !== 'PENDING') {
+            throw new AppError('Chỉ có thể xóa phiếu ở trạng thái PENDING', 400);
         }
 
         const deleted = await goodsReceiptRepository.delete(id);

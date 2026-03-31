@@ -167,6 +167,27 @@ export interface VariantAttributeValue {
     color_code?: string;
 }
 
+// DTOs for Category operations
+export interface CreateCategoryDto {
+    name: string;
+    code: string;
+    description?: string;
+    parent_id?: number | null;
+    image_url?: string;
+    sort_order?: number;
+    is_active?: boolean;
+}
+
+export interface UpdateCategoryDto {
+    name?: string;
+    code?: string;
+    description?: string;
+    parent_id?: number | null;
+    image_url?: string;
+    sort_order?: number;
+    is_active?: boolean;
+}
+
 // DTOs for Attribute operations
 export interface CreateAttributeDto {
     name: string;
@@ -277,6 +298,7 @@ export interface StorageLocation {
 export interface Inventory {
     id: number;
     product_id: number;
+    product_variant_id?: number;
     warehouse_id: number;
     location_id?: number;
     quantity_on_hand: number;
@@ -338,12 +360,15 @@ export interface GoodsReceipt {
     discount_amount: number;
     total_amount: number;
     currency: string;
-    status: 'draft' | 'pending' | 'partial' | 'completed' | 'cancelled';
+    status: 'PENDING' | 'APPROVED' | 'CANCELLED';
     shipping_method?: string;
     tracking_number?: string;
     carrier_name?: string;
     notes?: string;
     internal_notes?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    reference_document?: string;
     received_by?: number;
     approved_by?: number;
     approved_at?: Date;
@@ -362,6 +387,8 @@ export interface GoodsReceiptItem {
     quantity_expected: number;
     quantity_received: number;
     quantity_rejected: number;
+    quantity_document: number;
+    quantity_actual: number;
     unit_id?: number;
     unit_cost: number;
     tax_rate: number;
@@ -582,6 +609,9 @@ export interface CreateGoodsReceiptDto {
     expected_date?: string;
     shipping_method?: string;
     notes?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    reference_document?: string;
     items: CreateGoodsReceiptItemDto[];
 }
 
@@ -590,10 +620,80 @@ export interface CreateGoodsReceiptItemDto {
     product_variant_id?: number;
     location_id?: number;
     quantity_expected: number;
+    quantity_document?: number;
+    quantity_actual?: number;
     unit_cost: number;
     batch_number?: string;
     manufacturing_date?: string;
     expiry_date?: string;
+}
+
+// Export Receipt (Phiếu xuất kho độc lập)
+export interface ExportReceipt {
+    id: number;
+    receipt_number: string;
+    receipt_date: Date;
+    receiver_name?: string;
+    receiver_department?: string;
+    export_reason: 'sale' | 'internal' | 'disposal' | 'transfer';
+    warehouse_id: number;
+    notes?: string;
+    reference_document?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    total_items: number;
+    total_quantity: number;
+    total_amount: number;
+    created_by?: number;
+    approved_by?: number;
+    approved_at?: Date;
+    status: 'PENDING' | 'APPROVED' | 'CANCELLED';
+    created_at: Date;
+    updated_at: Date;
+    deleted_at?: Date;
+    // Joined fields
+    warehouse_name?: string;
+    created_by_name?: string;
+    approved_by_name?: string;
+}
+
+export interface ExportReceiptItem {
+    id: number;
+    export_receipt_id: number;
+    product_id: number;
+    product_variant_id?: number;
+    quantity_requested: number;
+    quantity_actual: number;
+    unit_price: number;
+    line_total: number;
+    notes?: string;
+    // Joined fields
+    product_name?: string;
+    sku?: string;
+    variant_sku?: string;
+    current_stock?: number;
+    unit_name?: string;
+}
+
+export interface CreateExportReceiptDto {
+    receipt_date: string;
+    receiver_name?: string;
+    receiver_department?: string;
+    export_reason?: 'sale' | 'internal' | 'disposal' | 'transfer';
+    warehouse_id: number;
+    notes?: string;
+    reference_document?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    items: CreateExportReceiptItemDto[];
+}
+
+export interface CreateExportReceiptItemDto {
+    product_id: number;
+    product_variant_id?: number;
+    quantity_requested: number;
+    quantity_actual?: number;
+    unit_price?: number;
 }
 
 export interface CreateGoodsIssueDto {
@@ -734,6 +834,11 @@ export interface CreateStockTransferDto {
     destination_warehouse_id?: number;
     transfer_date?: string;
     expected_arrival_date?: string;
+    supplier_id?: number;
+    delivery_person?: string;
+    storekeeper?: string;
+    receiver_name?: string;
+    receiver_department?: string;
     reason?: string;
     notes?: string;
     items: CreateStockTransferItemDto[];

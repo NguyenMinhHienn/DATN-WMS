@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { attributeService } from '../../services/attributeService';
 import { productService } from '../../services/productService';
-import { Attribute, AttributeValue, Category, Product } from '../../interface';
+import { Attribute, Category, Product } from '../../interface';
 import { Modal } from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,7 +12,7 @@ const ProductConfig: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
     const [categoryForm, setCategoryForm] = useState({ name: '', code: '', description: '', parent_id: '' });
     const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
     const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
@@ -23,7 +23,6 @@ const ProductConfig: React.FC = () => {
     const [attributesLoading, setAttributesLoading] = useState(true);
     const [expandedAttr, setExpandedAttr] = useState<number | null>(null);
     const [attrModalOpen, setAttrModalOpen] = useState(false);
-    const [editingAttr, setEditingAttr] = useState<Attribute | null>(null);
     const [attrForm, setAttrForm] = useState({ name: '', display_name: '', type: 'select' });
 
     // Value modal
@@ -92,9 +91,64 @@ const ProductConfig: React.FC = () => {
         }
     };
 
+    // === CATEGORY HANDLERS ===
+    const handleAddCategory = () => {
+        setCategoryForm({ name: '', code: '', description: '', parent_id: '' });
+        setEditingCategoryId(null);
+        setCategoryModalOpen(true);
+    };
+
+    const handleEditCategory = (cat: Category, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCategoryForm({ 
+            name: cat.name, 
+            code: cat.code, 
+            description: cat.description || '', 
+            parent_id: cat.parent_id?.toString() || '' 
+        });
+        setEditingCategoryId(cat.id);
+        setCategoryModalOpen(true);
+    };
+
+    const handleSaveCategory = async () => {
+        if (!categoryForm.name || !categoryForm.code) {
+            setError('Vui lòng nhập tên và mã danh mục');
+            return;
+        }
+        try {
+            if (editingCategoryId) {
+                await productService.updateCategory(editingCategoryId, categoryForm);
+                setSuccess('Đã cập nhật danh mục!');
+            } else {
+                await productService.createCategory(categoryForm);
+                setSuccess('Đã thêm danh mục mới!');
+            }
+            setCategoryModalOpen(false);
+            loadCategories();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Có lỗi xảy ra');
+        }
+    };
+
+    const handleDeleteCategory = async (cat: Category, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!window.confirm(`Bạn có chắc muốn xóa danh mục "${cat.name}"?`)) {
+            return;
+        }
+        try {
+            await productService.deleteCategory(cat.id);
+            setSuccess('Đã xóa danh mục thành công!');
+            loadCategories();
+            if (expandedCategory === cat.id) {
+                setExpandedCategory(null);
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Có lỗi xảy ra: Có thể danh mục đang có sản phẩm.');
+        }
+    };
+
     // === ATTRIBUTE HANDLERS ===
     const handleAddAttribute = () => {
-        setEditingAttr(null);
         setAttrForm({ name: '', display_name: '', type: 'select' });
         setAttrModalOpen(true);
     };
@@ -199,7 +253,7 @@ const ProductConfig: React.FC = () => {
                             <h2 className="text-lg font-semibold text-white">Danh sách danh mục</h2>
                             {canEdit && (
                                 <button
-                                    onClick={() => setCategoryModalOpen(true)}
+                                    onClick={handleAddCategory}
                                     className="btn btn-primary"
                                 >
                                     + Thêm danh mục
@@ -238,8 +292,8 @@ const ProductConfig: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 {canEdit && (
                                                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                        <button className="p-2 hover:bg-slate-600 rounded text-slate-400 hover:text-white transition-colors">✏️</button>
-                                                        <button className="p-2 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
+                                                        <button onClick={(e) => handleEditCategory(cat, e)} className="p-2 hover:bg-slate-600 rounded text-slate-400 hover:text-white transition-colors">✏️</button>
+                                                        <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-2 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
                                                     </div>
                                                 )}
                                                 <span className="text-slate-400 ml-2">
@@ -505,11 +559,11 @@ const ProductConfig: React.FC = () => {
                 </div>
             </Modal>
 
-            {/* Category Modal - placeholder for now */}
+            {/* Category Modal */}
             <Modal
                 isOpen={categoryModalOpen}
                 onClose={() => setCategoryModalOpen(false)}
-                title="Thêm danh mục mới"
+                title={editingCategoryId ? "Sửa danh mục" : "Thêm danh mục mới"}
             >
                 <div className="space-y-4">
                     <div>
@@ -544,10 +598,10 @@ const ProductConfig: React.FC = () => {
                     <div className="flex justify-end gap-3 pt-4">
                         <button onClick={() => setCategoryModalOpen(false)} className="btn btn-secondary">Hủy</button>
                         <button
-                            onClick={() => alert('Cần thêm Category API trước')}
+                            onClick={handleSaveCategory}
                             className="btn btn-primary"
                         >
-                            Thêm
+                            {editingCategoryId ? 'Lưu thay đổi' : 'Thêm'}
                         </button>
                     </div>
                 </div>

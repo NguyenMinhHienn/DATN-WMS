@@ -433,6 +433,12 @@ export interface StockTransfer {
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
     reason?: string;
     notes?: string;
+    supplier_id?: number;
+    supplier_name?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    receiver_name?: string;
+    receiver_department?: string;
     rejection_reason?: string;
     approved_by_name?: string;
     approved_at?: string;
@@ -452,9 +458,12 @@ export interface StockTransferItem {
     sku?: string;
     quantity_requested: number;
     quantity_received: number;
+    quantity?: number; // Added for display in StockOut
     unit_cost: number;
     line_total: number;
     batch_number?: string;
     expiry_date?: string;
     status: string;
+    variant_name?: string; // Added for display in StockOut
+    notes?: string; // Added for display in StockOut
 }

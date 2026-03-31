@@ -36,12 +36,17 @@ export class InventoryService {
     async getMovementLogs(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
         endDate?: string
     ) {
-        return inventoryRepository.getMovementLogs(page, limit, productId, warehouseId, startDate, endDate);
+        return inventoryRepository.getMovementLogs(page, limit, inventoryId, productId, warehouseId, startDate, endDate);
+    }
+
+    async getPerformanceMetrics(inventoryId: number) {
+        return inventoryRepository.getProductPerformanceMetrics(inventoryId);
     }
 }
 

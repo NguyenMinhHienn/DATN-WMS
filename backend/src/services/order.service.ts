@@ -3,6 +3,7 @@ import * as cartRepository from '../repositories/cart.repository';
 import * as variantRepository from '../repositories/variant.repository';
 import { productRepository } from '../repositories/product.repository';
 import { AppError } from '../middlewares/error.middleware';
+import { inventoryCoreService } from './inventory-core.service';
 
 /**
  * Order Service
@@ -59,14 +60,17 @@ class OrderService {
         let totalAmount = 0;
 
         for (const cartItem of cartItems) {
-            // Check stock
+            // Check stock - dùng available (on_hand - reserved) thay vì variant.stock
             const variant = await variantRepository.findById(cartItem.product_variant_id);
             if (!variant) {
                 throw new AppError(`Biến thể sản phẩm "${cartItem.product_name}" không tồn tại`, 400);
             }
-            if (variant.stock < cartItem.quantity) {
+
+            // Kiểm tra available stock (on_hand - reserved) qua inventory core service
+            const available = await inventoryCoreService.getTotalAvailableStock(cartItem.product_variant_id);
+            if (available < cartItem.quantity) {
                 throw new AppError(
-                    `Sản phẩm "${cartItem.product_name}" không đủ tồn kho. Còn lại: ${variant.stock}`,
+                    `Sản phẩm "${cartItem.product_name}" không đủ tồn kho. Có sẵn: ${available}`,
                     400
                 );
             }

@@ -53,16 +53,27 @@ export const getLowStockItems = asyncHandler(async (req: AuthRequest, res: Respo
 export const getMovementLogs = asyncHandler(async (req: AuthRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
+    const inventoryId = req.query.inventory_id ? parseInt(req.query.inventory_id as string) : undefined;
     const productId = req.query.product_id ? parseInt(req.query.product_id as string) : undefined;
     const warehouseId = req.query.warehouse_id ? parseInt(req.query.warehouse_id as string) : undefined;
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
 
-    const result = await inventoryService.getMovementLogs(page, limit, productId, warehouseId, startDate, endDate);
+    const result = await inventoryService.getMovementLogs(page, limit, inventoryId, productId, warehouseId, startDate, endDate);
 
     res.json({
         success: true,
         data: result.data,
         pagination: result.pagination,
+    } as ApiResponse);
+});
+
+export const getPerformanceMetrics = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const metrics = await inventoryService.getPerformanceMetrics(id);
+
+    res.json({
+        success: true,
+        data: metrics,
     } as ApiResponse);
 });
