@@ -4,7 +4,7 @@ import payos from "../config/payos";
 export const confirmWebhook = async (req: Request, res: Response) => {
   try {
 
-    const webhookUrl = "https://898d-118-69-24-126.ngrok-free.app/api/webhook";;
+    const webhookUrl = "https://b0e1-42-116-163-76.ngrok-free.app/api/webhook";;
 
     const response = await (payos as any).confirmWebhook(webhookUrl);
 
