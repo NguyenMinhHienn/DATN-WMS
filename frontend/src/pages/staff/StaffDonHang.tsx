@@ -61,8 +61,8 @@ const OrderStepper: React.FC<{ status: string }> = ({ status }) => {
                                 {isCompleted ? '✓' : <span className="text-[10px]">{STEP_ICONS[idx]}</span>}
                             </div>
                             <span className={`text-[10px] font-medium hidden sm:inline ${isCompleted ? 'text-emerald-600' :
-                                    isCurrent ? 'text-emerald-700 font-semibold' :
-                                        'text-slate-400'
+                                isCurrent ? 'text-emerald-700 font-semibold' :
+                                    'text-slate-400'
                                 }`}>{step}</span>
                         </div>
                         {idx < STEPS.length - 1 && (
@@ -286,7 +286,7 @@ const StaffDonHang: React.FC = () => {
                                         ? `bg-white ${config.borderLight} shadow-md`
                                         : 'bg-white border-slate-200 hover:border-slate-300'
                                     }`}>
-
+                                {/*test*/}
                                 {/* Status accent line on left */}
                                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-all duration-300"
                                     style={{ backgroundColor: config.color, opacity: isExpanded ? 1 : 0.5 }} />
