@@ -25,6 +25,7 @@ import * as dashboardController from '../controllers/dashboard.controller';
 import supplierRoutes from './supplier.routes';
 import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
+import { getTransferByOrder } from '../controllers/transfer.controller';
 
 
 const router = Router();
@@ -210,6 +211,7 @@ router.get('/cart/count', authenticate, cartController.getCartItemCount);
 router.put('/cart/items/:itemId', authenticate, cartController.updateCartItem);
 router.delete('/cart/items/:itemId', authenticate, cartController.removeCartItem);
 router.delete('/cart', authenticate, cartController.clearCart);
+router.get("/transfers/by-order/:orderId", getTransferByOrder);
 
 // ==================== SUPPLIERS ROUTES ====================
 router.use('/suppliers', supplierRoutes);

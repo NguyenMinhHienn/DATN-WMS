@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService, OrderSummary, OrderDetail } from '../../services/orderService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import ExportTransferViewer from './ExportTransferViewer';
 
 /**
  * Client Orders Page - Theo dõi trạng thái đơn hàng
@@ -275,6 +276,13 @@ const OrdersPage: React.FC = () => {
                                                 >
                                                     {payInfo.text}
                                                 </span>
+                                                  <ExportTransferViewer
+                                                    orderId={order.id}            // ✅ ID đơn hàng
+                                                    
+                                                    userId={order.user_id}        // ✅ ID user tạo đơn
+                                                    orderDate={order.created_at}  // ✅ Ngày tạo đơn
+                                                    
+                                                />
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-slate-400">{formatDate(order.created_at)}</span>
