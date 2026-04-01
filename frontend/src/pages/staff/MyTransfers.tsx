@@ -131,6 +131,7 @@ const MyTransfers: React.FC = () => {
                         <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
                             <tr>
                                 <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Mã phiếu</th>
+                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Mã Đơn hàng</th>
                                 <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Loại</th>
                                 <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Kho</th>
                                 <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Số lượng</th>
@@ -170,6 +171,9 @@ const MyTransfers: React.FC = () => {
                                             <span className="font-mono text-sm font-semibold text-indigo-600">
                                                 {transfer.transfer_number}
                                             </span>
+                                        </td>
+                                        <td className="py-4 px-6 font-mono text-sm">
+                                            {transfer.order_id ? `#${transfer.order_id}` : '-'}
                                         </td>
                                         <td className="py-4 px-6">{getTypeBadge(transfer.transfer_type)}</td>
                                         <td className="py-4 px-6 text-slate-700">
@@ -299,6 +303,12 @@ const MyTransfers: React.FC = () => {
                                             <span className="text-slate-500">Ngày tạo:</span>
                                             <span className="font-medium text-slate-800">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</span>
                                         </div>
+                                        {selectedTransfer.order_id && (
+                                            <div className="flex justify-between border-b border-slate-100 pb-2">
+                                                <span className="text-slate-500">Mã đơn hàng:</span>
+                                                <span className="font-medium text-slate-800 font-mono">#{selectedTransfer.order_id}</span>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between border-b border-slate-100 pb-2">
                                             <span className="text-slate-500">Ghi chú:</span>
                                             <span className="font-medium text-slate-800">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>

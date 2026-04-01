@@ -240,20 +240,10 @@ export class StockTransferRepository {
             const sourceWarehouseId = dto.source_warehouse_id || dto.destination_warehouse_id;
             const destWarehouseId = dto.destination_warehouse_id || dto.source_warehouse_id;
 
-            // Insert phiếu với trạng thái PENDING
-            // Bao gồm transfer_type để xác định loại phiếu
-            const [result] = await connection.query<ResultSetHeader>(`
-                INSERT INTO stock_transfers (
-                    transfer_number, transfer_type, supplier_id,
-                    source_warehouse_id, destination_warehouse_id,
-                    transfer_date, expected_arrival_date,
-                    total_items, total_quantity, total_value,
-                    status, reason, notes,
-                    delivery_person, storekeeper, receiver_name, receiver_department,
-                    receiver_address, receiver_phone,
-                    requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
+            console.log('[StockTransferRepository] order_id:', dto.order_id);
+            console.log('[StockTransferRepository] dto:', JSON.stringify(dto, null, 2));
+
+            const params = [
                 transferNumber,
                 dto.transfer_type || 'IMPORT',
                 dto.supplier_id || null,
@@ -264,7 +254,9 @@ export class StockTransferRepository {
                 totalItems,
                 totalQuantity,
                 totalValue,
+                'pending', // status
                 dto.reason || null,
+                dto.order_id || null,
                 dto.notes || null,
                 dto.delivery_person || null,
                 dto.storekeeper || null,
@@ -274,7 +266,23 @@ export class StockTransferRepository {
                 dto.receiver_phone || null,
                 userId,
                 userId,
-            ]);
+            ];
+
+            console.log('[StockTransferRepository] Executing INSERT with order_id:', dto.order_id);
+            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[12]);
+
+            const [result] = await connection.query<ResultSetHeader>(`
+                INSERT INTO stock_transfers (
+                    transfer_number, transfer_type, supplier_id,
+                    source_warehouse_id, destination_warehouse_id,
+                    transfer_date, expected_arrival_date,
+                    total_items, total_quantity, total_value,
+                    status, reason, order_id, notes,
+                    delivery_person, storekeeper, receiver_name, receiver_department,
+                    receiver_address, receiver_phone,
+                    requested_by, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, params);
 
             const transferId = result.insertId;
 

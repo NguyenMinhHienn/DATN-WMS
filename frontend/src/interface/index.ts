@@ -432,6 +432,7 @@ export interface StockTransfer {
     total_value: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
     reason?: string;
+    order_id?: number;
     notes?: string;
     supplier_id?: number;
     supplier_name?: string;

@@ -156,6 +156,7 @@ const StockTransfers: React.FC = () => {
                     <thead className="bg-slate-800/50 border-b border-slate-700/50">
                         <tr>
                             <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">Mã phiếu</th>
+                            <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">Đơn hàng</th>
                             <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">Loại</th>
                             <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">Kho</th>
                             <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">Số lượng</th>
@@ -188,6 +189,9 @@ const StockTransfers: React.FC = () => {
                                 <tr key={transfer.id} className="border-b border-slate-700/30 hover:bg-amber-500/10 transition-colors bg-amber-500/5">
                                     <td className="px-6 py-4 font-medium text-white font-mono">
                                         {transfer.transfer_number}
+                                    </td>
+                                    <td className="px-6 py-4 font-mono text-indigo-300 text-sm">
+                                        {transfer.order_id ? `#${transfer.order_id}` : '-'}
                                     </td>
                                     <td className="px-6 py-4">{getTypeBadge(transfer.transfer_type)}</td>
                                     <td className="px-6 py-4 text-slate-300 text-sm">
@@ -309,6 +313,12 @@ const StockTransfers: React.FC = () => {
                                 <span className="text-slate-500">Người tạo:</span>
                                 <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
                             </div>
+                            {selectedTransfer.order_id && (
+                                <div>
+                                    <span className="text-slate-500">Mã đơn hàng:</span>
+                                    <p className="font-medium text-white font-mono">#{selectedTransfer.order_id}</p>
+                                </div>
+                            )}
                             <div>
                                 <span className="text-slate-500">Tổng giá trị:</span>
                                 <p className="font-medium text-lg text-indigo-400">{selectedTransfer.total_value.toLocaleString()} đ</p>

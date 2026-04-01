@@ -787,6 +787,7 @@ export interface StockTransfer {
     tracking_number?: string;
     carrier_name?: string;
     reason?: string;
+    order_id?: number;
     notes?: string;
     rejection_reason?: string;
     requested_by?: number;
@@ -845,6 +846,8 @@ export interface CreateStockTransferDto {
     receiver_department?: string;
     receiver_address?: string;
     receiver_phone?: string;
+    order_id?: number;
+    orderId?: number; // Alias for robustness
     reason?: string;
     notes?: string;
     items: CreateStockTransferItemDto[];

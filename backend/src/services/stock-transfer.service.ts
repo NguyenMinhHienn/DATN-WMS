@@ -142,6 +142,9 @@ export class StockTransferService {
             notes: item.notes,
         }));
 
+        // Console log normalized DTO including order_id
+        console.log('[StockTransferService] Normalized DTO order_id:', dto.order_id);
+        
         return {
             transfer_type,
             source_warehouse_id: dto.source_warehouse_id,
@@ -155,6 +158,7 @@ export class StockTransferService {
             receiver_department: dto.receiver_department,
             receiver_address: dto.receiver_address,
             receiver_phone: dto.receiver_phone,
+            order_id: dto.order_id || dto.orderId,
             reason: dto.reason,
             notes: dto.notes,
             items: normalizedItems,

@@ -57,6 +57,7 @@ const CreateTransfer: React.FC = () => {
     const [reason, setReason] = useState('');
     const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split('T')[0]);
     const [supplierId, setSupplierId] = useState<number | undefined>();
+    const [orderId, setOrderId] = useState<number | undefined>();
     const [isCustomSupplier, setIsCustomSupplier] = useState(false);
     const [customSupplierName, setCustomSupplierName] = useState('');
     const [deliveryPerson, setDeliveryPerson] = useState('');
@@ -114,6 +115,7 @@ const CreateTransfer: React.FC = () => {
             if (location.state?.fromOrder) {
                 setTransferType('EXPORT');
                 setReason(location.state.reason || '');
+                if (location.state.orderId) setOrderId(location.state.orderId);
                 // Auto-fill receiver info from order
                 if (location.state.shippingName) setReceiverName(location.state.shippingName);
                 if (location.state.shippingAddress) setReceiverAddress(location.state.shippingAddress);
@@ -320,6 +322,7 @@ const CreateTransfer: React.FC = () => {
                 destination_warehouse_id: 1,
                 transfer_date: receiptDate,
                 reason: transferType === 'EXPORT' ? (exportNote ? `${reason} - ${exportNote}` : reason) : reason,
+                order_id: transferType === 'EXPORT' ? orderId : undefined,
                 supplier_id: transferType === 'IMPORT' ? finalSupplierId : undefined,
                 delivery_person: deliveryPerson || undefined,
                 storekeeper: storekeeperName || undefined,

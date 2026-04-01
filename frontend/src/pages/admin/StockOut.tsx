@@ -141,6 +141,7 @@ const StockOut: React.FC = () => {
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho nguồn (Xuất)</th>
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho đích (Nhận)</th>
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người yêu cầu</th>
+                                    <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Đơn hàng</th>
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày tạo</th>
                                     <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Tổng SP</th>
                                     <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
@@ -153,6 +154,7 @@ const StockOut: React.FC = () => {
                                         <td className="py-4 px-6 text-sm text-orange-400 font-medium">{transfer.source_warehouse_name || '-'}</td>
                                         <td className="py-4 px-6 text-sm text-emerald-400 font-medium">{transfer.destination_warehouse_name}</td>
                                         <td className="py-4 px-6 text-sm text-white">{transfer.created_by_name}</td>
+                                        <td className="py-4 px-6 text-sm font-mono text-indigo-300">{transfer.order_id ? `#${transfer.order_id}` : '-'}</td>
                                         <td className="py-4 px-6 text-sm text-slate-400">{new Date(transfer.created_at).toLocaleDateString('vi-VN')}</td>
                                         <td className="py-4 px-6 text-sm text-center font-bold text-white">{transfer.total_quantity}</td>
                                         <td className="py-4 px-6 text-center">{getStatusBadge(transfer.status)}</td>
@@ -223,6 +225,12 @@ const StockOut: React.FC = () => {
                                 <p className="text-slate-400 text-sm mb-1">Người yêu cầu</p>
                                 <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
                             </div>
+                            {selectedTransfer.order_id && (
+                                <div className="bg-slate-900/50 p-4 rounded-lg">
+                                    <p className="text-slate-400 text-sm mb-1">Đơn hàng</p>
+                                    <p className="font-medium text-indigo-400 font-mono">#{selectedTransfer.order_id}</p>
+                                </div>
+                            )}
                             <div className="bg-slate-900/50 p-4 rounded-lg">
                                 <p className="text-slate-400 text-sm mb-1">Trạng thái</p>
                                 <div>{getStatusBadge(selectedTransfer.status)}</div>
