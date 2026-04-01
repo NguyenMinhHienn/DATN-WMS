@@ -17,6 +17,7 @@ import { AppError } from '../middlewares/error.middleware';
  * - ADMIN: Xem tất cả phiếu, duyệt/từ chối phiếu
  * - IMPORT: Cho phép nhập thông tin sản phẩm mới (tên, SKU, hình)
  */
+// test
 export class StockTransferService {
 
     async getAllTransfers(
