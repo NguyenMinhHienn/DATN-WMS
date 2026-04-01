@@ -54,7 +54,7 @@ const ExportTransferViewer: React.FC<Props> = ({ orderId }) => {
 
             const res = await axios.get(`/api/transfers/by-order/${orderId}`);
             const transfer = res.data;
-             console.log("API RES:", res.data);
+            console.log("API RES:", res.data);
 
             if (!transfer) {
                 alert("Phiếu chưa được tạo, vui lòng chờ...");
@@ -77,10 +77,30 @@ const ExportTransferViewer: React.FC<Props> = ({ orderId }) => {
     };
 
     const getStatusStyle = (status: string) => {
-        if (status === "Đã duyệt ") return "bg-green-100 text-green-600";
-        if (status === "Đang chờ ") return "bg-yellow-100 text-yellow-600";
-        if (status === "Đã bị từ chôi ") return "bg-red-100 text-red-600";
-        return "bg-gray-100 text-gray-600";
+        switch (status) {
+            case "approved":
+                return "bg-green-100 text-green-600";
+            case "pending":
+                return "bg-yellow-100 text-yellow-600";
+            case "cancelled":
+            case "rejected":
+                return "bg-red-100 text-red-600";
+            default:
+                return "bg-gray-100 text-gray-600";
+        }
+    };
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case "approved":
+                return "Đã duyệt";
+            case "pending":
+                return "Chờ duyệt";
+            case "cancelled":
+            case "rejected":
+                return "Bị từ chối";
+            default:
+                return status;
+        }
     };
 
     return (
@@ -115,7 +135,7 @@ const ExportTransferViewer: React.FC<Props> = ({ orderId }) => {
                                 </span>
 
                                 <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusStyle(data.status)}`}>
-                                    {data.status}
+                                    {getStatusLabel(data.status)}
                                 </span>
 
                                 <button
