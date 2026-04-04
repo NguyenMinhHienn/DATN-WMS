@@ -42,6 +42,13 @@ class DashboardService {
         }
         return result;
     }
+
+    /**
+     * Lấy chi tiết đơn hàng, phiếu nhập, phiếu xuất trong tháng
+     */
+    async getMonthlyDetail(year: number, month: number): Promise<any> {
+        return dashboardRepository.getMonthlyDetail(year, month);
+    }
 }
 
 export const dashboardService = new DashboardService();

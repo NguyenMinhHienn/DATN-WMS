@@ -113,6 +113,57 @@ class DashboardRepository {
 
         return rows as MonthlyReportRow[];
     }
+
+    async getOrdersByMonth(year: number, month: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT id, CONCAT('ORD-', id) as code, created_at as date, total_amount, status
+            FROM orders
+            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
+            ORDER BY created_at DESC
+        `, [year, month]);
+        return rows;
+    }
+
+    async getReceiptsByMonth(year: number, month: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT id, receipt_number as code, created_at as date, total_amount, status
+            FROM goods_receipts
+            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ? AND deleted_at IS NULL
+            ORDER BY created_at DESC
+        `, [year, month]);
+        return rows;
+    }
+
+    async getIssuesByMonth(year: number, month: number): Promise<any[]> {
+        // Kết hợp cả phiếu xuất kho (export_slips) và phiếu xuất nội bộ (stock_transfers EXPORT)
+        // Lưu ý: export_slips không có total_amount riêng mà lấy từ order, và không có deleted_at
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT es.id, CONCAT('PXK-', es.id) as code, es.created_at as date, o.total_amount, es.status, 'EXPORT_SLIP' as type
+            FROM export_slips es
+            JOIN orders o ON es.order_id = o.id
+            WHERE YEAR(es.created_at) = ? AND MONTH(es.created_at) = ?
+            UNION ALL
+            SELECT id, transfer_number as code, created_at as date, total_value as total_amount, status, 'STOCK_TRANSFER' as type
+            FROM stock_transfers
+            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ? AND transfer_type = 'EXPORT' AND deleted_at IS NULL
+            ORDER BY date DESC
+        `, [year, month, year, month]);
+        return rows;
+    }
+
+    async getMonthlyDetail(year: number, month: number): Promise<any> {
+        const [orders, receipts, issues] = await Promise.all([
+            this.getOrdersByMonth(year, month),
+            this.getReceiptsByMonth(year, month),
+            this.getIssuesByMonth(year, month)
+        ]);
+
+        return {
+            orders: orders || [],
+            receipts: receipts || [],
+            issues: issues || []
+        };
+    }
 }
 
 export const dashboardRepository = new DashboardRepository();

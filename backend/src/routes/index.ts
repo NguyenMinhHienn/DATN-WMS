@@ -137,6 +137,7 @@ router.use('/print', printRoutes);
 // ==================== DASHBOARD (Doanh thu & Lợi nhuận) ====================
 router.get('/dashboard/summary', authenticate, isAdmin, dashboardController.getSummary);
 router.get('/dashboard/monthly-report', authenticate, isAdmin, dashboardController.getMonthlyReport);
+router.get('/dashboard/monthly-detail/:year/:month', authenticate, isAdmin, dashboardController.getMonthlyDetail);
 
 // ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
 // Public: Get all attributes (for product forms)

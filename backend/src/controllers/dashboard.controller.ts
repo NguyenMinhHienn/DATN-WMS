@@ -36,3 +36,35 @@ export const getMonthlyReport = asyncHandler(async (req: AuthRequest, res: Respo
         data: report,
     } as ApiResponse);
 });
+
+/**
+ * GET /dashboard/monthly-detail/:year/:month
+ * Trả về chi tiết đơn hàng, phiếu nhập, phiếu xuất trong tháng
+ */
+export const getMonthlyDetail = asyncHandler(async (req: AuthRequest, res: Response) => {
+    try {
+        const year = parseInt(req.params.year);
+        const month = parseInt(req.params.month);
+
+        if (isNaN(year) || isNaN(month)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Năm hoặc tháng không hợp lệ',
+            } as ApiResponse);
+        }
+
+        const detail = await dashboardService.getMonthlyDetail(year, month);
+
+        return res.json({
+            success: true,
+            message: 'Monthly detail retrieved successfully',
+            data: detail,
+        } as ApiResponse);
+    } catch (error: any) {
+        console.error('Error in getMonthlyDetail:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi lấy chi tiết báo cáo: ' + error.message,
+        } as ApiResponse);
+    }
+});

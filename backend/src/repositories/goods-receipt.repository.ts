@@ -310,7 +310,39 @@ export class GoodsReceiptRepository {
                             'UPDATE product_variants SET stock = ?, average_cost = ?, updated_at = NOW() WHERE id = ?',
                             [totalStock, newAvg, item.product_variant_id]
                         );
+
+                        // Đồng thời cập nhật cost_price cho sản phẩm cha dựa trên MWA của variant này
+                        await connection.query(
+                            'UPDATE products SET cost_price = ?, updated_at = NOW() WHERE id = ?',
+                            [newAvg, item.product_id]
+                        );
                     }
+                } else {
+                    // Nếu không có variant, cập nhật trực tiếp cho product (trường hợp sản phẩm đơn giản)
+                    const [pr] = await connection.query<RowDataPacket[]>(
+                        'SELECT cost_price FROM products WHERE id = ?',
+                        [item.product_id]
+                    );
+                    
+                    const [stockRows] = await connection.query<RowDataPacket[]>(
+                        'SELECT SUM(quantity_on_hand) as total_stock FROM inventories WHERE product_id = ?',
+                        [item.product_id]
+                    );
+                    
+                    const currentTotalStock = Number(stockRows[0].total_stock) || 0;
+                    const oldStock = currentTotalStock - actualQty; // Tồn trước khi nhập
+                    const oldAvg = pr.length > 0 ? Number(pr[0].cost_price) || 0 : 0;
+                    const newQty = actualQty;
+                    const totalStock = currentTotalStock;
+
+                    const newAvg = totalStock > 0
+                        ? Math.round(((oldStock * oldAvg) + (newQty * item.unit_cost)) / totalStock)
+                        : item.unit_cost;
+
+                    await connection.query(
+                        'UPDATE products SET cost_price = ?, updated_at = NOW() WHERE id = ?',
+                        [newAvg, item.product_id]
+                    );
                 }
             }
 

@@ -18,12 +18,25 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const MONTH_LABELS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
     'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
 
+interface MonthlyDetailData {
+    orders: any[];
+    receipts: any[];
+    issues: any[];
+}
+
 const FinancialReport: React.FC = () => {
     const navigate = useNavigate();
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Detail Modal States
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+    const [detailData, setDetailData] = useState<MonthlyDetailData | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'orders' | 'receipts' | 'issues'>('orders');
 
     // Generate year options (current year and 5 years back)
     const yearOptions: number[] = [];
@@ -46,12 +59,52 @@ const FinancialReport: React.FC = () => {
         }
     };
 
+    const handleMonthClick = async (month: number) => {
+        setSelectedMonth(month);
+        setIsModalOpen(true);
+        setDetailLoading(true);
+        setActiveTab('orders');
+        setDetailData(null); // Reset dữ liệu cũ
+        try {
+            const data = await reportService.getMonthlyDetail(selectedYear, month);
+            if (data) {
+                setDetailData(data);
+            } else {
+                setDetailData({ orders: [], receipts: [], issues: [] });
+            }
+        } catch (error: any) {
+            console.error('Failed to load monthly detail:', error);
+            const errorMsg = error.response?.data?.message || 'Không thể tải chi tiết tháng. Có thể bạn không có quyền Admin.';
+            alert(errorMsg);
+            setIsModalOpen(false);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
     };
 
     const formatCompact = (value: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(value);
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('vi-VN');
+    };
+
+    const getStatusBadge = (status: string) => {
+        const statusMap: Record<string, { label: string, class: string }> = {
+            'pending': { label: 'Chờ duyệt', class: 'bg-amber-500/20 text-amber-400' },
+            'approved': { label: 'Đã duyệt', class: 'bg-emerald-500/20 text-emerald-400' },
+            'completed': { label: 'Hoàn thành', class: 'bg-blue-500/20 text-blue-400' },
+            'delivered': { label: 'Đã giao', class: 'bg-emerald-500/20 text-emerald-400' },
+            'cancelled': { label: 'Đã hủy', class: 'bg-red-500/20 text-red-400' },
+        };
+        const s = status.toLowerCase();
+        const config = statusMap[s] || { label: status, class: 'bg-slate-700/50 text-slate-400' };
+        return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.class}`}>{config.label}</span>;
     };
 
     // Totals
@@ -133,6 +186,12 @@ const FinancialReport: React.FC = () => {
                 },
             },
         },
+        onClick: (event: any, elements: any) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                handleMonthClick(index + 1);
+            }
+        }
     };
 
     return (
@@ -216,7 +275,7 @@ const FinancialReport: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h2 className="text-xl font-semibold text-white">📊 Biểu đồ tài chính theo tháng</h2>
-                        <p className="text-sm text-slate-400 mt-1">So sánh doanh thu, giá vốn và lợi nhuận năm {selectedYear}</p>
+                        <p className="text-sm text-slate-400 mt-1">So sánh doanh thu, giá vốn và lợi nhuận năm {selectedYear} (Click vào cột để xem chi tiết)</p>
                     </div>
                     <span className="badge badge-success">Real Data</span>
                 </div>
@@ -229,7 +288,7 @@ const FinancialReport: React.FC = () => {
             <div className="chart-container">
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold text-white">📋 Chi tiết theo từng tháng</h2>
-                    <p className="text-sm text-slate-400 mt-1">Bảng tổng hợp doanh thu, giá vốn, lợi nhuận năm {selectedYear}</p>
+                    <p className="text-sm text-slate-400 mt-1">Bảng tổng hợp doanh thu, giá vốn, lợi nhuận năm {selectedYear} (Click để xem chi tiết tháng)</p>
                 </div>
 
                 {loading ? (
@@ -263,7 +322,8 @@ const FinancialReport: React.FC = () => {
                                     return (
                                         <tr
                                             key={item.month}
-                                            className={`border-b border-slate-700/30 transition-colors ${isNegative
+                                            onClick={() => handleMonthClick(item.month)}
+                                            className={`border-b border-slate-700/30 transition-colors cursor-pointer ${isNegative
                                                     ? 'bg-red-500/10 hover:bg-red-500/20'
                                                     : 'hover:bg-slate-700/30'
                                                 }`}
@@ -349,6 +409,151 @@ const FinancialReport: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* Monthly Detail Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <span className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center">
+                                        {selectedMonth}
+                                    </span>
+                                    Chi tiết tài chính {MONTH_LABELS[selectedMonth! - 1]} {selectedYear}
+                                </h2>
+                                <p className="text-slate-400 mt-1">Danh sách các giao dịch phát sinh trong tháng</p>
+                            </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Tabs */}
+                        <div className="flex px-6 pt-4 bg-slate-900/50">
+                            <button
+                                onClick={() => setActiveTab('orders')}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'orders' ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                            >
+                                📦 Đơn hàng (Web)
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('receipts')}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'receipts' ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                            >
+                                📥 Phiếu nhập kho
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('issues')}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'issues' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                            >
+                                📤 Phiếu xuất nội bộ
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 min-h-[400px]">
+                            {detailLoading ? (
+                                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-slate-400">Đang truy xuất dữ liệu...</p>
+                                </div>
+                            ) : (
+                                <div className="animate-fadeIn">
+                                    {activeTab === 'orders' && (
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b border-slate-800">
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã đơn</th>
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày tạo</th>
+                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng tiền</th>
+                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {!detailData || !detailData.orders || detailData.orders.length === 0 ? (
+                                                    <tr><td colSpan={4} className="py-10 text-center text-slate-500 italic">Không có đơn hàng nào trong tháng này</td></tr>
+                                                ) : detailData.orders.map((o: any) => (
+                                                    <tr key={o.id} className="hover:bg-slate-800/30 transition-colors">
+                                                        <td className="py-4 px-4 font-mono text-indigo-400 font-medium">{o.code}</td>
+                                                        <td className="py-4 px-4 text-slate-300">{formatDate(o.date)}</td>
+                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(o.total_amount)}</td>
+                                                        <td className="py-4 px-4 text-center">{getStatusBadge(o.status)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {activeTab === 'receipts' && (
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b border-slate-800">
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày nhập</th>
+                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị nhập</th>
+                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {!detailData || !detailData.receipts || detailData.receipts.length === 0 ? (
+                                                    <tr><td colSpan={4} className="py-10 text-center text-slate-500 italic">Không có phiếu nhập kho nào trong tháng này</td></tr>
+                                                ) : detailData.receipts.map((r: any) => (
+                                                    <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
+                                                        <td className="py-4 px-4 font-mono text-amber-400 font-medium">{r.code}</td>
+                                                        <td className="py-4 px-4 text-slate-300">{formatDate(r.date)}</td>
+                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(r.total_amount)}</td>
+                                                        <td className="py-4 px-4 text-center">{getStatusBadge(r.status)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {activeTab === 'issues' && (
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b border-slate-800">
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
+                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày xuất</th>
+                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị xuất</th>
+                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {!detailData || !detailData.issues || detailData.issues.length === 0 ? (
+                                                    <tr><td colSpan={4} className="py-10 text-center text-slate-500 italic">Không có phiếu xuất kho nào trong tháng này</td></tr>
+                                                ) : detailData.issues.map((i: any) => (
+                                                    <tr key={i.id} className="hover:bg-slate-800/30 transition-colors">
+                                                        <td className="py-4 px-4 font-mono text-red-400 font-medium">{i.code}</td>
+                                                        <td className="py-4 px-4 text-slate-300">{formatDate(i.date)}</td>
+                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(i.total_amount)}</td>
+                                                        <td className="py-4 px-4 text-center">{getStatusBadge(i.status)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-6 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-medium"
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

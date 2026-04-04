@@ -18,6 +18,11 @@ export const reportService = {
         return response.data.data || [];
     },
 
+    async getMonthlyDetail(year: number, month: number): Promise<any> {
+        const response = await api.get<ApiResponse<any>>(`/dashboard/monthly-detail/${year}/${month}`);
+        return response.data.data;
+    },
+
     async getInventoryReport(warehouseId?: number): Promise<any[]> {
         const params = warehouseId ? `?warehouse_id=${warehouseId}` : '';
         const response = await api.get<ApiResponse<any[]>>(`/reports/inventory${params}`);
