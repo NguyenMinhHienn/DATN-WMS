@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phiếu Nhập Kho <%= receipt.receipt_number %></title>
+    <style>
+        body { font-family: 'Arial', sans-serif; color: #333; margin: 0; padding: 20px; font-size: 14px; }
+        .page { width: 100%; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #555; padding-bottom: 10px; }
+        .company-info h1 { margin: 0; font-size: 20px; color: #1a56db; }
+        .company-info p { margin: 2px 0; font-size: 13px; color: #555; }
+        .receipt-info { text-align: right; }
+        .receipt-info h2 { margin: 0; font-size: 24px; color: #333; text-transform: uppercase; }
+        .receipt-info p { margin: 5px 0 0; font-size: 14px; font-weight: bold; }
+        .info-section { margin-bottom: 20px; display: flex; flex-wrap: wrap; }
+        .info-block { width: 50%; margin-bottom: 15px; }
+        .info-label { font-weight: bold; color: #666; display: inline-block; width: 120px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        table, th, td { border: 1px solid #ddd; }
+        th { background-color: #f8f9fa; padding: 10px; text-align: left; font-size: 13px; color: #333; }
+        td { padding: 8px 10px; font-size: 13px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .totals { width: 100%; display: flex; justify-content: flex-end; margin-bottom: 40px; }
+        .totals table { width: 300px; border: none; }
+        .totals table td { border: none; padding: 5px 10px; }
+        .totals .final-total { font-weight: bold; font-size: 16px; border-top: 2px solid #333 !important; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 50px; text-align: center; }
+        .signature-block { width: 25%; }
+        .signature-title { font-weight: bold; margin-bottom: 60px; }
+        .signature-name { font-style: italic; color: #666; }
+        .notes { font-style: italic; font-size: 13px; color: #555; margin-bottom: 20px; }
+        @media print {
+            body { padding: 0; background-color: white; }
+            .no-print { display: none; }
+            @page { margin: 15mm; }
+        }
+        .btn-print { background: #1a56db; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; position: fixed; top: 20px; right: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <button class="btn-print no-print" onclick="window.print()">🖨️ In Phiếu Này</button>
+    <div class="page">
+        <div class="header">
+            <div class="company-info">
+                <h1><%= company.name %></h1>
+                <p>📍 <%= company.address %></p>
+                <p>📞 <%= company.phone %> | ✉️ <%= company.email %></p>
+            </div>
+            <div class="receipt-info">
+                <h2>PHIẾU NHẬP KHO</h2>
+                <p>Mã Số: <%= receipt.receipt_number %></p>
+                <p style="font-weight: normal; font-size: 12px; margin-top: 2px;">
+                    Ngày: <%= formatDate(receipt.receipt_date) %>
+                </p>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-block">
+                <span class="info-label">Kho Nhập:</span> <%= receipt.warehouse_name %>
+            </div>
+            <div class="info-block">
+                <span class="info-label">Nhà Cung Cấp:</span> <%= receipt.supplier_name || 'N/A' %>
+            </div>
+            <div class="info-block">
+                <span class="info-label">Người Giao:</span> <%= receipt.delivery_person || 'N/A' %>
+            </div>
+            <div class="info-block">
+                <span class="info-label">Chứng Từ Kèm:</span> <%= receipt.reference_document || 'N/A' %>
+            </div>
+        </div>
+
+        <% if (receipt.notes) { %>
+        <div class="notes">
+            <strong>Ghi chú:</strong> <%= receipt.notes %>
+        </div>
+        <% } %>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-center" width="5%">STT</th>
+                    <th width="30%">Tên Sản Phẩm</th>
+                    <th width="15%">SKU</th>
+                    <th class="text-center" width="10%">ĐVT</th>
+                    <th class="text-right" width="10%">SL</th>
+                    <th class="text-right" width="15%">Đơn Giá</th>
+                    <th class="text-right" width="15%">Thành Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% items.forEach(function(item, index) { %>
+                <tr>
+                    <td class="text-center"><%= index + 1 %></td>
+                    <td>
+                        <strong><%= item.product_name %></strong>
+                        <% if (item.variant_sku && item.variant_sku !== item.sku) { %>
+                            <br><span style="font-size: 11px; color: #666;">(Biến thể: <%= item.variant_sku %>)</span>
+                        <% } %>
+                    </td>
+                    <td><%= item.variant_sku || item.sku %></td>
+                    <td class="text-center"><%= item.unit_name || '-' %></td>
+                    <td class="text-right font-weight-bold"><%= item.quantity_actual || item.quantity_document %></td>
+                    <td class="text-right"><%= formatCurrency(item.unit_cost) %></td>
+                    <td class="text-right"><%= formatCurrency(item.line_total) %></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <table>
+                <tr>
+                    <td class="text-right">Tổng mặt hàng:</td>
+                    <td class="text-right" width="120"><%= receipt.total_items %></td>
+                </tr>
+                <tr>
+                    <td class="text-right">Tổng số lượng:</td>
+                    <td class="text-right"><%= receipt.total_quantity %></td>
+                </tr>
+                <tr>
+                    <td class="text-right final-total">TỔNG TIỀN:</td>
+                    <td class="text-right final-total"><%= formatCurrency(receipt.total_amount) %></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="signatures">
+            <div class="signature-block">
+                <div class="signature-title">Người Lập Phiếu</div>
+                <div class="signature-name"><%= receipt.created_by_name || '.........................' %></div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-title">Người Giao Hàng</div>
+                <div class="signature-name"><%= receipt.delivery_person || '.........................' %></div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-title">Thủ Kho</div>
+                <div class="signature-name"><%= receipt.storekeeper || '.........................' %></div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-title">Quản Lý / Kế Toán</div>
+                <div class="signature-name"><%= receipt.approved_by_name || '.........................' %></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Optional: Automatically trigger print dialogue when page loads
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
