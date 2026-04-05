@@ -147,9 +147,56 @@ const StockIn: React.FC = () => {
         setFormItems(formItems.filter((_, i) => i !== index));
     };
 
+    // Check if supplier is selected
+    const hasAdminSupplier = !!(formData.supplier_id || (isCustomSupplier && customSupplierName.trim()));
+
+    const handleAdminSupplierChange = (val: string) => {
+        // If items already added, confirm reset
+        if (formItems.length > 0) {
+            if (!confirm('Đổi nhà cung cấp sẽ xóa danh sách sản phẩm đã thêm. Bạn có chắc?')) {
+                return;
+            }
+            setFormItems([]);
+        }
+
+        if (val === 'custom') {
+            setIsCustomSupplier(true);
+            setCustomSupplierName('');
+            setFormData({ ...formData, supplier_id: null });
+        } else if (val.startsWith('custom_')) {
+            setIsCustomSupplier(true);
+            setCustomSupplierName(val.replace('custom_', ''));
+            setFormData({ ...formData, supplier_id: null });
+        } else {
+            setIsCustomSupplier(false);
+            setFormData({ ...formData, supplier_id: val ? Number(val) : null });
+        }
+    };
+
     const handleCreate = async () => {
-        if (!formData.warehouse_id) { alert('Vui lòng chọn kho'); return; }
-        if (formItems.length === 0) { alert('Vui lòng thêm ít nhất 1 sản phẩm'); return; }
+        // ===== VALIDATE THÔNG TIN CHUNG =====
+        if (!hasAdminSupplier) { alert('⚠️ Vui lòng chọn Nhà cung cấp trước khi tạo phiếu nhập'); return; }
+        if (!formData.receipt_date) { alert('⚠️ Vui lòng chọn Ngày lập phiếu'); return; }
+        if (!formData.warehouse_id) { alert('⚠️ Vui lòng chọn kho nhập'); return; }
+
+        // ===== VALIDATE THÔNG TIN NGHIỆP VỤ =====
+        if (!formData.delivery_person.trim()) { alert('⚠️ Vui lòng nhập tên Người giao hàng'); return; }
+        if (!formData.storekeeper.trim()) { alert('⚠️ Vui lòng nhập tên Thủ kho'); return; }
+
+        // ===== VALIDATE SẢN PHẨM =====
+        if (formItems.length === 0) { alert('⚠️ Vui lòng thêm ít nhất 1 sản phẩm'); return; }
+
+        // Validate đơn giá > 0
+        for (let i = 0; i < formItems.length; i++) {
+            if (formItems[i].unit_cost <= 0) {
+                alert(`⚠️ Sản phẩm "${formItems[i].product_name}" chưa có đơn giá. Vui lòng nhập đơn giá > 0`);
+                return;
+            }
+            if (formItems[i].quantity_actual <= 0) {
+                alert(`⚠️ Sản phẩm "${formItems[i].product_name}" có số lượng thực nhập phải > 0`);
+                return;
+            }
+        }
 
         setSubmitting(true);
         try {
@@ -414,47 +461,13 @@ const StockIn: React.FC = () => {
                                     <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px]">🏭 Kho tổng</div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
-                                    <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px] text-sm">
-                                        Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
-                                    </div>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm text-slate-400 mb-1">Ghi chú phiếu</label>
-                                    <textarea value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input w-full" rows={2} placeholder="Nhập ghi chú (không bắt buộc)..." />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Section 2: Thông tin nghiệp vụ */}
-                        <div className="mb-6 p-4 rounded-xl border border-slate-700/50 bg-slate-800/50">
-                            <h3 className="font-medium text-white mb-4 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1 flex justify-between">
-                                        <span>Nhà cung cấp</span>
-                                        <a href="/admin/suppliers" target="_blank" className="text-indigo-400 hover:text-indigo-300 text-xs">+ Thêm mới</a>
-                                    </label>
+                                    <label className="block text-sm font-semibold text-red-400 mb-1">🏢 Nhà cung cấp <span className="text-red-500">*</span></label>
                                     <select
                                         value={isCustomSupplier ? 'custom' : (formData.supplier_id || '')}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val === 'custom') {
-                                                setIsCustomSupplier(true);
-                                                setCustomSupplierName('');
-                                                setFormData({ ...formData, supplier_id: null });
-                                            } else if (val.startsWith('custom_')) {
-                                                setIsCustomSupplier(true);
-                                                setCustomSupplierName(val.replace('custom_', ''));
-                                                setFormData({ ...formData, supplier_id: null });
-                                            } else {
-                                                setIsCustomSupplier(false);
-                                                setFormData({ ...formData, supplier_id: val ? Number(val) : null });
-                                            }
-                                        }}
-                                        className="input w-full"
+                                        onChange={(e) => handleAdminSupplierChange(e.target.value)}
+                                        className={`input w-full border-2 ${hasAdminSupplier ? 'border-green-500/50 bg-green-500/10' : 'border-red-500/50 bg-red-500/10'}`}
                                     >
-                                        <option value="">-- Chọn nhà cung cấp --</option>
+                                        <option value="">-- Chọn nhà cung cấp (bắt buộc) --</option>
                                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         <optgroup label="Thương hiệu nổi tiếng (Chọn để tạo)">
                                             <option value="custom_Zara">Zara</option>
@@ -476,7 +489,28 @@ const StockIn: React.FC = () => {
                                             autoFocus
                                         />
                                     )}
+                                    {!hasAdminSupplier && (
+                                        <p className="mt-1 text-xs text-red-400 font-medium">⚠️ Bắt buộc chọn NCC trước khi thêm sản phẩm</p>
+                                    )}
                                 </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
+                                    <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px] text-sm">
+                                        Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                                    </div>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm text-slate-400 mb-1">Ghi chú phiếu</label>
+                                    <textarea value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input w-full" rows={2} placeholder="Nhập ghi chú (không bắt buộc)..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Thông tin nghiệp vụ */}
+                        <div className="mb-6 p-4 rounded-xl border border-slate-700/50 bg-slate-800/50">
+                            <h3 className="font-medium text-white mb-4 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* NCC đã được di chuyển lên phần Thông tin chung */}
                                 <div>
                                     <label className="block text-sm text-slate-400 mb-1">Loại chứng từ *</label>
                                     <select value={formData.receipt_type} onChange={(e) => setFormData({ ...formData, receipt_type: e.target.value })} className="input w-full">
@@ -490,7 +524,7 @@ const StockIn: React.FC = () => {
                                     <input type="text" value={formData.reference_document} onChange={(e) => setFormData({ ...formData, reference_document: e.target.value })} className="input w-full" placeholder="Mã chứng từ (nếu có)" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Người giao hàng</label>
+                                    <label className="block text-sm text-slate-400 mb-1">Người giao hàng *</label>
                                     <input type="text" value={formData.delivery_person} onChange={(e) => setFormData({ ...formData, delivery_person: e.target.value })} className="input w-full" placeholder="Họ tên người giao" />
                                 </div>
                                 <div>
@@ -498,7 +532,7 @@ const StockIn: React.FC = () => {
                                     <input type="text" value={user?.full_name || ''} readOnly className="input w-full bg-slate-700/50 text-slate-300 cursor-not-allowed" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Thủ kho</label>
+                                    <label className="block text-sm text-slate-400 mb-1">Thủ kho *</label>
                                     <input type="text" value={formData.storekeeper || ''} onChange={(e) => setFormData({...formData, storekeeper: e.target.value})} className="input w-full" placeholder="Họ tên thủ kho" />
                                 </div>
                                 <div>
@@ -509,7 +543,13 @@ const StockIn: React.FC = () => {
                         </div>
 
                         {/* Add items */}
-                        <div className="border-t border-slate-700/50 pt-4 mb-4">
+                        <div className={`border-t border-slate-700/50 pt-4 mb-4 ${!hasAdminSupplier ? 'opacity-50 pointer-events-none' : ''}`}>
+                            {!hasAdminSupplier && (
+                                <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-sm flex items-center gap-2">
+                                    <span>⚠️</span>
+                                    <span>Vui lòng chọn <strong>Nhà cung cấp</strong> ở phần Thông tin chung trước khi thêm sản phẩm.</span>
+                                </div>
+                            )}
                             <h3 className="font-medium text-white mb-3">📦 Thêm sản phẩm</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                 <select value={selectedProductId} onChange={(e) => loadVariants(Number(e.target.value))} className="input">

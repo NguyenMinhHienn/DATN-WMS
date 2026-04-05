@@ -178,6 +178,11 @@ export class StockTransferService {
             errors.push('Loại phiếu không hợp lệ. Phải là IMPORT, EXPORT, hoặc TRANSFER');
         }
 
+        // Kiểm tra nhà cung cấp (bắt buộc cho phiếu NHẬP)
+        if (dto.transfer_type === 'IMPORT' && !dto.supplier_id) {
+            errors.push('Nhà cung cấp là bắt buộc cho phiếu NHẬP. Mỗi phiếu nhập chỉ gắn với một nhà cung cấp duy nhất.');
+        }
+
         // Kiểm tra warehouse
         if (dto.transfer_type === 'IMPORT' && !dto.destination_warehouse_id) {
             errors.push('Kho đích là bắt buộc cho phiếu NHẬP');

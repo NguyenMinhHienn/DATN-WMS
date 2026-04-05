@@ -258,24 +258,88 @@ const CreateTransfer: React.FC = () => {
         return { itemTotals, grandTotal, totalQty };
     }, [formItems]);
 
+    // Check if supplier is selected for IMPORT
+    const hasSupplier = !!(supplierId || (isCustomSupplier && customSupplierName.trim()));
+
+    const handleSupplierChange = (val: string) => {
+        // If items already added, confirm reset
+        const hasItems = formItems.some(i => i.product_id);
+        if (hasItems) {
+            if (!confirm('Đổi nhà cung cấp sẽ xóa danh sách sản phẩm đã thêm. Bạn có chắc?')) {
+                return;
+            }
+            setFormItems([{ ...emptyItem }]);
+            setSearchTerms({});
+        }
+
+        if (val === 'custom') {
+            setIsCustomSupplier(true);
+            setCustomSupplierName('');
+            setSupplierId(undefined);
+        } else if (val.startsWith('custom_')) {
+            setIsCustomSupplier(true);
+            setCustomSupplierName(val.replace('custom_', ''));
+            setSupplierId(undefined);
+        } else {
+            setIsCustomSupplier(false);
+            setSupplierId(Number(val) || undefined);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        // Validate warehouse
-        if (transferType === 'IMPORT' && !1) {
-            setError('Vui lòng chọn kho nhập');
-            return;
-        }
-        if (transferType === 'EXPORT' && !1) {
-            setError('Vui lòng chọn kho xuất');
-            return;
-        }
-        if (transferType === 'TRANSFER' && (!1 || !1)) {
-            setError('Vui lòng chọn kho nguồn và kho đích');
+        // ===== VALIDATE THÔNG TIN CHUNG =====
+        if (!receiptDate) {
+            setError('Vui lòng chọn Ngày lập phiếu');
             return;
         }
 
+        // ===== VALIDATE THEO LOẠI PHIẾU =====
+        if (transferType === 'IMPORT') {
+            // Nhà cung cấp bắt buộc
+            if (!hasSupplier) {
+                setError('Vui lòng chọn Nhà cung cấp trước khi tạo phiếu nhập');
+                return;
+            }
+            // Người giao hàng bắt buộc
+            if (!deliveryPerson.trim()) {
+                setError('Vui lòng nhập tên Người giao hàng');
+                return;
+            }
+        }
+
+        if (transferType === 'EXPORT') {
+            // Lý do xuất bắt buộc
+            if (!reason.trim()) {
+                setError('Vui lòng chọn Lý do xuất kho');
+                return;
+            }
+            // Người nhận bắt buộc
+            if (!receiverName.trim()) {
+                setError('Vui lòng nhập tên Người nhận hàng');
+                return;
+            }
+            // SĐT người nhận bắt buộc
+            if (!receiverPhone.trim()) {
+                setError('Vui lòng nhập Số điện thoại người nhận');
+                return;
+            }
+            // Địa chỉ người nhận bắt buộc
+            if (!receiverAddress.trim()) {
+                setError('Vui lòng nhập Địa chỉ người nhận');
+                return;
+            }
+        }
+
+        // Thủ kho bắt buộc
+        if (!storekeeperName.trim()) {
+            setError('Vui lòng nhập tên Thủ kho');
+            return;
+        }
+
+        // ===== VALIDATE SẢN PHẨM =====
         // Validate items - must have product + variant
         const validItems = formItems.filter(i =>
             i.product_id && i.product_id > 0 &&
@@ -288,12 +352,16 @@ const CreateTransfer: React.FC = () => {
             return;
         }
 
-        // Check export stock
-        if (transferType === 'EXPORT') {
-            if (!reason.trim()) {
-                setError('Vui lòng chọn Lý do xuất kho');
+        // Validate đơn giá > 0 cho từng sản phẩm
+        for (let i = 0; i < validItems.length; i++) {
+            if (validItems[i].unit_price <= 0) {
+                setError(`Sản phẩm "${validItems[i].product_name}" chưa có đơn giá. Vui lòng nhập đơn giá > 0`);
                 return;
             }
+        }
+
+        // Check export stock
+        if (transferType === 'EXPORT') {
             for (const item of validItems) {
                 if (item.selectedVariant && item.quantity > item.selectedVariant.stock) {
                     setError(`Sản phẩm "${item.product_name}" - SL yêu cầu (${item.quantity}) vượt quá tồn kho (${item.selectedVariant.stock})`);
@@ -500,6 +568,45 @@ const CreateTransfer: React.FC = () => {
                                 </div>
                             </div>
                         )}
+                        {transferType === 'IMPORT' && (
+                            <div>
+                                <label className="block text-xs font-medium text-red-600 mb-2 font-semibold">🏢 Nhà cung cấp <span className="text-red-500">*</span></label>
+                                <select
+                                    value={isCustomSupplier ? 'custom' : (supplierId || '')}
+                                    onChange={(e) => handleSupplierChange(e.target.value)}
+                                    className={`w-full px-4 py-3 bg-white border-2 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                                        hasSupplier ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
+                                    }`}
+                                >
+                                    <option value="">-- Chọn nhà cung cấp (bắt buộc) --</option>
+                                    {suppliers.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                    <optgroup label="Thương hiệu nổi tiếng">
+                                        <option value="custom_Zara">Zara</option>
+                                        <option value="custom_H&M">H&M</option>
+                                        <option value="custom_Uniqlo">Uniqlo</option>
+                                        <option value="custom_Gucci">Gucci</option>
+                                        <option value="custom_Dior">Dior</option>
+                                        <option value="custom_Louis Vuitton">Louis Vuitton</option>
+                                    </optgroup>
+                                    <option value="custom">➕ Khác (Tự nhập tên)...</option>
+                                </select>
+                                {isCustomSupplier && (
+                                    <input
+                                        type="text"
+                                        value={customSupplierName}
+                                        onChange={e => setCustomSupplierName(e.target.value)}
+                                        placeholder="Nhập tên nhà cung cấp mới..."
+                                        className="mt-2 w-full px-4 py-2 bg-indigo-50 border border-indigo-300 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                        autoFocus
+                                    />
+                                )}
+                                {!hasSupplier && (
+                                    <p className="mt-1 text-xs text-red-500 font-medium">⚠️ Bắt buộc chọn NCC trước khi thêm sản phẩm</p>
+                                )}
+                            </div>
+                        )}
                         {transferType === 'EXPORT' && (
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-2">Kho xuất</label>
@@ -557,57 +664,10 @@ const CreateTransfer: React.FC = () => {
                                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                             />
                         </div>
-                        {transferType === 'IMPORT' && (
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">Nhà cung cấp (<a href="/staff/suppliers" target="_blank" className="text-indigo-500 hover:text-indigo-600">Thêm mới</a>)</label>
-                                <select
-                                    value={isCustomSupplier ? 'custom' : (supplierId || '')}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === 'custom') {
-                                            setIsCustomSupplier(true);
-                                            setCustomSupplierName('');
-                                            setSupplierId(undefined);
-                                        } else if (val.startsWith('custom_')) {
-                                            setIsCustomSupplier(true);
-                                            setCustomSupplierName(val.replace('custom_', ''));
-                                            setSupplierId(undefined);
-                                        } else {
-                                            setIsCustomSupplier(false);
-                                            setSupplierId(Number(val) || undefined);
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                >
-                                    <option value="">-- Chọn nhà cung cấp --</option>
-                                    {suppliers.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                    <optgroup label="Thương hiệu nổi tiếng">
-                                        <option value="custom_Zara">Zara</option>
-                                        <option value="custom_H&M">H&M</option>
-                                        <option value="custom_Uniqlo">Uniqlo</option>
-                                        <option value="custom_Gucci">Gucci</option>
-                                        <option value="custom_Dior">Dior</option>
-                                        <option value="custom_Louis Vuitton">Louis Vuitton</option>
-                                    </optgroup>
-                                    <option value="custom">➕ Khác (Tự nhập tên)...</option>
-                                </select>
-                                {isCustomSupplier && (
-                                    <input
-                                        type="text"
-                                        value={customSupplierName}
-                                        onChange={e => setCustomSupplierName(e.target.value)}
-                                        placeholder="Nhập tên nhà cung cấp mới..."
-                                        className="mt-2 w-full px-4 py-2 bg-indigo-50 border border-indigo-300 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                                        autoFocus
-                                    />
-                                )}
-                            </div>
-                        )}
+                        {/* NCC đã được di chuyển lên phần Thông tin chung */}
                         {(transferType === 'IMPORT' || transferType === 'EXPORT') && (
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">Người giao hàng</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">{transferType === 'IMPORT' ? 'Người giao hàng *' : 'Người giao hàng'}</label>
                                 <input
                                     type="text"
                                     value={deliveryPerson}
@@ -620,7 +680,7 @@ const CreateTransfer: React.FC = () => {
                         {transferType === 'EXPORT' && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Người nhận</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Người nhận *</label>
                                     <input
                                         type="text"
                                         value={receiverName}
@@ -630,7 +690,7 @@ const CreateTransfer: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">📞 SĐT người nhận</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">📞 SĐT người nhận *</label>
                                     <input
                                         type="text"
                                         value={receiverPhone}
@@ -640,7 +700,7 @@ const CreateTransfer: React.FC = () => {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">🏠 Địa chỉ người nhận</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">🏠 Địa chỉ người nhận *</label>
                                     <input
                                         type="text"
                                         value={receiverAddress}
@@ -678,7 +738,7 @@ const CreateTransfer: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Thủ kho</label>
+                            <label className="block text-xs font-medium text-slate-500 mb-1">Thủ kho *</label>
                             <input
                                 type="text"
                                 value={storekeeperName}
@@ -699,7 +759,13 @@ const CreateTransfer: React.FC = () => {
                 </div>
 
                 {/* Items */}
-                <div className="p-6 border-b border-slate-100">
+                <div className={`p-6 border-b border-slate-100 ${transferType === 'IMPORT' && !hasSupplier ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {transferType === 'IMPORT' && !hasSupplier && (
+                        <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-700 font-medium flex items-center gap-2">
+                            <span className="text-2xl">⚠️</span>
+                            <span>Vui lòng chọn <strong>Nhà cung cấp</strong> ở phần Thông tin chung trước khi thêm sản phẩm.</span>
+                        </div>
+                    )}
                     <div className="flex justify-between items-center mb-5">
                         <label className="text-lg font-bold text-slate-800 flex items-center gap-2">
                             <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-sm">📦</span>
@@ -708,7 +774,8 @@ const CreateTransfer: React.FC = () => {
                         <button
                             type="button"
                             onClick={addItem}
-                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors font-medium text-sm"
+                            disabled={transferType === 'IMPORT' && !hasSupplier}
+                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             + Thêm sản phẩm
                         </button>
