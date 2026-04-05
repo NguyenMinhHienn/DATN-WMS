@@ -115,6 +115,21 @@ export class InventoryRepository {
         return rows;
     }
 
+    async getUnderTenStockItems(): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT i.id, p.name, COALESCE(pv.sku, p.sku) as sku, 
+             CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+             i.quantity_on_hand as total_quantity
+      FROM inventories i
+      INNER JOIN products p ON i.product_id = p.id
+      LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+      WHERE p.deleted_at IS NULL AND p.status = 'active'
+      AND i.quantity_on_hand < 10
+      ORDER BY i.quantity_on_hand ASC
+    `);
+        return rows;
+    }
+
     async adjustInventory(dto: InventoryAdjustmentDto, userId?: number): Promise<number> {
         const connection = await pool.getConnection();
         try {

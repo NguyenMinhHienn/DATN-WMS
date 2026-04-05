@@ -45,6 +45,11 @@ export const inventoryService = {
         return response.data.data || [];
     },
 
+    async getUnderTenStock(): Promise<any[]> {
+        const response = await api.get<ApiResponse<any[]>>('/inventory/under-ten-stock');
+        return response.data.data || [];
+    },
+
     async getMovements(
         page: number = 1,
         limit: number = 20,

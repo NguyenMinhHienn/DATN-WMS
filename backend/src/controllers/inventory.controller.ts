@@ -50,6 +50,15 @@ export const getLowStockItems = asyncHandler(async (req: AuthRequest, res: Respo
     } as ApiResponse);
 });
 
+export const getUnderTenStockItems = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const items = await inventoryService.getUnderTenStockItems();
+
+    res.json({
+        success: true,
+        data: items,
+    } as ApiResponse);
+});
+
 export const getMovementLogs = asyncHandler(async (req: AuthRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;

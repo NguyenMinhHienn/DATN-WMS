@@ -33,6 +33,10 @@ export class InventoryService {
         return inventoryRepository.getLowStockItems();
     }
 
+    async getUnderTenStockItems() {
+        return inventoryRepository.getUnderTenStockItems();
+    }
+
     async getMovementLogs(
         page: number = 1,
         limit: number = 20,

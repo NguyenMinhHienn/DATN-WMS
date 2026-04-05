@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryService } from '../../services/inventoryService';
-import { warehouseService } from '../../services/warehouseService';
-import { Inventory, Warehouse, PaginationInfo } from '../../interface';
+import { Inventory, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
 const InventoryPage: React.FC = () => {
     const [inventory, setInventory] = useState<Inventory[]>([]);
-    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
     const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
-    const [selectedWarehouse, setSelectedWarehouse] = useState<number | undefined>();
     const [lowStock, setLowStock] = useState<any[]>([]);
     const [showLowStockDetail, setShowLowStockDetail] = useState(false);
+    const [underTenStock, setUnderTenStock] = useState<any[]>([]);
+    const [showUnderTenStockDetail, setShowUnderTenStockDetail] = useState(false);
     
     // History Modal State
     const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -22,13 +21,13 @@ const InventoryPage: React.FC = () => {
     const [metrics, setMetrics] = useState<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number } | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(false);
 
-    useEffect(() => { loadWarehouses(); loadLowStock(); }, []);
-    useEffect(() => { loadInventory(); }, [pagination.page, selectedWarehouse]);
+    useEffect(() => { loadLowStock(); loadUnderTenStock(); }, []);
+    useEffect(() => { loadInventory(); }, [pagination.page]);
 
     const loadInventory = async () => {
         try {
             setLoading(true);
-            const result = await inventoryService.getAll(pagination.page, pagination.limit, selectedWarehouse);
+            const result = await inventoryService.getAll(pagination.page, pagination.limit, undefined);
             setInventory(result.data);
             setPagination(result.pagination);
         } catch (error) {
@@ -71,14 +70,7 @@ const InventoryPage: React.FC = () => {
         }
     };
 
-    const loadWarehouses = async () => {
-        try {
-            const data = await warehouseService.getAll();
-            setWarehouses(data);
-        } catch (error) {
-            console.error('Failed to load warehouses:', error);
-        }
-    };
+
 
     const loadLowStock = async () => {
         try {
@@ -86,6 +78,15 @@ const InventoryPage: React.FC = () => {
             setLowStock(data);
         } catch (error) {
             console.error('Failed to load low stock:', error);
+        }
+    };
+
+    const loadUnderTenStock = async () => {
+        try {
+            const data = await inventoryService.getUnderTenStock();
+            setUnderTenStock(data);
+        } catch (error) {
+            console.error('Failed to load under ten stock:', error);
         }
     };
 
@@ -179,19 +180,75 @@ const InventoryPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Filters */}
-            <div className="chart-container mb-6">
-                <div className="flex gap-4">
-                    <select
-                        value={selectedWarehouse || ''}
-                        onChange={(e) => { setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : undefined); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="input max-w-xs"
+            {/* Under Ten Stock Alert - Accordion */}
+            {underTenStock.length > 0 && (
+                <div className="chart-container mb-6 border-l-4 border-amber-500 bg-amber-500/10 !p-0 overflow-hidden">
+                    {/* Header - luôn hiển thị */}
+                    <button
+                        onClick={() => setShowUnderTenStockDetail(!showUnderTenStockDetail)}
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-amber-500/5 transition-colors cursor-pointer"
                     >
-                        <option value="">Tất cả các kho</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                    </select>
+                        <div className="flex items-center gap-3">
+                            <span className="text-3xl animate-pulse">⚡</span>
+                            <div className="text-left">
+                                <h3 className="font-semibold text-amber-400">Cảnh báo số lượng ít</h3>
+                                <p className="text-sm text-amber-300/80">{underTenStock.length} sản phẩm có tồn kho dưới 10</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-amber-400">
+                            <span className="text-sm font-medium">{showUnderTenStockDetail ? 'Thu gọn' : 'Xem chi tiết'}</span>
+                            <span className={`text-lg transition-transform duration-300 ${showUnderTenStockDetail ? 'rotate-180' : ''}`}>▼</span>
+                        </div>
+                    </button>
+
+                    {/* Detail - accordion content */}
+                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showUnderTenStockDetail ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <div className="border-t border-amber-500/20">
+                            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                <table className="w-full">
+                                    <thead className="bg-slate-800/50 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">Sản phẩm</th>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">SKU</th>
+                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-300 uppercase">Tồn kho</th>
+                                            <th className="text-center py-3 px-5 text-xs font-medium text-slate-300 uppercase">Mức độ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {underTenStock.map((item: any) => (
+                                            <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
+                                                <td className="py-3 px-5">
+                                                    <span className="font-medium text-white">{item.name}</span>
+                                                    {item.variant_label && (
+                                                        <span className="text-xs text-indigo-400 block mt-0.5">
+                                                            ↳ {item.variant_label}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-5">
+                                                    <span className="text-xs text-indigo-300 font-mono bg-indigo-500/10 px-2 py-1 rounded">{item.sku}</span>
+                                                </td>
+                                                <td className="py-3 px-5 text-right">
+                                                    <span className="font-bold text-amber-500">
+                                                        {item.total_quantity}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-5 text-center">
+                                                    <span className="text-xs px-2.5 py-1 rounded-full border font-medium text-amber-500 bg-amber-500/20 border-amber-500/30">
+                                                        Cần lưu ý
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+
 
             {/* Table */}
             <div className="chart-container p-0 overflow-hidden">
