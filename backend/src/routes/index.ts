@@ -23,6 +23,7 @@ import * as exportReceiptController from '../controllers/export-receipt.controll
 import * as cartController from '../controllers/cart.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
 import supplierRoutes from './supplier.routes';
+import printRoutes from './print.routes';
 import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 import { getTransferByOrder } from '../controllers/transfer.controller';
@@ -88,6 +89,7 @@ router.post('/warehouses/:id/locations', authenticate, isWarehouseManager, wareh
 // ==================== INVENTORY ROUTES ====================
 router.get('/inventory', authenticate, checkViewPermission('view_inventory'), inventoryController.getAllInventory);
 router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getLowStockItems);
+router.get('/inventory/under-ten-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getUnderTenStockItems);
 router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
 router.get('/inventory/:id/metrics', authenticate, checkViewPermission('view_inventory'), inventoryController.getPerformanceMetrics);
 router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);
@@ -127,6 +129,10 @@ router.get('/reports/inventory', authenticate, isViewer, reportController.getInv
 router.get('/reports/movements', authenticate, isViewer, reportController.getMovementReport);
 router.get('/reports/stock-value', authenticate, isViewer, reportController.getStockValueReport);
 router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
+
+// ==================== PRINT ROUTES ====================
+// These endpoints render EJS templates for printing
+router.use('/print', printRoutes);
 
 // ==================== DASHBOARD (Doanh thu & Lợi nhuận) ====================
 router.get('/dashboard/summary', authenticate, isAdmin, dashboardController.getSummary);

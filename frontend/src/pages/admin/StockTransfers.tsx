@@ -76,6 +76,10 @@ const StockTransfers: React.FC = () => {
         }
     };
 
+    const handlePrint = (id: number) => {
+        window.open(`http://localhost:3000/api/print/transfer/${id}`, '_blank');
+    };
+
     const getTypeBadge = (type: string) => {
         const configs: Record<string, { bg: string; label: string }> = {
             'IMPORT': { bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: '📥 Nhập kho' },
@@ -214,6 +218,10 @@ const StockTransfers: React.FC = () => {
                                             className="text-indigo-400 hover:text-indigo-300 mr-3 transition-colors"
                                         >
                                             Chi tiết
+                                        </button>
+                                        <button onClick={() => handlePrint(transfer.id)}
+                                            className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors mr-2">
+                                            🖨️ In
                                         </button>
                                         <button
                                             onClick={() => handleApprove(transfer.id)}
@@ -384,6 +392,10 @@ const StockTransfers: React.FC = () => {
                             >
                                 ✅ Duyệt phiếu
                             </button>
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button onClick={() => handlePrint(selectedTransfer.id)} className="btn btn-primary">🖨️ In Phiếu</button>
+                            <button onClick={() => setShowDetailModal(false)} className="btn btn-secondary">Đóng</button>
                         </div>
                     </div>
                 </div>

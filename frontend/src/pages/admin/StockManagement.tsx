@@ -76,6 +76,10 @@ const StockManagement: React.FC = () => {
         }
     };
 
+    const handlePrint = (id: number) => {
+        window.open(`http://localhost:3000/api/print/transfer/${id}`, '_blank');
+    };
+
     const handleApprove = async (id: number) => {
         if (!confirm('Xác nhận duyệt phiếu?\n\nSau khi duyệt, tồn kho sẽ được cập nhật tự động.')) return;
         setActionLoading(`approve-${id}`);
@@ -239,6 +243,10 @@ const StockManagement: React.FC = () => {
                                                     <button onClick={() => handleViewDetail(t.id)}
                                                         className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors">
                                                         Chi tiết
+                                                    </button>
+                                                    <button onClick={() => handlePrint(t.id)}
+                                                        className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                        🖨️ In
                                                     </button>
                                                     {t.status === 'pending' && (
                                                         <>
@@ -459,6 +467,7 @@ const StockManagement: React.FC = () => {
                                     </button>
                                 </>
                             )}
+                            <button onClick={() => handlePrint(selectedTransfer.id)} className="btn btn-primary">🖨️ In Phiếu</button>
                             <button onClick={() => setShowDetailModal(false)} className="btn btn-secondary">Đóng</button>
                         </div>
                     </div>

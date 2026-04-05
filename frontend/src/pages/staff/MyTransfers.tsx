@@ -45,6 +45,10 @@ const MyTransfers: React.FC = () => {
         }
     };
 
+    const handlePrint = (id: number) => {
+        window.open(`http://localhost:3000/api/print/transfer/${id}`, '_blank');
+    };
+
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
             'pending': 'bg-amber-100 text-amber-700 border border-amber-200',
@@ -201,6 +205,12 @@ const MyTransfers: React.FC = () => {
                                                 className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 rounded-lg transition-all"
                                             >
                                                 Xem chi tiết
+                                            </button>
+                                            <button
+                                                onClick={() => handlePrint(transfer.id)}
+                                                className="ml-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-white hover:bg-slate-600 border border-slate-200 hover:border-slate-600 rounded-lg transition-all"
+                                            >
+                                                🖨️ In
                                             </button>
                                         </td>
                                     </tr>
@@ -414,8 +424,13 @@ const MyTransfers: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="p-6 border-t border-slate-100 flex justify-end">
+                        <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+                            <button
+                                onClick={() => handlePrint(selectedTransfer.id)}
+                                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-md hover:shadow-lg"
+                            >
+                                🖨️ In Phiếu
+                            </button>
                             <button
                                 onClick={() => setSelectedTransfer(null)}
                                 className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-medium"

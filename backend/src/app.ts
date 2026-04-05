@@ -8,6 +8,10 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 
 const app = express();
 
+// View Engine Setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
 // Middleware
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],

@@ -290,6 +290,10 @@ const ExportReceipt: React.FC = () => {
         } catch { alert('Không thể tải chi tiết phiếu'); }
     };
 
+    const handlePrint = (id: number) => {
+        window.open(`http://localhost:3000/api/print/export/${id}`, '_blank');
+    };
+
     const handleDelete = async (id: number) => {
         if (!window.confirm('Xóa phiếu xuất kho này? (Chỉ xóa thẻ PENDING)')) return;
         try {
@@ -398,6 +402,10 @@ const ExportReceipt: React.FC = () => {
                                                         <button onClick={() => handleViewDetail(r.id)}
                                                             className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors">
                                                             Chi tiết
+                                                        </button>
+                                                        <button onClick={() => handlePrint(r.id)}
+                                                            className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                            🖨️ In
                                                         </button>
                                                         {r.status === 'PENDING' && (
                                                             <>
@@ -756,6 +764,7 @@ const ExportReceipt: React.FC = () => {
                                         {approving === String(selectedReceipt.id) ? '⏳ Đang giảm tồn kho...' : '🔥 Duyệt phiếu (bắt đầu trừ Tồn Kho)'}
                                     </button>
                                 )}
+                                <button onClick={() => handlePrint(selectedReceipt.id)} className="btn btn-primary">🖨️ In Phiếu</button>
                                 <button onClick={() => setShowDetailModal(false)} className="btn btn-secondary">Đóng</button>
                             </div>
                         </div>
