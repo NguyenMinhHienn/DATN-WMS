@@ -182,6 +182,13 @@ const CreateTransfer: React.FC = () => {
 
     // Build variant label from attributes
     const buildVariantLabel = (v: any): string => {
+        // Use attribute_values if available
+        if (v.attribute_values && v.attribute_values.length > 0) {
+            return v.attribute_values
+                .map((av: any) => av.display_value || av.value)
+                .join(' / ');
+        }
+        // Fallback to legacy fields
         const parts = [v.color, v.size, v.storage, v.ram, v.material, v.capacity]
             .filter(Boolean)
             .join(' / ');
@@ -895,19 +902,28 @@ const CreateTransfer: React.FC = () => {
                                                 ✓ {item.variants[0].label} ({item.variants[0].sku})
                                             </div>
                                         ) : (
-                                            <select
-                                                value={item.product_variant_id || ''}
-                                                onChange={(e) => selectVariant(index, Number(e.target.value))}
-                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                required
-                                            >
-                                                <option value="">-- Chọn biến thể --</option>
-                                                {item.variants.map(v => (
-                                                    <option key={v.id} value={v.id}>
-                                                        {v.label} | SKU: {v.sku} | Tồn: {v.stock}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+                                                {item.variants.map(v => {
+                                                    const isSelected = item.product_variant_id === v.id;
+                                                    return (
+                                                        <button
+                                                            key={v.id}
+                                                            type="button"
+                                                            onClick={() => selectVariant(index, v.id)}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all text-sm flex items-center justify-between gap-2 ${
+                                                                isSelected
+                                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                                    : 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 text-slate-700'
+                                                            }`}
+                                                        >
+                                                            <span className="font-medium truncate">{isSelected ? '✓ ' : ''}{v.label}</span>
+                                                            <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded ${v.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                Tồn: {v.stock}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         )}
                                     </div>
 

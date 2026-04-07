@@ -11,10 +11,25 @@ export class ProductVariantRepository {
         SELECT pv.*
         FROM product_variants pv
         WHERE pv.product_id = ? AND pv.is_active = 1
-        ORDER BY pv.color
+        ORDER BY pv.id ASC
     `, [productId]);
 
-        return rows as ProductVariant[];
+        const variants = rows as ProductVariant[];
+
+        // Populate attribute_values for each variant
+        for (const variant of variants) {
+            const [attrValRows] = await pool.query<RowDataPacket[]>(`
+                SELECT av.*, a.name as attribute_name, a.display_name as attribute_display_name
+                FROM variant_attribute_values vav
+                JOIN attribute_values av ON av.id = vav.attribute_value_id
+                JOIN attributes a ON a.id = av.attribute_id
+                WHERE vav.variant_id = ?
+                ORDER BY a.sort_order ASC
+            `, [variant.id]);
+            variant.attribute_values = attrValRows as any[];
+        }
+
+        return variants;
     }
 
     /**
@@ -41,7 +56,21 @@ export class ProductVariantRepository {
             WHERE pv.id = ?
         `, [id]);
 
-        return rows.length > 0 ? (rows[0] as ProductVariant) : null;
+        if (rows.length === 0) return null;
+
+        const variant = rows[0] as ProductVariant;
+        // Populate attribute_values
+        const [attrValRows] = await pool.query<RowDataPacket[]>(`
+            SELECT av.*, a.name as attribute_name, a.display_name as attribute_display_name
+            FROM variant_attribute_values vav
+            JOIN attribute_values av ON av.id = vav.attribute_value_id
+            JOIN attributes a ON a.id = av.attribute_id
+            WHERE vav.variant_id = ?
+            ORDER BY a.sort_order ASC
+        `, [id]);
+        variant.attribute_values = attrValRows as any[];
+
+        return variant;
     }
 
     /**

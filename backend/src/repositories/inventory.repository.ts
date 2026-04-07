@@ -10,7 +10,12 @@ export class InventoryRepository {
         productId?: number,
         status?: string
     ): Promise<PaginatedResult<Inventory & { product_name: string; warehouse_name: string }>> {
-        let countQuery = 'SELECT COUNT(*) as total FROM inventories i WHERE 1=1';
+        let countQuery = `
+            SELECT COUNT(*) as total FROM inventories i 
+            INNER JOIN products p ON i.product_id = p.id
+            LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+            WHERE p.deleted_at IS NULL AND (pv.id IS NULL OR pv.is_active = 1)
+        `;
         let dataQuery = `
       SELECT i.*, p.name as product_name, p.sku, w.name as warehouse_name, sl.code as location_code,
              pv.sku as variant_sku, pv.price as variant_price,
@@ -21,33 +26,33 @@ export class InventoryRepository {
       INNER JOIN warehouses w ON i.warehouse_id = w.id
       LEFT JOIN storage_locations sl ON i.location_id = sl.id
       LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
-      WHERE 1=1
+      WHERE p.deleted_at IS NULL AND (pv.id IS NULL OR pv.is_active = 1)
     `;
         const params: any[] = [];
         const countParams: any[] = [];
 
         if (warehouseId) {
             dataQuery += ' AND i.warehouse_id = ?';
-            countQuery += ' AND warehouse_id = ?';
+            countQuery += ' AND i.warehouse_id = ?';
             params.push(warehouseId);
             countParams.push(warehouseId);
         }
 
         if (productId) {
             dataQuery += ' AND i.product_id = ?';
-            countQuery += ' AND product_id = ?';
+            countQuery += ' AND i.product_id = ?';
             params.push(productId);
             countParams.push(productId);
         }
 
         if (status) {
             dataQuery += ' AND i.status = ?';
-            countQuery += ' AND status = ?';
+            countQuery += ' AND i.status = ?';
             params.push(status);
             countParams.push(status);
         }
 
-        dataQuery += ' ORDER BY i.updated_at DESC LIMIT ? OFFSET ?';
+        dataQuery += ' ORDER BY p.id DESC, i.product_variant_id ASC LIMIT ? OFFSET ?';
         const offset = (page - 1) * limit;
         params.push(limit, offset);
 

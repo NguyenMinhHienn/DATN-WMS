@@ -551,19 +551,110 @@ const StockIn: React.FC = () => {
                                 </div>
                             )}
                             <h3 className="font-medium text-white mb-3">📦 Thêm sản phẩm</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                                <select value={selectedProductId} onChange={(e) => loadVariants(Number(e.target.value))} className="input">
-                                    <option value={0}>-- Chọn sản phẩm --</option>
-                                    {products.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
-                                </select>
-                                <select onChange={(e) => { if (e.target.value) addItem(Number(e.target.value)); e.target.value = ''; }} className="input" disabled={!selectedProductId}>
-                                    <option value="">-- Chọn biến thể --</option>
-                                    {variants.map((v: any) => <option key={v.id} value={v.id}>{v.sku} (Tồn: {v.stock})</option>)}
-                                </select>
-                                {selectedProductId > 0 && variants.length === 0 && (
-                                    <button onClick={() => addItem(0)} className="btn btn-secondary text-sm">+ Thêm (không biến thể)</button>
-                                )}
-                            </div>
+                            
+                            {/* Product selector */}
+                            <select value={selectedProductId} onChange={(e) => loadVariants(Number(e.target.value))} className="input w-full mb-3">
+                                <option value={0}>-- Chọn sản phẩm --</option>
+                                {products.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+
+                            {/* Visual variant picker */}
+                            {selectedProductId > 0 && variants.length > 0 && (
+                                <div className="bg-slate-700/20 rounded-xl border border-slate-600/50 p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-slate-300">
+                                            Chọn biến thể ({variants.length} có sẵn)
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                // Add all variants not yet in formItems
+                                                const product = products.find((p: any) => p.id === selectedProductId);
+                                                if (!product) return;
+                                                const newItems: ReceiptItem[] = [];
+                                                variants.forEach((v: any) => {
+                                                    if (!formItems.some(i => i.product_variant_id === v.id && i.product_id === selectedProductId)) {
+                                                        newItems.push({
+                                                            product_id: selectedProductId,
+                                                            product_variant_id: v.id,
+                                                            product_name: product.name,
+                                                            variant_sku: v.sku,
+                                                            unit_name: product.unit_name || 'Cái',
+                                                            quantity_expected: 1,
+                                                            quantity_document: 1,
+                                                            quantity_actual: 1,
+                                                            unit_cost: product.cost_price || v.average_cost || 0,
+                                                        });
+                                                    }
+                                                });
+                                                if (newItems.length > 0) setFormItems([...formItems, ...newItems]);
+                                            }}
+                                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                        >
+                                            + Thêm tất cả
+                                        </button>
+                                    </div>
+
+                                    {/* Variant cards */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                                        {variants.map((v: any) => {
+                                            const alreadyAdded = formItems.some(i => i.product_variant_id === v.id && i.product_id === selectedProductId);
+                                            const attrs = v.attribute_values || [];
+                                            
+                                            return (
+                                                <button
+                                                    key={v.id}
+                                                    type="button"
+                                                    disabled={alreadyAdded}
+                                                    onClick={() => addItem(v.id)}
+                                                    className={`text-left p-3 rounded-lg border-2 transition-all ${alreadyAdded
+                                                        ? 'border-emerald-500/30 bg-emerald-500/10 opacity-60 cursor-not-allowed'
+                                                        : 'border-slate-600/50 bg-slate-700/30 hover:border-indigo-500 hover:bg-indigo-500/10 cursor-pointer'
+                                                    }`}
+                                                >
+                                                    {/* Attribute chips */}
+                                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                                        {attrs.length > 0 ? attrs.map((attr: any) => (
+                                                            <span
+                                                                key={attr.id}
+                                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-600/50 text-slate-200"
+                                                            >
+                                                                {attr.color_code && (
+                                                                    <span
+                                                                        className="w-3 h-3 rounded-full border border-slate-400"
+                                                                        style={{ backgroundColor: attr.color_code }}
+                                                                    />
+                                                                )}
+                                                                <span className="text-slate-400">{attr.attribute_display_name || attr.attribute_name}:</span>
+                                                                {attr.display_value}
+                                                            </span>
+                                                        )) : (
+                                                            <span className="text-xs text-slate-400">Mặc định</span>
+                                                        )}
+                                                    </div>
+                                                    {/* SKU + Stock */}
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-slate-500 font-mono truncate max-w-[160px]" title={v.sku}>{v.sku}</span>
+                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${v.stock > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600/50 text-slate-400'}`}>
+                                                            Tồn: {v.stock || 0}
+                                                        </span>
+                                                    </div>
+                                                    {alreadyAdded && (
+                                                        <div className="text-[10px] text-emerald-400 mt-1">✓ Đã thêm</div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* No variants */}
+                            {selectedProductId > 0 && variants.length === 0 && (
+                                <button onClick={() => addItem(0)} className="btn btn-secondary text-sm w-full">
+                                    + Thêm sản phẩm (không có biến thể)
+                                </button>
+                            )}
                         </div>
 
                         {/* Items table */}

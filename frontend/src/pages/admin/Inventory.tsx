@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryService } from '../../services/inventoryService';
+import { productVariantService } from '../../services/productVariantService';
 import { Inventory, PaginationInfo } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
@@ -20,6 +21,14 @@ const InventoryPage: React.FC = () => {
     const [historyPagination, setHistoryPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [metrics, setMetrics] = useState<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number } | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(false);
+
+    // Expanded State
+    const [expandedProducts, setExpandedProducts] = useState<number[]>([]);
+
+    // Edit Price State
+    const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
+    const [editPriceValue, setEditPriceValue] = useState<number>(0);
+    const [priceLoading, setPriceLoading] = useState(false);
 
     useEffect(() => { loadLowStock(); loadUnderTenStock(); }, []);
     useEffect(() => { loadInventory(); }, [pagination.page]);
@@ -42,6 +51,30 @@ const InventoryPage: React.FC = () => {
         setShowHistoryModal(true);
         loadHistory(item.id, 1);
         loadMetrics(item.id);
+    };
+
+    const handleEditPrice = (item: any) => {
+        if (!item.product_variant_id) {
+            alert('Không có thông tin biến thể.');
+            return;
+        }
+        setEditingPriceId(item.id);
+        setEditPriceValue(item.variant_price || 0);
+    };
+
+    const handleSavePrice = async (item: any) => {
+        if (!item.product_variant_id) return;
+        try {
+            setPriceLoading(true);
+            await productVariantService.update(item.product_variant_id, { price: editPriceValue });
+            setEditingPriceId(null);
+            loadInventory();
+        } catch (error) {
+            console.error('Failed to update price:', error);
+            alert('Lỗi khi cập nhật giá bán');
+        } finally {
+            setPriceLoading(false);
+        }
     };
 
     const loadHistory = async (inventoryId: number, page: number) => {
@@ -267,54 +300,157 @@ const InventoryPage: React.FC = () => {
                                         <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tồn kho</th>
                                         <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Đã giữ</th>
                                         <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Có sẵn</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Giá bán</th>
                                         <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
                                         <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {inventory.map((item: any) => {
+                                    {Object.values(inventory.reduce((groups, item: any) => {
+                                        if (!groups[item.product_id]) {
+                                            groups[item.product_id] = {
+                                                product_id: item.product_id,
+                                                product_name: item.product_name,
+                                                sku: item.sku,
+                                                warehouse_name: item.warehouse_name,
+                                                total_on_hand: 0,
+                                                total_reserved: 0,
+                                                total_available: 0,
+                                                variants: [],
+                                                status: item.status
+                                            };
+                                        }
                                         const onHand = item.quantity_on_hand || 0;
                                         const reserved = item.quantity_reserved || 0;
                                         const available = item.quantity_available ?? (onHand - reserved);
-                                        const variantLabel = item.variant_label;
-                                        const variantSku = item.variant_sku;
                                         
+                                        groups[item.product_id].total_on_hand += onHand;
+                                        groups[item.product_id].total_reserved += reserved;
+                                        groups[item.product_id].total_available += available;
+                                        groups[item.product_id].variants.push({ ...item, onHand, reserved, available });
+                                        
+                                        if(item.status === 'available') groups[item.product_id].status = 'available';
+                                        
+                                        return groups;
+                                    }, {} as Record<number, any>)).map((group: any) => {
+                                        const isExpanded = expandedProducts.includes(group.product_id);
                                         return (
-                                        <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
-                                            <td className="py-4 px-6">
-                                                <p className="font-medium text-white">{item.product_name}</p>
-                                                <p className="text-xs text-indigo-300 font-mono">{item.sku}</p>
-                                                {variantLabel && (
-                                                    <p className="text-xs text-indigo-400 mt-0.5">
-                                                        ↳ {variantLabel}
-                                                        {variantSku && <span className="text-slate-500 ml-1">({variantSku})</span>}
-                                                    </p>
-                                                )}
-                                            </td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{item.warehouse_name}</td>
-                                            <td className="py-4 px-6 text-sm text-right font-medium text-white">{onHand.toLocaleString()}</td>
-                                            <td className="py-4 px-6 text-sm text-right text-amber-400">{reserved > 0 ? reserved.toLocaleString() : '0'}</td>
-                                            <td className="py-4 px-6 text-sm text-right font-bold text-indigo-400">{available.toLocaleString()}</td>
-                                            <td className="py-4 px-6 text-center">
-                                                <span className={`badge ${item.status === 'available' ? 'badge-success' :
-                                                    item.status === 'expired' ? 'badge-danger' : 'badge-warning'
-                                                    }`}>
-                                                    {item.status}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-6 text-center">
-                                                <button
-                                                    onClick={() => handleViewHistory(item)}
-                                                    className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
-                                                    title="Xem lịch sử biến động"
+                                            <React.Fragment key={`group-${group.product_id}`}>
+                                                {/* Summary Row for Product */}
+                                                <tr 
+                                                    className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                                                    onClick={() => setExpandedProducts(prev => 
+                                                        prev.includes(group.product_id) ? prev.filter(id => id !== group.product_id) : [...prev, group.product_id]
+                                                    )}
                                                 >
-                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )})}
+                                                    <td className="py-4 px-6 flex items-center gap-3">
+                                                        <span className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                                                            ▶
+                                                        </span>
+                                                        <div>
+                                                            <p className="font-medium text-white">{group.product_name}</p>
+                                                            <p className="text-xs text-indigo-300 font-mono">{group.sku} <span className="text-slate-500">• {group.variants.length} biến thể</span></p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-6 text-sm text-slate-300">{group.warehouse_name}</td>
+                                                    <td className="py-4 px-6 text-sm text-right font-medium text-white">{group.total_on_hand.toLocaleString()}</td>
+                                                    <td className="py-4 px-6 text-sm text-right text-amber-400">{group.total_reserved > 0 ? group.total_reserved.toLocaleString() : '0'}</td>
+                                                    <td className="py-4 px-6 text-sm text-right font-bold text-indigo-400">{group.total_available.toLocaleString()}</td>
+                                                    <td className="py-4 px-6 text-sm text-right text-slate-500">-</td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        <span className={`badge ${group.status === 'available' ? 'badge-success' :
+                                                            group.status === 'expired' ? 'badge-danger' : 'badge-warning'
+                                                            }`}>
+                                                            {group.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-6 text-center">
+                                                        {/* Actions logic can be moved to variants if needed, or trigger something global */}
+                                                    </td>
+                                                </tr>
+                                                
+                                                {/* Expanded Variant Rows */}
+                                                {isExpanded && group.variants.map((variant: any) => (
+                                                    <tr key={variant.id} className="border-b border-slate-700/10 bg-slate-800/30 hover:bg-slate-700/50 transition-colors">
+                                                        <td className="py-3 px-6 pl-12 flex items-center gap-3">
+                                                            <div>
+                                                                {variant.variant_label ? (
+                                                                    <p className="text-sm text-indigo-400">
+                                                                        ↳ {variant.variant_label}
+                                                                        {variant.variant_sku && <span className="text-slate-500 ml-1">({variant.variant_sku})</span>}
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-sm text-indigo-400">↳ Chi tiết</p>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3 px-6 text-xs text-slate-400">{variant.warehouse_name}</td>
+                                                        <td className="py-3 px-6 text-sm text-right font-medium text-slate-300">{variant.onHand.toLocaleString()}</td>
+                                                        <td className="py-3 px-6 text-sm text-right text-amber-500/80">{variant.reserved > 0 ? variant.reserved.toLocaleString() : '0'}</td>
+                                                        <td className="py-3 px-6 text-sm text-right font-bold text-indigo-300">{variant.available.toLocaleString()}</td>
+                                                        <td className="py-3 px-6 text-sm text-right flex justify-end">
+                                                            {editingPriceId === variant.id ? (
+                                                                <div className="flex items-center justify-end gap-1">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        value={editPriceValue} 
+                                                                        onChange={e => setEditPriceValue(Number(e.target.value))}
+                                                                        className="input text-xs w-20 px-2 py-1 h-7"
+                                                                        min="0"
+                                                                        step="1000"
+                                                                    />
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleSavePrice(variant); }} 
+                                                                        disabled={priceLoading}
+                                                                        className="p-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded"
+                                                                    >
+                                                                        ✓
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} 
+                                                                        className="p-1 bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 rounded"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="group flex items-center justify-end gap-2">
+                                                                    <span className="font-medium text-emerald-400">
+                                                                        {variant.variant_price ? new Intl.NumberFormat('vi-VN').format(variant.variant_price) + '₫' : '-'}
+                                                                    </span>
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); handleEditPrice(variant); }}
+                                                                        className="p-1 text-slate-500 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        title="Chỉnh sửa giá bán"
+                                                                    >
+                                                                        ✏️
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-3 px-6 text-center">
+                                                            <span className={`badge text-xs ${variant.status === 'available' ? 'badge-success' :
+                                                                variant.status === 'expired' ? 'badge-danger' : 'badge-warning'
+                                                                }`}>
+                                                                {variant.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 px-6 text-center">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleViewHistory(variant); }}
+                                                                className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                                title="Xem lịch sử biến động"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                     {inventory.length === 0 && (
                                         <tr>
                                             <td colSpan={6} className="py-12 text-center">

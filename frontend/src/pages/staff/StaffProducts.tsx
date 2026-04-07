@@ -374,10 +374,18 @@ const StaffProducts: React.FC = () => {
                                                         <td className="px-4 py-3 font-mono text-slate-600">{variant.sku}</td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex flex-wrap gap-1">
-                                                                {variant.color && <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs">{variant.color}</span>}
-                                                                {variant.size && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{variant.size}</span>}
-                                                                {variant.storage && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">{variant.storage}</span>}
-                                                                {variant.ram && <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded text-xs">{variant.ram}</span>}
+                                                                {(variant as any).attribute_values?.length > 0 ? (
+                                                                    (variant as any).attribute_values.map((av: any) => (
+                                                                        <span key={av.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs">
+                                                                            {av.color_code && (
+                                                                                <span className="w-3 h-3 rounded-full border border-indigo-300" style={{ backgroundColor: av.color_code }} />
+                                                                            )}
+                                                                            {av.display_value}
+                                                                        </span>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-400">Mặc định</span>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-3 text-right font-semibold text-green-600">{formatCurrency(variant.price)}</td>

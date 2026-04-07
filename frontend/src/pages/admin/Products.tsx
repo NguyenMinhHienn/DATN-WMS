@@ -69,7 +69,6 @@ const Products: React.FC = () => {
         attribute_display_name: string;
         value_ids: number[];
     }[]>([]);
-    const [generatingVariants, setGeneratingVariants] = useState(false);
     const [customValues, setCustomValues] = useState<{ [attr_id: number]: string }>({});
 
     // Variants in form state (legacy - kept for existing form)
@@ -794,13 +793,21 @@ const Products: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* === NEW: 2-Step Variant Section with Flexible Attributes === */}
+                    <div className="mt-5 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex items-start gap-3">
+                        <span className="text-xl">ℹ️</span>
+                        <div>
+                            <p className="text-sm text-indigo-300 font-medium">Lưu ý về tồn kho</p>
+                            <p className="text-xs text-indigo-200/70 mt-1">Sản phẩm mới luôn được tạo với số lượng tồn kho ban đầu bằng 0. Để cập nhật số lượng và bắt đầu bán, vui lòng sử dụng tính năng <strong>Nhập kho</strong>.</p>
+                        </div>
+                    </div>
+
+                    {/* === Variant Section - Simplified for Clothing === */}
                     <div className="mt-6 pt-4 border-t border-slate-700/50">
                         <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                            🎨 Thiết lập biến thể sản phẩm
+                            🎨 Biến thể sản phẩm
                         </h3>
 
-                        {/* Step 1: Toggle has variants */}
+                        {/* Toggle has variants */}
                         <div className="mb-4 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input
@@ -810,172 +817,216 @@ const Products: React.FC = () => {
                                     className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
                                 />
                                 <span className="text-sm font-medium text-slate-300">
-                                    Sản phẩm này có nhiều biến thể (màu sắc, kích thước, dung lượng...)
+                                    Sản phẩm có nhiều biến thể (kích cỡ, màu sắc...)
                                 </span>
                             </label>
                         </div>
 
-                        {/* Step 2: Attribute Selection (only if hasVariants) */}
+                        {/* Attribute Selection - Direct display */}
                         {hasVariants && (
                             <div className="space-y-4">
-                                {/* Attribute Selection */}
-                                <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
-                                    <h4 className="font-medium text-indigo-300 mb-3">📋 Chọn loại thuộc tính</h4>
-
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                                        {attributes.map(attr => {
-                                            const isSelected = selectedAttributes.some(sa => sa.attribute_id === attr.id);
-                                            return (
-                                                <button
-                                                    key={attr.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (isSelected) {
-                                                            setSelectedAttributes(prev =>
-                                                                prev.filter(sa => sa.attribute_id !== attr.id)
-                                                            );
-                                                        } else {
-                                                            setSelectedAttributes(prev => [...prev, {
-                                                                attribute_id: attr.id,
-                                                                attribute_name: attr.name,
-                                                                attribute_display_name: attr.display_name,
-                                                                value_ids: []
-                                                            }]);
-                                                        }
-                                                    }}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${isSelected
-                                                        ? 'bg-indigo-600 text-white border-indigo-500'
-                                                        : 'bg-slate-700/50 text-slate-300 border-slate-600 hover:border-indigo-400'
-                                                        }`}
-                                                >
-                                                    {isSelected ? '✓ ' : ''}{attr.display_name}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Value Selection for Each Selected Attribute */}
-                                    {selectedAttributes.length > 0 && (
-                                        <div className="space-y-4 mt-4">
-                                            {selectedAttributes.map(selAttr => {
-                                                const attr = attributes.find(a => a.id === selAttr.attribute_id);
-                                                if (!attr || !attr.values) return null;
-
-                                                return (
-                                                    <div key={selAttr.attribute_id} className="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
-                                                        <label className="text-sm font-medium text-slate-300 mb-2 block">
-                                                            {selAttr.attribute_display_name}
-                                                        </label>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {attr.values.map(val => {
-                                                                const isValSelected = selAttr.value_ids.includes(val.id);
-                                                                return (
-                                                                    <button
-                                                                        key={val.id}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setSelectedAttributes(prev =>
-                                                                                prev.map(sa => {
-                                                                                    if (sa.attribute_id !== selAttr.attribute_id) return sa;
-                                                                                    const newIds = isValSelected
-                                                                                        ? sa.value_ids.filter(id => id !== val.id)
-                                                                                        : [...sa.value_ids, val.id];
-                                                                                    return { ...sa, value_ids: newIds };
-                                                                                })
-                                                                            );
-                                                                        }}
-                                                                        className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-1 ${isValSelected
-                                                                            ? 'bg-emerald-600 text-white'
-                                                                            : 'bg-slate-600/50 text-slate-300 hover:bg-slate-500/50'
-                                                                            }`}
-                                                                    >
-                                                                        {attr.type === 'color' && val.color_code && (
-                                                                            <span
-                                                                                className="w-4 h-4 rounded-full border border-slate-400"
-                                                                                style={{ backgroundColor: val.color_code }}
-                                                                            />
-                                                                        )}
-                                                                        {val.display_value}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        {/* Input for custom value */}
-                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-600">
-                                                            <input
-                                                                type="text"
-                                                                placeholder={`Nhập ${selAttr.attribute_display_name} mới...`}
-                                                                value={customValues[selAttr.attribute_id] || ''}
-                                                                onChange={(e) => setCustomValues(prev => ({
-                                                                    ...prev,
-                                                                    [selAttr.attribute_id]: e.target.value
-                                                                }))}
-                                                                className="input text-sm flex-1"
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                        handleAddCustomValue(selAttr.attribute_id);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleAddCustomValue(selAttr.attribute_id)}
-                                                                className="btn btn-secondary text-sm whitespace-nowrap"
-                                                            >
-                                                                + Thêm
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {/* Initial Stock Input Removed */}
-
-                                    {/* Generate Variants Button */}
-                                    {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
-                                        <div className="mt-4">
+                                {/* Quick attribute toggles */}
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {attributes.map(attr => {
+                                        const isSelected = selectedAttributes.some(sa => sa.attribute_id === attr.id);
+                                        return (
                                             <button
+                                                key={attr.id}
                                                 type="button"
-                                                onClick={async () => {
-                                                    if (!editingProduct && !formData.name) {
-                                                        setFormError('Vui lòng nhập tên sản phẩm trước');
-                                                        return;
-                                                    }
-                                                    setGeneratingVariants(true);
-                                                    try {
-                                                        // Calculate number of variants
-                                                        const count = selectedAttributes.reduce((acc, sa) => acc * sa.value_ids.length, 1);
-                                                        setFormError('');
-                                                        alert(`Sẽ tạo ${count} biến thể khi lưu.`);
-                                                    } finally {
-                                                        setGeneratingVariants(false);
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedAttributes(prev =>
+                                                            prev.filter(sa => sa.attribute_id !== attr.id)
+                                                        );
+                                                    } else {
+                                                        setSelectedAttributes(prev => [...prev, {
+                                                            attribute_id: attr.id,
+                                                            attribute_name: attr.name,
+                                                            attribute_display_name: attr.display_name,
+                                                            value_ids: []
+                                                        }]);
                                                     }
                                                 }}
-                                                disabled={generatingVariants}
-                                                className="btn btn-primary w-full"
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${isSelected
+                                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
+                                                    : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:border-indigo-400 hover:text-slate-300'
+                                                    }`}
                                             >
-                                                {generatingVariants ? '⏳ Đang xử lý...' : `🚀 Xem trước biến thể (${selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)} tổ hợp)`}
+                                                {isSelected ? '✓ ' : '+ '}{attr.display_name}
                                             </button>
-                                            <p className="text-xs text-slate-500 mt-2 text-center">
-                                                Biến thể sẽ được tạo khi bạn bấm "Thêm mới" hoặc "Cập nhật"
-                                            </p>
-                                        </div>
-                                    )}
+                                        );
+                                    })}
                                 </div>
 
-                                {/* Empty State */}
+                                {/* Value pickers for selected attributes */}
+                                {selectedAttributes.map(selAttr => {
+                                    const attr = attributes.find(a => a.id === selAttr.attribute_id);
+                                    if (!attr || !attr.values) return null;
+                                    const isColorType = attr.type === 'color';
+
+                                    return (
+                                        <div key={selAttr.attribute_id} className="p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-sm font-semibold text-white flex items-center gap-2">
+                                                    {isColorType ? '🎨' : '📐'} {selAttr.attribute_display_name}
+                                                    {selAttr.value_ids.length > 0 && (
+                                                        <span className="text-xs bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full">
+                                                            {selAttr.value_ids.length} đã chọn
+                                                        </span>
+                                                    )}
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // Select all / deselect all
+                                                        const allSelected = attr.values!.every(v => selAttr.value_ids.includes(v.id));
+                                                        setSelectedAttributes(prev =>
+                                                            prev.map(sa => {
+                                                                if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                return {
+                                                                    ...sa,
+                                                                    value_ids: allSelected ? [] : attr.values!.map(v => v.id)
+                                                                };
+                                                            })
+                                                        );
+                                                    }}
+                                                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                                >
+                                                    {attr.values.every(v => selAttr.value_ids.includes(v.id)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                                </button>
+                                            </div>
+
+                                            {isColorType ? (
+                                                /* Color chips with color dots */
+                                                <div className="flex flex-wrap gap-2">
+                                                    {attr.values.map(val => {
+                                                        const isValSelected = selAttr.value_ids.includes(val.id);
+                                                        return (
+                                                            <button
+                                                                key={val.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedAttributes(prev =>
+                                                                        prev.map(sa => {
+                                                                            if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                            const newIds = isValSelected
+                                                                                ? sa.value_ids.filter(id => id !== val.id)
+                                                                                : [...sa.value_ids, val.id];
+                                                                            return { ...sa, value_ids: newIds };
+                                                                        })
+                                                                    );
+                                                                }}
+                                                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border-2 transition-all ${isValSelected
+                                                                    ? 'bg-indigo-600/20 text-white border-indigo-500 shadow-md'
+                                                                    : 'bg-slate-600/30 text-slate-300 border-slate-600 hover:border-slate-500'
+                                                                    }`}
+                                                            >
+                                                                <span
+                                                                    className={`w-5 h-5 rounded-full border-2 ${isValSelected ? 'border-white' : 'border-slate-400'}`}
+                                                                    style={{ backgroundColor: val.color_code || '#666' }}
+                                                                />
+                                                                {val.display_value}
+                                                                {isValSelected && <span className="text-emerald-400">✓</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                /* Size / text chips */
+                                                <div className="flex flex-wrap gap-2">
+                                                    {attr.values.map(val => {
+                                                        const isValSelected = selAttr.value_ids.includes(val.id);
+                                                        return (
+                                                            <button
+                                                                key={val.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedAttributes(prev =>
+                                                                        prev.map(sa => {
+                                                                            if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                            const newIds = isValSelected
+                                                                                ? sa.value_ids.filter(id => id !== val.id)
+                                                                                : [...sa.value_ids, val.id];
+                                                                            return { ...sa, value_ids: newIds };
+                                                                        })
+                                                                    );
+                                                                }}
+                                                                className={`min-w-[48px] px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all text-center ${isValSelected
+                                                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                                                                    : 'bg-slate-600/30 text-slate-300 border-slate-600 hover:border-slate-500'
+                                                                    }`}
+                                                            >
+                                                                {val.display_value}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Add custom value */}
+                                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-600/50">
+                                                <input
+                                                    type="text"
+                                                    placeholder={`Thêm ${selAttr.attribute_display_name.toLowerCase()} mới...`}
+                                                    value={customValues[selAttr.attribute_id] || ''}
+                                                    onChange={(e) => setCustomValues(prev => ({
+                                                        ...prev,
+                                                        [selAttr.attribute_id]: e.target.value
+                                                    }))}
+                                                    className="input text-sm flex-1"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddCustomValue(selAttr.attribute_id);
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAddCustomValue(selAttr.attribute_id)}
+                                                    className="btn btn-secondary text-sm whitespace-nowrap"
+                                                >
+                                                    + Thêm
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Summary & Generate button */}
+                                {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
+                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="text-sm text-emerald-300">
+                                                <span className="font-semibold">Tổng biến thể: </span>
+                                                <span className="text-lg font-bold text-emerald-400">
+                                                    {selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)}
+                                                </span>
+                                                <span className="text-emerald-300/70 ml-1">tổ hợp</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-emerald-300/60 flex flex-wrap gap-1">
+                                            {selectedAttributes.map((sa, i) => (
+                                                <span key={sa.attribute_id}>
+                                                    {sa.attribute_display_name} ({sa.value_ids.length})
+                                                    {i < selectedAttributes.length - 1 && ' × '}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-emerald-300/50 mt-2">
+                                            Biến thể sẽ tự động tạo khi bạn lưu sản phẩm
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Empty state */}
                                 {selectedAttributes.length === 0 && (
-                                    <div className="text-center py-6 text-slate-500 text-sm">
-                                        👆 Chọn ít nhất một loại thuộc tính để bắt đầu tạo biến thể
+                                    <div className="text-center py-4 text-slate-500 text-sm">
+                                        Chọn thuộc tính phía trên để thiết lập biến thể
                                     </div>
                                 )}
                             </div>
                         )}
-
-                        {/* No variants - show initial stock input removed */}
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700/50">

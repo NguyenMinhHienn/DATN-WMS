@@ -617,19 +617,55 @@ const ProductList: React.FC = () => {
                                                         <div className="h-11 flex items-center justify-center text-orange-700 text-sm bg-orange-50 rounded-lg border-2 border-orange-300 font-semibold">
                                                             ⚠️ Chưa có biến thể
                                                         </div>
-                                                    ) : (
-                                                        <select
-                                                            value={selectedVariantId || ''}
-                                                            onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
-                                                            className="w-full px-2 py-2.5 border-2 border-slate-400 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer truncate"
-                                                        >
-                                                            {variants.map(v => (
-                                                                <option key={v.id} value={v.id}>
-                                                                    {getVariantLabel(v)} {v.stock > 0 ? `(${v.stock})` : '(Hết)'}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    )}
+                                                    ) : (() => {
+                                                        const groupedVariants = variants.reduce((acc: Record<string, ProductVariant[]>, v) => {
+                                                            let groupKey = 'Mặc định';
+                                                            if (v.attribute_values && v.attribute_values.length > 0) {
+                                                                const mainAttr = v.attribute_values.find((av: any) => 
+                                                                    (av.attribute_name || '').toLowerCase().includes('color') || 
+                                                                    (av.attribute_display_name || '').toLowerCase() === 'màu sắc'
+                                                                ) || v.attribute_values[0];
+                                                                groupKey = mainAttr.display_value || 'Mặc định';
+                                                            } else if (v.color) {
+                                                                groupKey = v.color;
+                                                            }
+                                                            if (!acc[groupKey]) acc[groupKey] = [];
+                                                            acc[groupKey].push(v);
+                                                            return acc;
+                                                        }, {});
+
+                                                        return (
+                                                            <select
+                                                                value={selectedVariantId || ''}
+                                                                onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
+                                                                className="w-full px-2 py-2.5 border-2 border-slate-400 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer truncate"
+                                                            >
+                                                                {Object.keys(groupedVariants).map(groupKey => (
+                                                                    <optgroup key={groupKey} label={`Phân loại: ${groupKey}`}>
+                                                                        {groupedVariants[groupKey].map(v => {
+                                                                            // Tạo label chỉ chứa các thuộc tính phụ
+                                                                            let labelParts: string[] = [];
+                                                                            if (v.attribute_values && v.attribute_values.length > 0) {
+                                                                                v.attribute_values.forEach((av: any) => {
+                                                                                    if (av.display_value !== groupKey) labelParts.push(av.display_value);
+                                                                                });
+                                                                            } else {
+                                                                                if (v.size) labelParts.push(v.size);
+                                                                                if (v.storage) labelParts.push(v.storage);
+                                                                            }
+                                                                            const subLabel = labelParts.length > 0 ? labelParts.join(' / ') : 'Tiêu chuẩn';
+
+                                                                            return (
+                                                                                <option key={v.id} value={v.id} disabled={v.stock <= 0}>
+                                                                                    {subLabel} {v.stock > 0 ? `(${v.stock})` : '(Hết)'}
+                                                                                </option>
+                                                                            );
+                                                                        })}
+                                                                    </optgroup>
+                                                                ))}
+                                                            </select>
+                                                        );
+                                                    })()}
                                                 </div>
 
                                                 {/* Quantity Input */}
