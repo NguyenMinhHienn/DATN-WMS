@@ -121,25 +121,6 @@ const FinancialReport: React.FC = () => {
     const totalProfit = totalRevenue - totalCost;
     const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0';
 
-    // Comparison for latest month with data
-    const getComparisonData = () => {
-        if (monthlyData.length === 0) return null;
-        
-        // Find latest month with revenue > 0
-        let latestMonthData = [...monthlyData].reverse().find(m => m.revenue > 0);
-        
-        // If no data, use current month or first month
-        if (!latestMonthData) latestMonthData = monthlyData[currentMonth - 1] || monthlyData[0];
-        
-        return {
-            month: latestMonthData.month,
-            revenueVariance: latestMonthData.revenueVariance || 0,
-            profitVariance: latestMonthData.profitVariance || 0
-        };
-    };
-
-    const comparison = getComparisonData();
-
     // Chart data
     const chartData = {
         labels: MONTH_LABELS.map((_, i) => `T${i + 1}`),
@@ -269,18 +250,6 @@ const FinancialReport: React.FC = () => {
                                 ))}
                             </select>
                         </div>
-                        
-                        {comparison && (
-                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-1.5 flex gap-4 text-xs">
-                                <span className="text-slate-400">Tháng {comparison.month}:</span>
-                                <span className={comparison.revenueVariance >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                                    Doanh thu {comparison.revenueVariance >= 0 ? '↑' : '↓'} {Math.abs(comparison.revenueVariance)}%
-                                </span>
-                                <span className={comparison.profitVariance >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                                    Lợi nhuận {comparison.profitVariance >= 0 ? '↑' : '↓'} {Math.abs(comparison.profitVariance)}%
-                                </span>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -401,11 +370,6 @@ const FinancialReport: React.FC = () => {
                                                         <span className="text-slate-200 font-medium block">
                                                             {MONTH_LABELS[item.month - 1]}
                                                         </span>
-                                                        {item.revenueVariance !== 0 && (
-                                                            <span className={`text-[10px] font-medium ${item.revenueVariance! >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                {item.revenueVariance! >= 0 ? '↑' : '↓'} {Math.abs(item.revenueVariance!)}%
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
