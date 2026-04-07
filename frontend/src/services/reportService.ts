@@ -1,6 +1,8 @@
 import api from './api';
 import { ApiResponse, DashboardStats, SalesSummary, MonthlyReportItem } from '../interface';
 
+let monthlyCache: { year: number; data: MonthlyReportItem[] } | null = null;
+
 export const reportService = {
     async getDashboard(): Promise<DashboardStats> {
         const response = await api.get<ApiResponse<DashboardStats>>('/reports/dashboard');
@@ -12,10 +14,18 @@ export const reportService = {
         return response.data.data!;
     },
 
-    async getMonthlyReport(year?: number): Promise<MonthlyReportItem[]> {
-        const params = year ? `?year=${year}` : '';
-        const response = await api.get<ApiResponse<MonthlyReportItem[]>>(`/dashboard/monthly-report${params}`);
-        return response.data.data || [];
+    async getMonthlyReport(year: number): Promise<MonthlyReportItem[]> {
+        if (monthlyCache?.year === year) return monthlyCache.data;
+        
+        try {
+            const response = await api.get<ApiResponse<MonthlyReportItem[]>>('/dashboard/monthly-report', { params: { year } });
+            const data = response.data?.data || (response.data as any) || [];
+            monthlyCache = { year, data };
+            return data;
+        } catch (error) {
+            console.error('getMonthlyReport failed:', error);
+            return [];
+        }
     },
 
     async getMonthlyDetail(year: number, month: number): Promise<any> {

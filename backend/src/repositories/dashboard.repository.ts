@@ -52,7 +52,9 @@ class DashboardRepository {
                     COALESCE(sti.cost_of_goods_sold, (sti.quantity_requested * sti.unit_cost)) as cost
                 FROM stock_transfers st
                 JOIN stock_transfer_items sti ON st.id = sti.stock_transfer_id
-                WHERE st.transfer_type = 'EXPORT' AND st.status = 'approved'
+                WHERE st.transfer_type = 'EXPORT' 
+                  AND st.status IN ('approved', 'completed') 
+                  AND st.deleted_at IS NULL
             )
             SELECT 
                 COUNT(DISTINCT ref_id) as total_orders,
@@ -99,7 +101,10 @@ class DashboardRepository {
                     COALESCE(sti.cost_of_goods_sold, (sti.quantity_requested * sti.unit_cost)) as cost
                 FROM stock_transfers st
                 JOIN stock_transfer_items sti ON st.id = sti.stock_transfer_id
-                WHERE st.transfer_type = 'EXPORT' AND st.status = 'approved' AND YEAR(st.created_at) = ?
+                WHERE st.transfer_type = 'EXPORT' 
+                  AND st.status IN ('approved', 'completed') 
+                  AND st.deleted_at IS NULL 
+                  AND YEAR(st.created_at) = ?
             )
             SELECT 
                 MONTH(created_at) as month,
@@ -126,42 +131,127 @@ class DashboardRepository {
 
     async getReceiptsByMonth(year: number, month: number): Promise<any[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT id, receipt_number as code, created_at as date, total_amount, status
-            FROM goods_receipts
-            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ? AND deleted_at IS NULL
-            ORDER BY created_at DESC
+            SELECT 
+                st.id,
+                st.transfer_number as receipt_number,
+                'purchase' as receipt_type,
+                DATE_FORMAT(st.transfer_date, '%Y-%m-%d') as receipt_date,
+                DATE_FORMAT(st.expected_arrival_date, '%Y-%m-%d') as expected_date,
+                st.total_items,
+                st.total_quantity,
+                st.total_value as total_amount,
+                st.status,
+                s.name as supplier_name,
+                w.name as warehouse_name,
+                u.full_name as created_by_name,
+                st.created_at
+            FROM stock_transfers st
+            LEFT JOIN suppliers s ON st.supplier_id = s.id
+            LEFT JOIN warehouses w ON st.destination_warehouse_id = w.id
+            LEFT JOIN users u ON st.created_by = u.id
+            WHERE st.transfer_type = 'IMPORT'
+                AND st.status IN ('approved', 'completed')
+                AND st.deleted_at IS NULL
+                AND YEAR(st.created_at) = ? AND MONTH(st.created_at) = ?
+            ORDER BY st.created_at DESC
         `, [year, month]);
         return rows;
     }
 
     async getIssuesByMonth(year: number, month: number): Promise<any[]> {
-        // Kết hợp cả phiếu xuất kho (export_slips) và phiếu xuất nội bộ (stock_transfers EXPORT)
-        // Lưu ý: export_slips không có total_amount riêng mà lấy từ order, và không có deleted_at
+        // Query mới sử dụng stock_transfers cho EXPORT
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT es.id, CONCAT('PXK-', es.id) as code, es.created_at as date, o.total_amount, es.status, 'EXPORT_SLIP' as type
-            FROM export_slips es
-            JOIN orders o ON es.order_id = o.id
-            WHERE YEAR(es.created_at) = ? AND MONTH(es.created_at) = ?
-            UNION ALL
-            SELECT id, transfer_number as code, created_at as date, total_value as total_amount, status, 'STOCK_TRANSFER' as type
-            FROM stock_transfers
-            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ? AND transfer_type = 'EXPORT' AND deleted_at IS NULL
-            ORDER BY date DESC
-        `, [year, month, year, month]);
+            SELECT 
+                st.id,
+                st.transfer_number as issue_number,
+                'sales' as issue_type,
+                DATE_FORMAT(st.transfer_date, '%Y-%m-%d') as issue_date,
+                DATE_FORMAT(st.expected_arrival_date, '%Y-%m-%d') as required_date,
+                st.total_items,
+                st.total_quantity,
+                st.total_value as total_amount,
+                st.status,
+                'normal' as priority,
+                st.reason as customer_name,
+                w.name as warehouse_name,
+                u.full_name as created_by_name,
+                st.created_at
+            FROM stock_transfers st
+            LEFT JOIN warehouses w ON st.source_warehouse_id = w.id
+            LEFT JOIN users u ON st.created_by = u.id
+            WHERE st.transfer_type = 'EXPORT'
+                AND st.status IN ('approved', 'completed')
+                AND st.deleted_at IS NULL
+                AND YEAR(st.created_at) = ? AND MONTH(st.created_at) = ?
+            ORDER BY st.created_at DESC
+        `, [year, month]);
+        return rows;
+    }
+
+    async getProductPerformanceByMonth(year: number, month: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            WITH ProductSales AS (
+                -- 1. Orders (Revenue & COGS)
+                SELECT 
+                    p.id as product_id,
+                    p.name as product_name,
+                    oi.quantity as quantity_sold,
+                    (oi.unit_price * oi.quantity) as revenue,
+                    COALESCE(esd.cost_of_goods_sold, oi.cost_price_snapshot * oi.quantity) as cost
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                LEFT JOIN export_slips es ON o.id = es.order_id AND es.status IN ('approved', 'completed')
+                LEFT JOIN export_slip_details esd ON es.id = esd.export_slip_id 
+                    AND esd.product_id = oi.product_id 
+                    AND (esd.variant_id = oi.variant_id OR (esd.variant_id IS NULL AND oi.variant_id IS NULL))
+                JOIN products p ON oi.product_id = p.id
+                WHERE o.status = 'delivered' AND YEAR(o.created_at) = ? AND MONTH(o.created_at) = ?
+
+                UNION ALL
+
+                -- 2. Stock Transfers (EXPORT) (Revenue & COGS)
+                SELECT 
+                    p.id as product_id,
+                    p.name as product_name,
+                    sti.quantity_requested as quantity_sold,
+                    sti.line_total as revenue,
+                    COALESCE(sti.cost_of_goods_sold, sti.quantity_requested * sti.unit_cost) as cost
+                FROM stock_transfers st
+                JOIN stock_transfer_items sti ON st.id = sti.stock_transfer_id
+                JOIN products p ON sti.product_id = p.id
+                WHERE st.transfer_type = 'EXPORT'
+                    AND st.status IN ('approved', 'completed')
+                    AND st.deleted_at IS NULL
+                    AND YEAR(st.created_at) = ? AND MONTH(st.created_at) = ?
+            )
+            SELECT 
+                product_id,
+                product_name,
+                SUM(quantity_sold) as quantity_sold,
+                SUM(revenue) as revenue,
+                SUM(cost) as cost,
+                SUM(revenue - cost) as profit
+            FROM ProductSales
+            GROUP BY product_id, product_name
+            HAVING revenue > 0 OR cost > 0
+            ORDER BY revenue DESC
+        `, [year, month, year, month, year, month, year, month]);
         return rows;
     }
 
     async getMonthlyDetail(year: number, month: number): Promise<any> {
-        const [orders, receipts, issues] = await Promise.all([
+        const [orders, receipts, issues, products] = await Promise.all([
             this.getOrdersByMonth(year, month),
             this.getReceiptsByMonth(year, month),
-            this.getIssuesByMonth(year, month)
+            this.getIssuesByMonth(year, month),
+            this.getProductPerformanceByMonth(year, month)
         ]);
 
         return {
             orders: orders || [],
             receipts: receipts || [],
-            issues: issues || []
+            issues: issues || [],
+            products: products || []
         };
     }
 }
