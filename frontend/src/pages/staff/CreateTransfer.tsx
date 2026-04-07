@@ -67,6 +67,7 @@ const CreateTransfer: React.FC = () => {
     const [receiverAddress, setReceiverAddress] = useState('');
     const [receiverPhone, setReceiverPhone] = useState('');
     const [exportNote, setExportNote] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
 
     // Reference data
     const [products, setProducts] = useState<Product[]>([]);
@@ -120,6 +121,10 @@ const CreateTransfer: React.FC = () => {
                 if (location.state.shippingName) setReceiverName(location.state.shippingName);
                 if (location.state.shippingAddress) setReceiverAddress(location.state.shippingAddress);
                 if (location.state.shippingPhone) setReceiverPhone(location.state.shippingPhone);
+                if (location.state.paymentMethod) {
+                    const pm = location.state.paymentMethod.toLowerCase();
+                    setPaymentMethod(pm === 'cod' ? 'cod' : 'online');
+                }
 
                 const orderItems = location.state.orderItems || [];
                 if (orderItems.length > 0) {
@@ -384,12 +389,18 @@ const CreateTransfer: React.FC = () => {
                 finalSupplierId = newSup.id;
             }
 
+            let finalExportNote = exportNote;
+            if (transferType === 'EXPORT' && paymentMethod) {
+                const pmText = paymentMethod === 'cod' ? 'Thanh toán COD' : 'Thanh toán Online';
+                finalExportNote = exportNote ? `[${pmText}] ${exportNote}` : `[${pmText}]`;
+            }
+
             const payload = {
                 type: transferType,
                 source_warehouse_id: 1,
                 destination_warehouse_id: 1,
                 transfer_date: receiptDate,
-                reason: transferType === 'EXPORT' ? (exportNote ? `${reason} - ${exportNote}` : reason) : reason,
+                reason: transferType === 'EXPORT' ? (finalExportNote ? `${reason} - ${finalExportNote}` : reason) : reason,
                 order_id: transferType === 'EXPORT' ? orderId : undefined,
                 supplier_id: transferType === 'IMPORT' ? finalSupplierId : undefined,
                 delivery_person: deliveryPerson || undefined,
@@ -728,6 +739,18 @@ const CreateTransfer: React.FC = () => {
                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                         placeholder="Ghi chú thêm..."
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Thanh toán</label>
+                                    <select
+                                        value={paymentMethod}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    >
+                                        <option value="">-- Chọn thanh toán --</option>
+                                        <option value="cod">Tiền mặt (COD)</option>
+                                        <option value="online">Chuyển khoản (Online)</option>
+                                    </select>
                                 </div>
                             </>
                         )}

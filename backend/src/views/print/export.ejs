@@ -71,9 +71,16 @@
             <div class="info-block">
                 <span class="info-label">Người Nhận:</span> <%= receipt.receiver_name || 'N/A' %>
             </div>
+            <% if (receipt.receiver_department) { %>
             <div class="info-block">
-                <span class="info-label">Phòng Ban:</span> <%= receipt.receiver_department || 'N/A' %>
+                <span class="info-label">Phòng Ban:</span> <%= receipt.receiver_department %>
             </div>
+            <% } %>
+            <% if (receipt.payment_method) { %>
+            <div class="info-block">
+                <span class="info-label">Thanh toán:</span> <strong><%= receipt.payment_method %></strong>
+            </div>
+            <% } %>
             <div class="info-block-full">
                 <span class="info-label">Địa Chỉ/SĐT Nhận:</span> 
                 <%= receipt.receiver_address || '' %> <%= receipt.receiver_phone ? ' (Tel: ' + receipt.receiver_phone + ')' : '' %>

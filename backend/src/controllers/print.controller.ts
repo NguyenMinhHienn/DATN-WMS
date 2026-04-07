@@ -147,6 +147,19 @@ export const printController = {
                 
                 return res.render('print/import', ejsData);
             } else {
+                let extractedNotes = receipt.notes || receipt.reason || '';
+                let paymentMethodText = '';
+                
+                if (extractedNotes.includes('[Thanh toán COD]')) {
+                    paymentMethodText = 'Tiền mặt (COD)';
+                    extractedNotes = extractedNotes.replace('[Thanh toán COD]', '').trim();
+                } else if (extractedNotes.includes('[Thanh toán Online]')) {
+                    paymentMethodText = 'Chuyển khoản (Online)';
+                    extractedNotes = extractedNotes.replace('[Thanh toán Online]', '').trim();
+                }
+                
+                if (extractedNotes.endsWith('-')) extractedNotes = extractedNotes.slice(0, -1).trim();
+
                 ejsData.receipt = {
                     receipt_number: receipt.transfer_number,
                     receipt_date: receipt.transfer_date,
@@ -156,7 +169,8 @@ export const printController = {
                     receiver_department: receipt.receiver_department,
                     receiver_address: receipt.receiver_address,
                     receiver_phone: receipt.receiver_phone,
-                    notes: receipt.notes || receipt.reason,
+                    notes: extractedNotes,
+                    payment_method: paymentMethodText,
                     reference_document: receipt.order_id ? `#${receipt.order_id}` : '',
                     total_items: receipt.total_items,
                     total_amount: receipt.total_value,

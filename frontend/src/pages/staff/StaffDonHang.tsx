@@ -169,6 +169,7 @@ const StaffDonHang: React.FC = () => {
                     shippingName: detail.shipping_name,
                     shippingAddress: detail.shipping_address,
                     shippingPhone: detail.shipping_phone,
+                    paymentMethod: detail.payment_method,
                 }
             });
         } catch (err) {
