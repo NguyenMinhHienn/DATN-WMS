@@ -194,8 +194,12 @@ const StockTransfers: React.FC = () => {
                                     <td className="px-6 py-4 font-medium text-white font-mono">
                                         {transfer.transfer_number}
                                     </td>
-                                    <td className="px-6 py-4 font-mono text-indigo-300 text-sm">
-                                        {transfer.order_id ? `#${transfer.order_id}` : '-'}
+                                    <td className="px-6 py-4 text-sm font-medium">
+                                        {transfer.order_id ? (
+                                            <span className="text-indigo-300">Đơn hàng số #{transfer.order_id}</span>
+                                        ) : (
+                                            <span className="text-slate-400">Xuất trực tiếp</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">{getTypeBadge(transfer.transfer_type)}</td>
                                     <td className="px-6 py-4 text-slate-300 text-sm">
@@ -321,12 +325,12 @@ const StockTransfers: React.FC = () => {
                                 <span className="text-slate-500">Người tạo:</span>
                                 <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
                             </div>
-                            {selectedTransfer.order_id && (
-                                <div>
-                                    <span className="text-slate-500">Mã đơn hàng:</span>
-                                    <p className="font-medium text-white font-mono">#{selectedTransfer.order_id}</p>
-                                </div>
-                            )}
+                            <div>
+                                <span className="text-slate-500">Mã đơn hàng:</span>
+                                <p className="font-medium text-white">
+                                    {selectedTransfer.order_id ? `Đơn hàng số #${selectedTransfer.order_id}` : 'Xuất trực tiếp'}
+                                </p>
+                            </div>
                             <div>
                                 <span className="text-slate-500">Tổng giá trị:</span>
                                 <p className="font-medium text-lg text-indigo-400">{selectedTransfer.total_value.toLocaleString()} đ</p>

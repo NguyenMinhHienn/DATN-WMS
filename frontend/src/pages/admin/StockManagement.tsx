@@ -225,8 +225,12 @@ const StockManagement: React.FC = () => {
                                     {transfers.map(t => (
                                         <tr key={t.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${t.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
                                             <td className="py-4 px-5 font-mono text-sm font-medium" style={{ color: config.textColor }}>{t.transfer_number}</td>
-                                            <td className="py-4 px-5 font-mono text-sm text-indigo-300">
-                                                {t.order_id ? `#${t.order_id}` : '-'}
+                                            <td className="py-4 px-5 text-sm font-medium">
+                                                {t.order_id ? (
+                                                    <span className="text-indigo-300">Đơn hàng số #{t.order_id}</span>
+                                                ) : (
+                                                    <span className="text-slate-400">Xuất trực tiếp</span>
+                                                )}
                                             </td>
                                             <td className="py-4 px-5 text-sm text-slate-300">
                                                 {activeTab === 'IMPORT' ? t.destination_warehouse_name : t.source_warehouse_name}
@@ -338,12 +342,12 @@ const StockManagement: React.FC = () => {
                                         <span className="text-slate-400">Ngày tạo:</span>
                                         <span className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</span>
                                     </div>
-                                    {selectedTransfer.order_id && (
-                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                            <span className="text-slate-400">Mã đơn hàng:</span>
-                                            <span className="font-medium text-indigo-400 font-mono">#{selectedTransfer.order_id}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
+                                        <span className="text-slate-400">Mã đơn hàng:</span>
+                                        <span className={`font-medium ${selectedTransfer.order_id ? 'text-indigo-400' : 'text-slate-300'}`}>
+                                            {selectedTransfer.order_id ? `Đơn hàng số #${selectedTransfer.order_id}` : 'Xuất trực tiếp'}
+                                        </span>
+                                    </div>
                                     <div className="flex justify-between border-b border-slate-600/50 pb-2">
                                         <span className="text-slate-400">Ghi chú:</span>
                                         <span className="font-medium text-white">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
