@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 
 /**
  * Admin Orders Page - Modern UI
- * Quản lý đơn hàng với progress stepper và glassmorphism design
+ * Quản lý yêu cầu nhập với progress stepper và glassmorphism design
  */
 
 // ==================== STATUS CONFIG ====================
@@ -13,13 +13,13 @@ const STATUS_CONFIG: Record<string, {
 }> = {
     pending: { label: 'Chờ duyệt', icon: '⏳', color: '#f59e0b', gradient: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/40', bg: 'bg-amber-500/10', step: 0 },
     confirmed: { label: 'Đã duyệt', icon: '✅', color: '#3b82f6', gradient: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/40', bg: 'bg-blue-500/10', step: 1 },
-    shipping: { label: 'Đang giao', icon: '🚚', color: '#8b5cf6', gradient: 'from-violet-500/20 to-violet-600/5', border: 'border-violet-500/40', bg: 'bg-violet-500/10', step: 2 },
-    delivered: { label: 'Đã giao', icon: '📦', color: '#10b981', gradient: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', step: 3 },
-    failed: { label: 'Giao thất bại', icon: '❌', color: '#ef4444', gradient: 'from-red-500/20 to-red-600/5', border: 'border-red-500/40', bg: 'bg-red-500/10', step: -1 },
+    shipping: { label: 'Đang xử lý', icon: '🚚', color: '#8b5cf6', gradient: 'from-violet-500/20 to-violet-600/5', border: 'border-violet-500/40', bg: 'bg-violet-500/10', step: 2 },
+    delivered: { label: 'Hoàn thành', icon: '📦', color: '#10b981', gradient: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', step: 3 },
+    failed: { label: 'Xử lý thất bại', icon: '❌', color: '#ef4444', gradient: 'from-red-500/20 to-red-600/5', border: 'border-red-500/40', bg: 'bg-red-500/10', step: -1 },
     cancelled: { label: 'Đã hủy', icon: '🚫', color: '#6b7280', gradient: 'from-slate-500/20 to-slate-600/5', border: 'border-slate-500/40', bg: 'bg-slate-500/10', step: -1 },
 };
 
-const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang giao', 'Đã giao'];
+const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang xử lý', 'Hoàn thành'];
 const STEP_ICONS = ['📝', '✅', '🚚', '📦'];
 
 // ==================== PROGRESS STEPPER COMPONENT ====================
@@ -99,7 +99,7 @@ const AdminOrders: React.FC = () => {
             setOrders(result.data);
             setTotalPages(result.pagination?.totalPages || 1);
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Không thể tải đơn hàng');
+            setError(err?.response?.data?.message || 'Không thể tải yêu cầu nhập');
         } finally {
             setLoading(false);
         }
@@ -112,7 +112,7 @@ const AdminOrders: React.FC = () => {
             const detail = await orderService.getOrderById(orderId);
             setSelectedOrder(detail);
         } catch (err) {
-            alert('Không thể tải chi tiết đơn hàng');
+            alert('Không thể tải chi tiết yêu cầu');
         } finally {
             setDetailLoading(false);
         }
@@ -120,11 +120,11 @@ const AdminOrders: React.FC = () => {
 
     const handleAction = async (orderId: number, action: string) => {
         const labels: Record<string, string> = {
-            confirm: 'Duyệt đơn hàng',
-            cancel: 'Hủy đơn hàng',
-            shipping: 'Chuyển sang Đang giao',
-            delivered: 'Xác nhận Đã giao',
-            failed: 'Đánh dấu Giao thất bại',
+            confirm: 'Duyệt yêu cầu',
+            cancel: 'Hủy yêu cầu',
+            shipping: 'Chuyển sang Đang xử lý',
+            delivered: 'Xác nhận Hoàn thành',
+            failed: 'Đánh dấu Xử lý thất bại',
         };
         if (!window.confirm(`Bạn chắc chắn muốn ${labels[action]?.toLowerCase()}?`)) return;
         setActionLoading(`${orderId}-${action}`);
@@ -150,8 +150,8 @@ const AdminOrders: React.FC = () => {
         { value: '', label: 'Tất cả', icon: '📋' },
         { value: 'pending', label: 'Chờ duyệt', icon: '⏳' },
         { value: 'confirmed', label: 'Đã duyệt', icon: '✅' },
-        { value: 'shipping', label: 'Đang giao', icon: '🚚' },
-        { value: 'delivered', label: 'Đã giao', icon: '📦' },
+        { value: 'shipping', label: 'Đang xử lý', icon: '🚚' },
+        { value: 'delivered', label: 'Hoàn thành', icon: '📦' },
         { value: 'failed', label: 'Thất bại', icon: '❌' },
         { value: 'cancelled', label: 'Đã hủy', icon: '🚫' },
     ];
@@ -160,11 +160,11 @@ const AdminOrders: React.FC = () => {
     const getNextAction = (order: OrderSummary): { action: string; label: string; icon: string; className: string } | null => {
         switch (order.status) {
             case 'pending':
-                return { action: 'confirm', label: 'Duyệt đơn', icon: '✅', className: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25' };
+                return { action: 'confirm', label: 'Duyệt yêu cầu', icon: '✅', className: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25' };
             case 'confirmed':
-                return { action: 'shipping', label: 'Bắt đầu giao', icon: '🚚', className: 'from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-violet-500/25' };
+                return { action: 'shipping', label: 'Bắt đầu xử lý', icon: '🚚', className: 'from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-violet-500/25' };
             case 'shipping':
-                return { action: 'delivered', label: 'Đã giao xong', icon: '📦', className: 'from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 shadow-emerald-500/25' };
+                return { action: 'delivered', label: 'Hoàn thành', icon: '📦', className: 'from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 shadow-emerald-500/25' };
             default:
                 return null;
         }
@@ -187,10 +187,10 @@ const AdminOrders: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/20">🛒</span>
-                        Quản lý Đơn hàng
+                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/20">📋</span>
+                        Quản lý Yêu cầu nhập
                     </h1>
-                    <p className="text-slate-400 mt-1 ml-[52px]">Theo dõi và xử lý tất cả đơn hàng</p>
+                    <p className="text-slate-400 mt-1 ml-[52px]">Theo dõi và xử lý các yêu cầu nhập hàng</p>
                 </div>
                 <button onClick={fetchOrders}
                     className="group px-4 py-2.5 bg-slate-800/60 text-slate-300 rounded-xl hover:bg-slate-700/60 text-sm font-medium border border-slate-700/50 transition-all hover:border-indigo-500/30">
@@ -230,12 +230,12 @@ const AdminOrders: React.FC = () => {
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
                     </div>
-                    <p className="text-slate-400 text-sm">Đang tải đơn hàng...</p>
+                    <p className="text-slate-400 text-sm">Đang tải yêu cầu...</p>
                 </div>
             ) : orders.length === 0 ? (
                 <div className="text-center py-20 bg-slate-800/20 rounded-2xl border border-slate-700/30 backdrop-blur-sm">
                     <div className="text-6xl mb-4 opacity-50">📭</div>
-                    <p className="text-slate-400">Không có đơn hàng nào</p>
+                    <p className="text-slate-400">Không có yêu cầu nào</p>
                     <p className="text-slate-600 text-sm mt-1">Thử thay đổi bộ lọc trạng thái</p>
                 </div>
             ) : (
@@ -266,7 +266,7 @@ const AdminOrders: React.FC = () => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg">
-                                                    #{order.id}
+                                                    Yêu cầu số #{order.id}
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase ${config.bg} border ${config.border}`}
                                                     style={{ color: config.color }}>
@@ -280,11 +280,11 @@ const AdminOrders: React.FC = () => {
                                             <div className="mt-2.5 flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-xs text-white font-bold">
-                                                        {order.shipping_name?.charAt(0)?.toUpperCase() || '?'}
+                                                        {order.shipping_name === '-' ? 'N' : (order.shipping_name?.charAt(0)?.toUpperCase() || '?')}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-white">{order.shipping_name}</p>
-                                                        <p className="text-xs text-slate-500">{order.shipping_phone}</p>
+                                                        <p className="text-sm font-medium text-white">{order.shipping_name === '-' ? 'Xuất trực tiếp' : order.shipping_name}</p>
+                                                        <p className="text-xs text-slate-500">{order.shipping_phone === '-' ? 'Nội bộ' : order.shipping_phone}</p>
                                                     </div>
                                                 </div>
                                                 {order.user_email && (
@@ -344,8 +344,8 @@ const AdminOrders: React.FC = () => {
                                                 {/* Info grid */}
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                                                     <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/30">
-                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">📍 Địa chỉ giao hàng</p>
-                                                        <p className="text-sm text-slate-200 leading-relaxed">{selectedOrder.shipping_address}</p>
+                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">📍 Địa chỉ / Phòng ban</p>
+                                                        <p className="text-sm text-slate-200 leading-relaxed">{selectedOrder.shipping_address === '-' ? 'Nội bộ' : selectedOrder.shipping_address}</p>
                                                     </div>
                                                     <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/30">
                                                         <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">💳 Thanh toán</p>
@@ -363,7 +363,7 @@ const AdminOrders: React.FC = () => {
                                                 <div>
                                                     <h4 className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-3 flex items-center gap-2">
                                                         <span className="w-5 h-0.5 bg-indigo-500/50 rounded-full"></span>
-                                                        Sản phẩm ({selectedOrder.items.length})
+                                                        Hàng hóa ({selectedOrder.items.length})
                                                     </h4>
                                                     <div className="space-y-2">
                                                         {selectedOrder.items.map(item => (

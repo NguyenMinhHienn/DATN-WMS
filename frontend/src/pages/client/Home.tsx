@@ -106,12 +106,12 @@ const Home: React.FC = () => {
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Trang chủ</Link>
-                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Sản phẩm</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hàng hóa</Link>
 
-                        {/* NÚT ORDERS VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
+                        {/* NÚT YÊU CẦU VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
                         {isAuthenticated && (
                             <>
-                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Yêu cầu nhập</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -177,13 +177,13 @@ const Home: React.FC = () => {
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
                                         </div>
 
-                                        {/* Giỏ hàng */}
+                                        {/* Phiếu nhập tạm */}
                                         <button
                                             onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
                                             className="w-full flex items-center justify-between px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-slate-700 hover:text-primary-600 transition-colors text-sm"
                                         >
                                             <span className="flex items-center gap-3">
-                                                <span>🛒</span> Giỏ hàng
+                                                <span>📋</span> Phiếu nhập tạm
                                             </span>
                                             {cartItemCount > 0 && (
                                                 <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -194,12 +194,12 @@ const Home: React.FC = () => {
 
                                         <div className="border-t border-slate-200 dark:border-slate-700"></div>
 
-                                        {/* Đơn hàng */}
+                                        {/* Yêu cầu nhập */}
                                         <button
                                             onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
                                         >
-                                            <span>�</span> Đơn hàng của tôi
+                                            <span>📝</span> Yêu cầu nhập
                                         </button>
                                         {/* Hỗ trợ */}
                                         <button
@@ -262,12 +262,12 @@ const Home: React.FC = () => {
                 <div className="md:hidden py-4 border-t">
                     <div className="flex flex-col space-y-3">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
-                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hàng hóa</Link>
 
-                        {/* NÚT ORDERS VÀ SUPPORT CHO MOBILE */}
+                        {/* NÚT YÊU CẦU VÀ SUPPORT CHO MOBILE */}
                         {isAuthenticated && (
                             <>
-                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Yêu cầu nhập</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -314,7 +314,7 @@ const Home: React.FC = () => {
                         </p>
                         <div className="flex justify-center gap-4 flex-wrap">
                             <Link to="/products" className="bg-white text-slate-800 px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2">
-                                <span>🛒</span> Xem sản phẩm
+                                <span>📦</span> Danh mục hàng hóa
                             </Link>
                             {!isAuthenticated && (
                                 <Link to="/register" className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/10 transition-all flex items-center gap-2">
@@ -367,7 +367,7 @@ const Home: React.FC = () => {
                                 </div>
                             </div>
                             <Link to="/products" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
-                                Xem sản phẩm →
+                                Xem hàng hóa →
                             </Link>
                         </div>
                     </div>

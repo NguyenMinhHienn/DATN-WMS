@@ -33,7 +33,7 @@ export const StaffLayout: React.FC = () => {
     const menuItems = [
         { path: '/staff/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/staff/products', label: 'Xem sản phẩm', icon: '📦' },
-        { path: '/staff/donhang', label: 'Đơn hàng', icon: '🛒' },
+        { path: '/staff/donhang', label: 'Yêu cầu nhập', icon: '📋' },
         { path: '/staff/create-transfer', label: 'Tạo phiếu', icon: '➕' },
         { path: '/staff/my-transfers', label: 'Phiếu đã tạo', icon: '📋' },
     ];

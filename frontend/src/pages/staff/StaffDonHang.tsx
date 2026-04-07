@@ -4,8 +4,8 @@ import { orderService, OrderSummary, OrderDetail } from '../../services/orderSer
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 /**
- * Staff Orders Page - Quản lý đơn hàng đầy đủ cho Staff
- * Staff có thể: xem, duyệt, giao, hoàn thành, hủy đơn hàng
+ * Staff Orders Page - Quản lý yêu cầu nhập đầy đủ cho Staff
+ * Staff có thể: xem, duyệt, xử lý, hoàn thành, hủy yêu cầu
  */
 
 // ==================== STATUS CONFIG ====================
@@ -14,13 +14,13 @@ const STATUS_CONFIG: Record<string, {
 }> = {
     pending: { label: 'Chờ duyệt', icon: '⏳', color: '#f59e0b', bgLight: 'bg-amber-50', borderLight: 'border-amber-200', step: 0 },
     confirmed: { label: 'Đã duyệt', icon: '✅', color: '#3b82f6', bgLight: 'bg-blue-50', borderLight: 'border-blue-200', step: 1 },
-    shipping: { label: 'Đang giao', icon: '🚚', color: '#8b5cf6', bgLight: 'bg-violet-50', borderLight: 'border-violet-200', step: 2 },
-    delivered: { label: 'Đã giao', icon: '📦', color: '#10b981', bgLight: 'bg-emerald-50', borderLight: 'border-emerald-200', step: 3 },
-    failed: { label: 'Giao thất bại', icon: '❌', color: '#ef4444', bgLight: 'bg-red-50', borderLight: 'border-red-200', step: -1 },
+    shipping: { label: 'Đang xử lý', icon: '🚚', color: '#8b5cf6', bgLight: 'bg-violet-50', borderLight: 'border-violet-200', step: 2 },
+    delivered: { label: 'Hoàn thành', icon: '📦', color: '#10b981', bgLight: 'bg-emerald-50', borderLight: 'border-emerald-200', step: 3 },
+    failed: { label: 'Xử lý thất bại', icon: '❌', color: '#ef4444', bgLight: 'bg-red-50', borderLight: 'border-red-200', step: -1 },
     cancelled: { label: 'Đã hủy', icon: '🚫', color: '#6b7280', bgLight: 'bg-slate-50', borderLight: 'border-slate-200', step: -1 },
 };
 
-const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang giao', 'Đã giao'];
+const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang xử lý', 'Hoàn thành'];
 const STEP_ICONS = ['📝', '✅', '🚚', '📦'];
 
 // ==================== PROGRESS STEPPER COMPONENT ====================
@@ -100,7 +100,7 @@ const StaffDonHang: React.FC = () => {
             setOrders(result.data);
             setTotalPages(result.pagination?.totalPages || 1);
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Không thể tải đơn hàng');
+            setError(err?.response?.data?.message || 'Không thể tải yêu cầu nhập');
         } finally {
             setLoading(false);
         }
@@ -113,7 +113,7 @@ const StaffDonHang: React.FC = () => {
             const detail = await orderService.getOrderById(orderId);
             setSelectedOrder(detail);
         } catch (err) {
-            alert('Không thể tải chi tiết đơn hàng');
+            alert('Không thể tải chi tiết yêu cầu');
         } finally {
             setDetailLoading(false);
         }
@@ -121,11 +121,11 @@ const StaffDonHang: React.FC = () => {
 
     const handleAction = async (orderId: number, action: string) => {
         const labels: Record<string, string> = {
-            confirm: 'Duyệt đơn hàng',
-            cancel: 'Hủy đơn hàng',
-            shipping: 'Chuyển sang Đang giao',
-            delivered: 'Xác nhận Đã giao',
-            failed: 'Đánh dấu Giao thất bại',
+            confirm: 'Duyệt yêu cầu',
+            cancel: 'Hủy yêu cầu',
+            shipping: 'Chuyển sang Đang xử lý',
+            delivered: 'Xác nhận Hoàn thành',
+            failed: 'Đánh dấu Xử lý thất bại',
         };
         if (!window.confirm(`Bạn chắc chắn muốn ${labels[action]?.toLowerCase()}?`)) return;
         setActionLoading(`${orderId}-${action}`);
@@ -165,7 +165,7 @@ const StaffDonHang: React.FC = () => {
                     fromOrder: true,
                     orderId: detail.id,
                     orderItems,
-                    reason: `Xuất kho cho đơn hàng #${detail.id} - ${detail.shipping_name}`,
+                    reason: `Xuất kho cho yêu cầu #${detail.id} - ${detail.shipping_name}`,
                     shippingName: detail.shipping_name,
                     shippingAddress: detail.shipping_address,
                     shippingPhone: detail.shipping_phone,
@@ -173,7 +173,7 @@ const StaffDonHang: React.FC = () => {
                 }
             });
         } catch (err) {
-            alert('Không thể tải chi tiết đơn hàng để tạo phiếu xuất');
+            alert('Không thể tải chi tiết yêu cầu để tạo phiếu xuất');
         } finally {
             setExportLoading(null);
         }
@@ -183,8 +183,8 @@ const StaffDonHang: React.FC = () => {
         { value: '', label: 'Tất cả', icon: '📋' },
         { value: 'pending', label: 'Chờ duyệt', icon: '⏳' },
         { value: 'confirmed', label: 'Đã duyệt', icon: '✅' },
-        { value: 'shipping', label: 'Đang giao', icon: '🚚' },
-        { value: 'delivered', label: 'Đã giao', icon: '📦' },
+        { value: 'shipping', label: 'Đang xử lý', icon: '🚚' },
+        { value: 'delivered', label: 'Hoàn thành', icon: '📦' },
         { value: 'failed', label: 'Thất bại', icon: '❌' },
         { value: 'cancelled', label: 'Đã hủy', icon: '🚫' },
     ];
@@ -193,11 +193,11 @@ const StaffDonHang: React.FC = () => {
     const getNextAction = (order: OrderSummary): { action: string; label: string; icon: string; className: string } | null => {
         switch (order.status) {
             case 'pending':
-                return { action: 'confirm', label: 'Duyệt đơn', icon: '✅', className: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25' };
+                return { action: 'confirm', label: 'Duyệt yêu cầu', icon: '✅', className: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25' };
             case 'confirmed':
-                return { action: 'shipping', label: 'Bắt đầu giao', icon: '🚚', className: 'bg-violet-600 hover:bg-violet-700 shadow-violet-500/25' };
+                return { action: 'shipping', label: 'Bắt đầu xử lý', icon: '🚚', className: 'bg-violet-600 hover:bg-violet-700 shadow-violet-500/25' };
             case 'shipping':
-                return { action: 'delivered', label: 'Đã giao xong', icon: '📦', className: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25' };
+                return { action: 'delivered', label: 'Hoàn thành', icon: '📦', className: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25' };
             default:
                 return null;
         }
@@ -223,8 +223,8 @@ const StaffDonHang: React.FC = () => {
                         <span className="text-2xl">🛒</span>
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Quản lý Đơn hàng</h1>
-                        <p className="text-slate-500 text-sm">Theo dõi và xử lý tất cả đơn hàng</p>
+                        <h1 className="text-2xl font-bold text-slate-800">Quản lý Yêu cầu nhập</h1>
+                        <p className="text-slate-500 text-sm">Theo dõi và xử lý các yêu cầu nhập hàng</p>
                     </div>
                 </div>
                 <button onClick={fetchOrders}
@@ -263,12 +263,12 @@ const StaffDonHang: React.FC = () => {
                         <div className="absolute inset-0 rounded-full border-4 border-emerald-200"></div>
                         <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
                     </div>
-                    <p className="text-slate-500 text-sm">Đang tải đơn hàng...</p>
+                    <p className="text-slate-500 text-sm">Đang tải yêu cầu...</p>
                 </div>
             ) : orders.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm">
                     <div className="text-6xl mb-4 opacity-50">📭</div>
-                    <p className="text-slate-600 font-medium">Không có đơn hàng nào</p>
+                    <p className="text-slate-600 font-medium">Không có yêu cầu nào</p>
                     <p className="text-slate-400 text-sm mt-1">Thử thay đổi bộ lọc trạng thái</p>
                 </div>
             ) : (
@@ -299,7 +299,7 @@ const StaffDonHang: React.FC = () => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <span className="text-sm font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
-                                                    #{order.id}
+                                                    Yêu cầu số #{order.id}
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase border ${config.borderLight}`}
                                                     style={{ color: config.color, backgroundColor: `${config.color}10` }}>
@@ -313,11 +313,11 @@ const StaffDonHang: React.FC = () => {
                                             <div className="mt-2.5 flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-xs text-white font-bold">
-                                                        {order.shipping_name?.charAt(0)?.toUpperCase() || '?'}
+                                                        {order.shipping_name === '-' ? 'N' : (order.shipping_name?.charAt(0)?.toUpperCase() || '?')}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-slate-800">{order.shipping_name}</p>
-                                                        <p className="text-xs text-slate-400">{order.shipping_phone}</p>
+                                                        <p className="text-sm font-medium text-slate-800">{order.shipping_name === '-' ? 'Xuất trực tiếp' : order.shipping_name}</p>
+                                                        <p className="text-xs text-slate-400">{order.shipping_phone === '-' ? 'Nội bộ' : order.shipping_phone}</p>
                                                     </div>
                                                 </div>
                                                 {order.user_email && (
@@ -388,8 +388,8 @@ const StaffDonHang: React.FC = () => {
                                                 {/* Info grid */}
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                                                     <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm">
-                                                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">📍 Địa chỉ giao hàng</p>
-                                                        <p className="text-sm text-slate-700 leading-relaxed">{selectedOrder.shipping_address}</p>
+                                                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">📍 Địa chỉ / Phòng ban</p>
+                                                        <p className="text-sm text-slate-700 leading-relaxed">{selectedOrder.shipping_address === '-' ? 'Nội bộ' : selectedOrder.shipping_address}</p>
                                                     </div>
                                                     <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm">
                                                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">💳 Thanh toán</p>
@@ -407,7 +407,7 @@ const StaffDonHang: React.FC = () => {
                                                 <div>
                                                     <h4 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 flex items-center gap-2">
                                                         <span className="w-5 h-0.5 bg-emerald-400 rounded-full"></span>
-                                                        Sản phẩm ({selectedOrder.items.length})
+                                                        Hàng hóa ({selectedOrder.items.length})
                                                     </h4>
                                                     <div className="space-y-2">
                                                         {selectedOrder.items.map(item => (

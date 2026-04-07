@@ -12,10 +12,10 @@ import ExportTransferViewer from './ExportTransferViewer';
 
 // Order progress steps (normal flow)
 const ORDER_STEPS = [
-    { key: 'pending', label: 'Đặt hàng', icon: '🛒', description: 'Đơn hàng đã được tạo' },
-    { key: 'confirmed', label: 'Xác nhận', icon: '✅', description: 'Shop đã xác nhận' },
-    { key: 'shipping', label: 'Vận chuyển', icon: '🚚', description: 'Đang giao đến bạn' },
-    { key: 'delivered', label: 'Hoàn thành', icon: '📦', description: 'Giao hàng thành công' },
+    { key: 'pending', label: 'Tạo yêu cầu', icon: '📝', description: 'Yêu cầu đã được tạo' },
+    { key: 'confirmed', label: 'Đã duyệt', icon: '✅', description: 'Quản lý đã duyệt' },
+    { key: 'shipping', label: 'Đang xử lý', icon: '🚚', description: 'Kho đang vận chuyển' },
+    { key: 'delivered', label: 'Hoàn thành', icon: '📦', description: 'Nhận hàng thành công' },
 ];
 
 const getStepIndex = (status: string): number => {
@@ -53,7 +53,7 @@ const OrdersPage: React.FC = () => {
             setOrders(result.data);
             setTotalPages(result.pagination?.totalPages || 1);
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Không thể tải đơn hàng');
+            setError(err?.response?.data?.message || 'Không thể tải yêu cầu nhập');
         } finally {
             setLoading(false);
         }
@@ -66,22 +66,22 @@ const OrdersPage: React.FC = () => {
             const detail = await orderService.getClientOrderById(orderId);
             setSelectedOrder(detail);
         } catch (err) {
-            alert('Không thể tải chi tiết đơn hàng');
+            alert('Không thể tải chi tiết yêu cầu');
         } finally {
             setDetailLoading(false);
         }
     };
 
     const handleCancel = async (orderId: number) => {
-        if (!window.confirm('Bạn có chắc muốn hủy đơn hàng này?')) return;
+        if (!window.confirm('Bạn có chắc muốn hủy yêu cầu này?')) return;
         setCancelling(true);
         try {
             await orderService.cancelOrder(orderId);
-            alert('Đã hủy đơn hàng thành công');
+            alert('Đã hủy yêu cầu thành công');
             setSelectedOrder(null);
             fetchOrders();
         } catch (err: any) {
-            alert(err?.response?.data?.message || 'Hủy đơn thất bại');
+            alert(err?.response?.data?.message || 'Hủy yêu cầu thất bại');
         } finally {
             setCancelling(false);
         }
@@ -90,8 +90,8 @@ const OrdersPage: React.FC = () => {
     const statusTabs = [
         { value: '', label: 'Tất cả', icon: '📋', count: null },
         { value: 'pending', label: 'Chờ xử lý', icon: '⏳', count: null },
-        { value: 'confirmed', label: 'Đã xác nhận', icon: '✅', count: null },
-        { value: 'shipping', label: 'Đang giao', icon: '🚚', count: null },
+        { value: 'confirmed', label: 'Đã duyệt', icon: '✅', count: null },
+        { value: 'shipping', label: 'Đang xử lý', icon: '🚚', count: null },
         { value: 'delivered', label: 'Hoàn thành', icon: '🎉', count: null },
         { value: 'failed', label: 'Thất bại', icon: '❌', count: null },
         { value: 'cancelled', label: 'Đã hủy', icon: '🚫', count: null },
@@ -108,10 +108,10 @@ const OrdersPage: React.FC = () => {
                     </div>
                     <div>
                         <p className={`font-semibold text-sm ${isCancelled ? 'text-gray-600' : 'text-red-600'}`}>
-                            {isCancelled ? 'Đơn hàng đã bị hủy' : 'Giao hàng thất bại'}
+                            {isCancelled ? 'Yêu cầu đã bị hủy' : 'Xử lý thất bại'}
                         </p>
                         <p className="text-xs text-gray-400">
-                            {isCancelled ? 'Đơn hàng không còn hiệu lực' : 'Đơn hàng không giao được'}
+                            {isCancelled ? 'Yêu cầu không còn hiệu lực' : 'Đã có lỗi xảy ra'}
                         </p>
                     </div>
                 </div>
@@ -176,9 +176,9 @@ const OrdersPage: React.FC = () => {
                         </div>
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                                Đơn hàng của tôi
+                                Yêu cầu nhập của tôi
                             </h1>
-                            <p className="text-indigo-100 mt-0.5 text-sm sm:text-base">Theo dõi tiến trình và trạng thái đơn hàng</p>
+                            <p className="text-indigo-100 mt-0.5 text-sm sm:text-base">Theo dõi tiến trình và trạng thái các yêu cầu</p>
                         </div>
                     </div>
                 </div>
@@ -218,23 +218,23 @@ const OrdersPage: React.FC = () => {
                             <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
                             <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                         </div>
-                        <p className="text-slate-400 font-medium">Đang tải đơn hàng...</p>
+                        <p className="text-slate-400 font-medium">Đang tải yêu cầu...</p>
                     </div>
                 ) : orders.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="w-24 h-24 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
                             <span className="text-5xl">📭</span>
                         </div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Không có đơn hàng</h2>
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">Không có yêu cầu nào</h2>
                         <p className="text-slate-400 max-w-sm mx-auto">
-                            {statusFilter ? 'Không tìm thấy đơn hàng nào với trạng thái này.' : 'Bạn chưa có đơn hàng nào. Hãy mua sắm ngay!'}
+                            {statusFilter ? 'Không tìm thấy yêu cầu nào với trạng thái này.' : 'Bạn chưa có yêu cầu nhập kho. Hãy tạo ngay!'}
                         </p>
                         {!statusFilter && (
                             <button
                                 onClick={() => navigate('/products')}
                                 className="mt-6 px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all"
                             >
-                                🛍️ Mua sắm ngay
+                                📦 Tạo yêu cầu ngay
                             </button>
                         )}
                     </div>
@@ -262,7 +262,7 @@ const OrdersPage: React.FC = () => {
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                                    #ĐH{String(order.id).padStart(4, '0')}
+                                                    #YC{String(order.id).padStart(4, '0')}
                                                 </span>
                                                 <span
                                                     className="px-3 py-1 rounded-full text-xs font-bold"
@@ -336,7 +336,7 @@ const OrdersPage: React.FC = () => {
                                                             <div className="flex items-start gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4">
                                                                 <span className="text-xl mt-0.5">📍</span>
                                                                 <div>
-                                                                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Địa chỉ giao hàng</p>
+                                                                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Địa chỉ / Phòng ban</p>
                                                                     <p className="text-sm text-slate-700 leading-relaxed">{order.shipping_address}</p>
                                                                 </div>
                                                             </div>
@@ -344,7 +344,7 @@ const OrdersPage: React.FC = () => {
 
                                                         {/* Product Items */}
                                                         <div className="px-5 pb-4">
-                                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Sản phẩm đã đặt</p>
+                                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Hàng hóa yêu cầu</p>
                                                             <div className="space-y-2.5">
                                                                 {selectedOrder.items.map(item => {
                                                                     let variantLabel = '';
@@ -401,11 +401,11 @@ const OrdersPage: React.FC = () => {
                                                             <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-4 text-white">
                                                                 <div className="flex items-center justify-between">
                                                                     <div>
-                                                                        <p className="text-xs text-slate-400 mb-1">Tổng cộng ({selectedOrder.items.length} sản phẩm)</p>
+                                                                        <p className="text-xs text-slate-400 mb-1">Tổng cộng ({selectedOrder.items.length} hàng hóa)</p>
                                                                         <p className="text-2xl font-extrabold">{formatCurrency(order.total_amount)}</p>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <p className="text-xs text-slate-400 mb-1">Thanh toán</p>
+                                                                        <p className="text-xs text-slate-400 mb-1">Hình thức</p>
                                                                         <p className="text-sm font-medium text-indigo-300">
                                                                             {orderService.getPaymentMethodText(order.payment_method)}
                                                                         </p>
@@ -444,7 +444,7 @@ const OrdersPage: React.FC = () => {
                                                                             Đang hủy...
                                                                         </span>
                                                                     ) : (
-                                                                        '🚫 Hủy đơn hàng'
+                                                                        '🚫 Hủy yêu cầu'
                                                                     )}
                                                                 </button>
                                                             </div>
@@ -516,7 +516,7 @@ const OrdersPage: React.FC = () => {
             </div>
             <div className="flex justify-center">
                 <Link to="/products" className="btn btn-primary px-8 py-3 text-lg">
-                    🛍️ Quay lại với nhiều sản phẩm hấp dẫn đang chờ 
+                    📦 Xem thêm nhiều hàng hóa khác
                 </Link>
             </div>
         </div>

@@ -26,7 +26,7 @@ const menuItems = [
     { path: '/admin/product-config', label: 'Cấu hình SP', icon: '⚙️', badgeKey: null },
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
-    { path: '/admin/orders', label: 'Đơn hàng', icon: '🛒', badgeKey: 'pendingOrders' as const },
+    { path: '/admin/orders', label: 'Yêu cầu nhập', icon: '📋', badgeKey: 'pendingOrders' as const },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];

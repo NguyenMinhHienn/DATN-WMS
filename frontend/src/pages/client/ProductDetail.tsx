@@ -98,9 +98,9 @@ const ProductDetail: React.FC = () => {
             if (currentInCart + quantity > maxStock) {
                 const canAdd = maxStock - currentInCart;
                 if (canAdd <= 0) {
-                    setCartMessage({ type: 'error', text: `Bạn đã có ${currentInCart} sản phẩm này trong giỏ hàng (tồn kho: ${maxStock})` });
+                    setCartMessage({ type: 'error', text: `Bạn đã có ${currentInCart} hàng hóa này trong phiếu nhập tạm (tồn kho: ${maxStock})` });
                 } else {
-                    setCartMessage({ type: 'error', text: `Chỉ có thể thêm tối đa ${canAdd} sản phẩm nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})` });
+                    setCartMessage({ type: 'error', text: `Chỉ có thể thêm tối đa ${canAdd} lượng hàng nữa (đã có ${currentInCart} trong phiếu, tồn kho: ${maxStock})` });
                 }
                 setTimeout(() => setCartMessage(null), 4000);
                 return;
@@ -146,23 +146,23 @@ const ProductDetail: React.FC = () => {
                 // User đã đăng nhập + có variant -> gọi API để lưu vào DB
                 const result = await cartService.addToCartAPI(product.id, selectedVariant.id, quantity);
                 if (result.success) {
-                    setCartMessage({ type: 'success', text: result.message || `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                    setCartMessage({ type: 'success', text: result.message || `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
                 } else {
                     // API lỗi - fallback localStorage
                     console.warn('API addToCart failed, using localStorage:', result.message);
                     addToLocalStorage();
-                    setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                    setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
                 }
             } else {
                 // Chưa đăng nhập hoặc không có variant -> dùng localStorage
                 addToLocalStorage();
-                setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
             }
         } catch (error) {
             console.error('Add to cart error:', error);
             // Fallback localStorage
             addToLocalStorage();
-            setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+            setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
         } finally {
             setAddingToCart(false);
         }
@@ -182,7 +182,7 @@ const ProductDetail: React.FC = () => {
     if (!product) {
         return (
             <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                <h1 className="text-2xl font-bold text-slate-800 mb-4">Không tìm thấy sản phẩm</h1>
+                <h1 className="text-2xl font-bold text-slate-800 mb-4">Không tìm thấy hàng hóa</h1>
                 {error && (
                     <p className="text-red-600 mb-4">{error}</p>
                 )}
@@ -206,7 +206,7 @@ const ProductDetail: React.FC = () => {
                             <li className="text-primary-300">›</li>
                             <li className="flex items-center gap-1">
                                 <span>📦</span>
-                                <Link to="/products" className="hover:text-white transition-colors">Sản phẩm</Link>
+                                <Link to="/products" className="hover:text-white transition-colors">Hàng hóa</Link>
                             </li>
                             {product.category_name && (
                                 <>
@@ -247,14 +247,14 @@ const ProductDetail: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
-                                title="Chia sẻ sản phẩm"
+                                title="Chia sẻ"
                             // TODO: onClick - mở modal chia sẻ
                             >
                                 📤
                             </button>
                             <button
                                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
-                                title="So sánh sản phẩm"
+                                title="So sánh"
                             // TODO: onClick - thêm vào danh sách so sánh
                             >
                                 ⚖️
@@ -378,7 +378,7 @@ const ProductDetail: React.FC = () => {
                         )}
 
                         <div className="card bg-slate-50">
-                            <h2 className="text-lg font-semibold text-slate-800 mb-4">Thuộc tính sản phẩm</h2>
+                            <h2 className="text-lg font-semibold text-slate-800 mb-4">Thuộc tính hàng hóa</h2>
                             <table className="w-full text-sm">
                                 <tbody>
                                     {product.category_name && (
@@ -523,7 +523,7 @@ const ProductDetail: React.FC = () => {
                                 <span>{cartMessage.type === 'success' ? '✓' : '✗'}</span>
                                 <span>{cartMessage.text}</span>
                                 <Link to="/cart" className="ml-auto text-sm font-medium underline hover:no-underline">
-                                    Xem giỏ hàng →
+                                    Xem phiếu nhập →
                                 </Link>
                             </div>
                         )}
@@ -578,9 +578,9 @@ const ProductDetail: React.FC = () => {
                                     disabled={addingToCart}
                                 >
                                     {addingToCart ? (
-                                        <><span className="animate-spin text-xl">⏳</span> Đang thêm...</>
+                                        <><span className="animate-spin text-xl">⏳</span> Đang tải...</>
                                     ) : (
-                                        <><span className="text-xl">🛒</span> Thêm vào giỏ hàng</>
+                                        <><span className="text-xl">📋</span> Thêm vào DS nhập</>
                                     )}
                                 </button>
 
@@ -602,7 +602,7 @@ const ProductDetail: React.FC = () => {
                             <p className="text-xs text-slate-500 mt-3 text-center sm:text-left">
                                 {/* UI only - hiển thị tình trạng stock */}
                                 {(selectedVariant?.stock ?? product.total_stock ?? 0) > 0
-                                    ? `✓ Còn hàng (${selectedVariant?.stock ?? product.total_stock} sản phẩm)`
+                                    ? `✓ Còn hàng (${selectedVariant?.stock ?? product.total_stock} đơn vị)`
                                     : '✗ Hết hàng'}
                             </p>
                         </div>
@@ -617,16 +617,16 @@ const ProductDetail: React.FC = () => {
                 {/* TODO: Replace bằng API sản phẩm liên quan - GET /products/related/:productId */}
                 <div className="mt-12 border-t border-slate-200 pt-8">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📦</span> Sản phẩm liên quan
+                        <span>📦</span> Hàng hóa liên quan
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {/* Placeholder Related Products - sẽ thay bằng map data từ API */}
                         {/* TODO: Thay mảng placeholder này bằng API GET /products/related/:productId */}
                         {[
-                            { id: 1, name: 'Sản phẩm tương tự 1', price: 1500000, image: '' },
-                            { id: 2, name: 'Sản phẩm tương tự 2', price: 2200000, image: '' },
-                            { id: 3, name: 'Sản phẩm tương tự 3', price: 1850000, image: '' },
-                            { id: 4, name: 'Sản phẩm tương tự 4', price: 3100000, image: '' },
+                            { id: 1, name: 'Hàng hóa tương tự 1', price: 1500000, image: '' },
+                            { id: 2, name: 'Hàng hóa tương tự 2', price: 2200000, image: '' },
+                            { id: 3, name: 'Hàng hóa tương tự 3', price: 1850000, image: '' },
+                            { id: 4, name: 'Hàng hóa tương tự 4', price: 3100000, image: '' },
                         ].map(item => (
                             <Link
                                 key={item.id}
@@ -656,7 +656,7 @@ const ProductDetail: React.FC = () => {
                 {/* TODO: Gắn API đánh giá - GET /reviews/product/:productId */}
                 <div className="mt-12 border-t border-slate-200 pt-8">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>⭐</span> Đánh giá sản phẩm
+                        <span>⭐</span> Đánh giá
                     </h2>
 
                     {/* Rating Summary - UI only */}

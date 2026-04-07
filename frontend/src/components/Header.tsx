@@ -59,10 +59,10 @@ export const Header: React.FC = () => {
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                            Home
+                            Trang chủ
                         </Link>
                         <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                            Products
+                            Hàng hóa
                         </Link>
                     </nav>
 
@@ -122,7 +122,7 @@ export const Header: React.FC = () => {
                                                 className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
                                             >
                                                 <span className="flex items-center gap-3">
-                                                    <span>🛒</span> Giỏ hàng
+                                                    <span>📋</span> Phiếu nhập tạm
                                                 </span>
                                                 {cartItemCount > 0 && (
                                                     <span className="bg-primary-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">

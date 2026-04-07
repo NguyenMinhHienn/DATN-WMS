@@ -168,7 +168,7 @@ const ProductList: React.FC = () => {
                     max_stock: 999, // Không giới hạn vì không có variant stock
                 });
 
-                showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+                showToast('success', 'Đã thêm hàng hóa vào danh sách nhập');
                 window.dispatchEvent(new CustomEvent('cartUpdated'));
                 console.log("EVENT FIRED");
             };
@@ -220,9 +220,9 @@ const ProductList: React.FC = () => {
             if (currentInCart + quantity > maxStock) {
                 const canAdd = maxStock - currentInCart;
                 if (canAdd <= 0) {
-                    showToast('error', `Đã có ${currentInCart} sản phẩm trong giỏ (tồn kho: ${maxStock})`);
+                    showToast('error', `Đã có ${currentInCart} mặt hàng trong danh sách (tồn kho: ${maxStock})`);
                 } else {
-                    showToast('error', `Chỉ thêm được ${canAdd} nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})`);
+                    showToast('error', `Chỉ thêm được ${canAdd} nữa (đã có ${currentInCart} trong danh sách, tồn kho: ${maxStock})`);
                 }
                 setLoadingAdd(prev => ({ ...prev, [productId]: false }));
                 return;
@@ -242,7 +242,7 @@ const ProductList: React.FC = () => {
                 sku: selectedVariant.sku || product.sku,
                 max_stock: selectedVariant.stock,
             });
-            showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+            showToast('success', 'Đã thêm hàng hóa vào danh sách nhập');
             window.dispatchEvent(new CustomEvent('cartUpdated'));
             console.log("EVENT FIRED");
         };
@@ -319,18 +319,18 @@ const ProductList: React.FC = () => {
                                 <Link to="/" className="hover:text-white transition-colors">Trang chủ</Link>
                             </li>
                             <li className="text-blue-300">›</li>
-                            <li className="text-white font-medium">Sản phẩm</li>
+                            <li className="text-white font-medium">Hàng hóa</li>
                         </ol>
                     </nav>
 
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-bold mb-2">Khám phá sản phẩm</h1>
+                            <h1 className="text-3xl md:text-4xl font-bold mb-2">Danh mục hàng hóa</h1>
                             <p className="text-blue-100">
                                 {pagination.total > 0 ? (
-                                    <>Hiển thị <strong>{products.length}</strong> / <strong>{pagination.total}</strong> sản phẩm</>
+                                    <>Hiển thị <strong>{products.length}</strong> / <strong>{pagination.total}</strong> hàng hóa</>
                                 ) : (
-                                    'Duyệt qua các danh mục sản phẩm của chúng tôi'
+                                    'Duyệt qua các danh mục hàng hóa của chúng tôi'
                                 )}
                             </p>
                         </div>
@@ -341,7 +341,7 @@ const ProductList: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-center">
                                 <div className="text-2xl font-bold">{pagination.total}</div>
-                                <div className="text-xs text-blue-200">Sản phẩm</div>
+                                <div className="text-xs text-blue-200">Hàng hóa</div>
                             </div>
                             <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-center">
                                 <div className="text-2xl font-bold">{categories.length}</div>
@@ -362,7 +362,7 @@ const ProductList: React.FC = () => {
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm sản phẩm theo tên, SKU..."
+                                placeholder="Tìm kiếm hàng hóa theo tên, SKU..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
                                 className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
@@ -477,7 +477,7 @@ const ProductList: React.FC = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-64 gap-4">
                         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500 dark:text-slate-400">Đang tải sản phẩm...</p>
+                        <p className="text-slate-500 dark:text-slate-400">Đang tải hàng hóa...</p>
                     </div>
                 ) : (
                     <>
@@ -543,7 +543,7 @@ const ProductList: React.FC = () => {
                                                 to={`/products/${product.id}`}
                                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
                                             >
-                                                🛒 Thêm vào giỏ
+                                                📋 Thêm vào DS
                                             </Link>
                                         </div>
                                     </div>
@@ -673,7 +673,7 @@ const ProductList: React.FC = () => {
                                                         {isLoadingAdd ? (
                                                             <><span className="animate-spin">⏳</span> Đang thêm...</>
                                                         ) : (
-                                                            <>🛒 Thêm vào giỏ</>
+                                                            <>📋 Thêm vào DS</>
                                                         )}
                                                     </button>
                                                 ) : (
@@ -693,7 +693,7 @@ const ProductList: React.FC = () => {
                                                             </>
                                                         ) : (
                                                             <>
-                                                                🛒 Thêm vào giỏ
+                                                                📋 Thêm vào DS
                                                             </>
                                                         )}
                                                     </button>
@@ -709,7 +709,7 @@ const ProductList: React.FC = () => {
                         {products.length === 0 && (
                             <div className="text-center py-16">
                                 <div className="text-6xl mb-4">🔍</div>
-                                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">Không tìm thấy sản phẩm</h3>
+                                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">Không tìm thấy hàng hóa</h3>
                                 <p className="text-slate-500 dark:text-slate-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                                 <button
                                     onClick={() => { setSearch(''); setSelectedCategory(undefined); }}
