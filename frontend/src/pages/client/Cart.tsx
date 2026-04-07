@@ -8,7 +8,7 @@ import axios from 'axios';
 
 
 /**
- * Trang Giỏ hàng - Hiển thị, quản lý hàng hóa và thanh toán
+ * Trang Phiếu yêu cầu tạm - Hiển thị, quản lý hàng hóa và tạo phiếu yêu cầu
  */
 
 interface CartItemWithId extends CartItem {
@@ -127,7 +127,7 @@ const Cart: React.FC = () => {
     };
 
     const removeItem = async (item: CartItemWithId) => {
-        if (!window.confirm(`Bạn có chắc muốn xóa "${item.name}" khỏi giỏ hàng?`)) return;
+        if (!window.confirm(`Bạn có chắc muốn xóa "${item.name}" khỏi danh sách?`)) return;
         const key = cartService.getItemKey(item.product_id, item.variant_id);
         setUpdating(prev => new Set(prev).add(key));
         try {
@@ -169,7 +169,7 @@ const Cart: React.FC = () => {
     // ==================== CHECKOUT ====================
     const handleCheckout = async () => {
         if (!isAuthenticated) {
-            alert('Vui lòng đăng nhập để đặt hàng!');
+            alert('Vui lòng đăng nhập để gửi yêu cầu!');
             navigate('/login');
             return;
         }
@@ -213,7 +213,7 @@ const Cart: React.FC = () => {
 
             // Nếu COD → về trang đơn hàng
             if (payment_method === "COD") {
-                alert('🎉 Đặt hàng thành công!');
+                alert('🎉 Gửi yêu cầu thành công!');
                 navigate('/orders');
                 return;
             }
@@ -234,7 +234,7 @@ const Cart: React.FC = () => {
             }
 
         } catch (error: any) {
-            const msg = error?.response?.data?.message || 'Đặt hàng thất bại!';
+            const msg = error?.response?.data?.message || 'Gửi yêu cầu thất bại!';
             alert(msg);
         } finally {
             setCheckoutLoading(false);
@@ -252,21 +252,21 @@ const Cart: React.FC = () => {
                         <ol className="flex items-center gap-2 text-sm text-primary-100">
                             <li className="flex items-center gap-1"><span>🏠</span><Link to="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
                             <li className="text-primary-300">›</li>
-                            <li className="flex items-center gap-1"><span>📦</span><Link to="/products" className="hover:text-white transition-colors">Sản phẩm</Link></li>
+                            <li className="flex items-center gap-1"><span>📦</span><Link to="/products" className="hover:text-white transition-colors">Hàng hóa</Link></li>
                             <li className="text-primary-300">›</li>
-                            <li className="text-white font-medium">Giỏ hàng</li>
+                            <li className="text-white font-medium">Phiếu yêu cầu tạm</li>
                         </ol>
                     </nav>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3"><span>🛒</span> Giỏ hàng của bạn</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3"><span>📋</span> Phiếu yêu cầu tạm</h1>
                             <p className="text-primary-100 mt-1">
-                                {totalCount > 0 ? `${totalCount} sản phẩm trong giỏ` : 'Giỏ hàng trống'}
+                                {totalCount > 0 ? `${totalCount} hàng hóa trong danh sách` : 'Chưa có hàng hóa'}
                                 {!isAuthenticated && <span className="ml-2 text-yellow-200">(Chưa đăng nhập)</span>}
                             </p>
                         </div>
                         {cart.length > 0 && (
-                            <Link to="/products" className="btn bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm">← Tiếp tục mua sắm</Link>
+                            <Link to="/products" className="btn bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm">← Tiếp tục chọn hàng</Link>
                         )}
                     </div>
                 </div>
@@ -276,10 +276,10 @@ const Cart: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {cart.length === 0 ? (
                     <div className="text-center py-16">
-                        <div className="text-8xl mb-6">🛒</div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Giỏ hàng đang trống</h2>
-                        <p className="text-slate-500 mb-6">Hãy thêm sản phẩm vào giỏ hàng để tiến hành thanh toán!</p>
-                        <Link to="/products" className="btn btn-primary px-8 py-3 text-lg">📦 Mua sắm ngay</Link>
+                        <div className="text-8xl mb-6">📋</div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Danh sách yêu cầu đang trống</h2>
+                        <p className="text-slate-500 mb-6">Hãy thêm hàng hóa vào danh sách để khởi tạo yêu cầu xuất/nhập!</p>
+                        <Link to="/products" className="btn btn-primary px-8 py-3 text-lg">📦 Xem danh sách hàng hóa</Link>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -289,7 +289,7 @@ const Cart: React.FC = () => {
                                 <label className="flex items-center gap-3 cursor-pointer">
                                     <input type="checkbox" checked={selectedItems.size === cart.length && cart.length > 0} onChange={toggleSelectAll}
                                         className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
-                                    <span className="font-medium text-slate-700">Chọn tất cả ({cart.length} sản phẩm)</span>
+                                    <span className="font-medium text-slate-700">Chọn tất cả ({cart.length} hàng hóa)</span>
                                 </label>
                                 {selectedItems.size > 0 && (
                                     <button onClick={removeSelectedItems} className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1">
@@ -340,7 +340,7 @@ const Cart: React.FC = () => {
                                                             <div className="font-bold text-slate-800">{formatPrice(lineTotal)}</div>
                                                         </div>
                                                         <button onClick={() => removeItem(item)} disabled={isUpdating}
-                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50" title="Xóa sản phẩm">🗑️</button>
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50" title="Xóa hàng hóa">🗑️</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -353,12 +353,12 @@ const Cart: React.FC = () => {
                         {/* ========== TỔNG KẾT + CHECKOUT ========== */}
                         <div className="lg:col-span-1">
                             <div className="card sticky top-4 bg-gradient-to-br from-white to-slate-50 border border-slate-200">
-                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">📋 Tổng thanh toán</h2>
+                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">📋 Tổng kết yêu cầu</h2>
 
                                 <div className="space-y-3 pb-4 border-b border-slate-200">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-600">Đã chọn:</span>
-                                        <span className="font-medium text-slate-800">{selectedCount} / {totalCount} sản phẩm</span>
+                                        <span className="font-medium text-slate-800">{selectedCount} / {totalCount} hàng hóa</span>
                                     </div>
                                     {selectedCount > 0 && (
                                         <div className="flex justify-between text-sm">
@@ -373,25 +373,25 @@ const Cart: React.FC = () => {
 
                                 <div className="py-4 border-b border-slate-200">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-600">Tổng cộng:</span>
+                                        <span className="text-slate-600">Tổng giá trị:</span>
                                         <span className="text-2xl font-bold text-primary-600">{formatPrice(selectedTotal)}</span>
                                     </div>
                                     {selectedCount === 0 && (
-                                        <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">⚠️ Vui lòng chọn ít nhất 1 sản phẩm</p>
+                                        <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">⚠️ Vui lòng chọn ít nhất 1 hàng hóa</p>
                                     )}
                                 </div>
 
                                 {/* Checkout Form */}
                                 {showCheckout ? (
                                     <div className="pt-4 space-y-3">
-                                        <h3 className="font-semibold text-slate-700">📍 Thông tin giao hàng</h3>
-                                        <input type="text" placeholder="Họ và tên người nhận *" value={checkoutForm.shipping_name}
+                                        <h3 className="font-semibold text-slate-700">📍 Thông tin yêu cầu</h3>
+                                        <input type="text" placeholder="Người yêu cầu / Tên người nhận *" value={checkoutForm.shipping_name}
                                             onChange={e => setCheckoutForm(prev => ({ ...prev, shipping_name: e.target.value }))}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
                                         <input type="tel" placeholder="Số điện thoại *" value={checkoutForm.shipping_phone}
                                             onChange={e => setCheckoutForm(prev => ({ ...prev, shipping_phone: e.target.value }))}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
-                                        <textarea placeholder="Địa chỉ giao hàng *" rows={2} value={checkoutForm.shipping_address}
+                                        <textarea placeholder="Địa chỉ / Đơn vị nội bộ *" rows={2} value={checkoutForm.shipping_address}
                                             onChange={e => setCheckoutForm(prev => ({ ...prev, shipping_address: e.target.value }))}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
 
@@ -411,30 +411,30 @@ const Cart: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <textarea placeholder="Ghi chú (tùy chọn)" rows={2} value={checkoutForm.notes}
+                                        <textarea placeholder="Ghi chú thêm (tùy chọn)" rows={2} value={checkoutForm.notes}
                                             onChange={e => setCheckoutForm(prev => ({ ...prev, notes: e.target.value }))}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
 
                                         <button onClick={handlePlaceOrder} disabled={checkoutLoading}
                                             className="w-full btn bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 py-3 text-lg font-semibold flex items-center justify-center gap-2 shadow-lg">
-                                            {checkoutLoading ? '⏳ Đang xử lý...' : '✅ Đặt hàng'}
+                                            {checkoutLoading ? '⏳ Đang xử lý...' : '✅ Gửi yêu cầu'}
                                         </button>
-                                        <button onClick={() => setShowCheckout(false)} className="w-full btn btn-secondary py-2 text-sm">← Quay lại giỏ hàng</button>
+                                        <button onClick={() => setShowCheckout(false)} className="w-full btn btn-secondary py-2 text-sm">← Quay lại danh sách</button>
                                     </div>
                                 ) : (
                                     <div className="pt-4 space-y-3">
                                         <button disabled={selectedCount === 0} onClick={handleCheckout}
                                             className="w-full btn bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 text-lg font-semibold flex items-center justify-center gap-2 shadow-lg">
-                                            📤 Mua hàng
+                                            📤 Tạo yêu cầu ngay
                                         </button>
-                                        <Link to="/products" className="w-full btn btn-secondary py-3 flex items-center justify-center gap-2">← Tiếp tục mua sắm</Link>
+                                        <Link to="/products" className="w-full btn btn-secondary py-3 flex items-center justify-center gap-2">← Tiếp tục chọn hàng</Link>
                                     </div>
                                 )}
 
                                 <div className="mt-4 pt-4 border-t border-slate-200">
                                     <p className="text-xs text-slate-500 flex items-start gap-2">
                                         <span>ℹ️</span>
-                                        <span>{isAuthenticated ? 'Đơn hàng được lưu tự động.' : 'Đăng nhập để theo dõi trạng thái đơn hàng.'}</span>
+                                        <span>{isAuthenticated ? 'Phiếu yêu cầu được bảo mật.' : 'Vui lòng đăng nhập để lưu trữ yêu cầu.'}</span>
                                     </p>
                                 </div>
                             </div>
