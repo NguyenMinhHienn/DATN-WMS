@@ -39,7 +39,7 @@ export const StaffLayout: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-emerald-50">
+        <div className="min-h-screen bg-slate-50">
             {/* Overlay mobile */}
             {sidebarOpen && (
                 <div
@@ -57,11 +57,12 @@ export const StaffLayout: React.FC = () => {
             >
                 <div className="flex flex-col h-full">
                     {/* Logo */}
-                    <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-200 bg-emerald-600">
-                        <img src="/src/assets/logo.png" alt="StockFlow Logo" className="h-10 w-auto bg-white rounded-lg p-1" />
-                        <div>
-                            <h1 className="font-bold text-white">StockFlow Staff</h1>
-                            <p className="text-xs text-emerald-100">Nhân viên kho</p>
+                    <div className="flex items-center gap-3 px-6 py-5 border-b border-blue-50 bg-blue-50/30 relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 blur-xl"></div>
+                        <img src="/src/assets/logo.png" alt="StockFlow Logo" className="h-10 w-auto bg-white rounded-lg p-1 relative z-10 shadow-sm" />
+                        <div className="relative z-10">
+                            <h1 className="font-bold text-blue-900">StockFlow Staff</h1>
+                            <p className="text-xs text-blue-600 font-medium">Nhân viên kho</p>
                         </div>
                     </div>
 
@@ -74,14 +75,14 @@ export const StaffLayout: React.FC = () => {
                                         to={item.path}
                                         className={({ isActive }) =>
                                             `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                                ? 'bg-emerald-100 text-emerald-700 font-medium'
-                                                : 'text-slate-600 hover:bg-slate-100'
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                                                : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50'
                                             }`
                                         }
                                         onClick={() => setSidebarOpen(false)}
                                     >
-                                        <span className="text-xl">{item.icon}</span>
-                                        <span>{item.label}</span>
+                                        <span className="text-xl group-hover:scale-110 transition-transform">{item.icon}</span>
+                                        <span className={({ isActive }) => isActive ? "font-medium" : "font-medium flex-1"}>{item.label}</span>
                                     </NavLink>
                                 </li>
                             ))}
@@ -89,26 +90,26 @@ export const StaffLayout: React.FC = () => {
                     </nav>
 
                     {/* User section with dropdown */}
-                    <div className="border-t border-slate-200 p-4 relative" ref={dropdownRef}>
+                    <div className="border-t border-blue-100 p-4 relative bg-blue-50/30" ref={dropdownRef}>
                         {/* Dropdown Menu */}
                         {dropdownOpen && (
-                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-blue-100 overflow-hidden z-50">
                                 <button
                                     onClick={() => { navigate('/profile'); setDropdownOpen(false); setSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-sm font-medium"
                                 >
                                     <span>👤</span> Thông tin cá nhân
                                 </button>
                                 <button
                                     onClick={() => { navigate('/profile?tab=password'); setDropdownOpen(false); setSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-sm font-medium"
                                 >
                                     <span>🔒</span> Đổi mật khẩu
                                 </button>
-                                <div className="border-t border-slate-200"></div>
+                                <div className="border-t border-slate-100"></div>
                                 <button
                                     onClick={() => { handleLogout(); setDropdownOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 transition-colors text-sm"
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors text-sm font-medium"
                                 >
                                     <span>🚪</span> Đăng xuất
                                 </button>
@@ -118,14 +119,15 @@ export const StaffLayout: React.FC = () => {
                         {/* Clickable User Card */}
                         <button
                             onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                            className="w-full flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
                         >
-                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-medium">
+                            <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
                                 {user?.full_name?.charAt(0) || 'S'}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
                             </div>
                             <div className="flex-1 min-w-0 text-left">
-                                <p className="font-medium text-slate-800 truncate">{user?.full_name}</p>
-                                <p className="text-xs text-emerald-600 font-medium">STAFF</p>
+                                <p className="font-bold text-slate-800 truncate">{user?.full_name}</p>
+                                <p className="text-xs text-blue-600 font-medium">STAFF</p>
                             </div>
                             <svg className={`w-5 h-5 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -138,16 +140,16 @@ export const StaffLayout: React.FC = () => {
             {/* Main content */}
             <div className="lg:ml-64 min-h-screen">
                 {/* Mobile header */}
-                <header className="lg:hidden bg-emerald-600 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+                <header className="lg:hidden bg-white/80 backdrop-blur-xl border-b border-blue-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 rounded-lg hover:bg-emerald-700"
+                        className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 transition-all"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <span className="font-bold">StockFlow Staff</span>
+                    <span className="font-bold text-blue-900">StockFlow Staff</span>
                     <div className="w-10" />
                 </header>
 

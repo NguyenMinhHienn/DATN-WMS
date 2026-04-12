@@ -280,7 +280,7 @@ const StockIn: React.FC = () => {
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
             'PENDING': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-            'APPROVED': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            'APPROVED': 'bg-emerald-500/20 text-emerald-600 font-bold border-emerald-500/30',
             'CANCELLED': 'bg-red-500/20 text-red-400 border-red-500/30',
         };
         const labels: Record<string, string> = {
@@ -305,10 +305,10 @@ const StockIn: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">📥 Phiếu Nhập Kho</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Quản lý phiếu nhập kho theo nghiệp vụ kế toán</p>
+                    <p className="text-slate-600 mt-1">Quản lý phiếu nhập kho theo nghiệp vụ kế toán</p>
                 </div>
                 <button onClick={openCreateModal}
-                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium shadow-lg shadow-indigo-500/30 transition-all">
+                    className="px-5 py-2.5 bg-indigo-600 text-blue-900 rounded-xl hover:bg-indigo-700 text-sm font-medium shadow-lg shadow-indigo-500/30 transition-all">
                     ➕ Tạo phiếu nhập
                 </button>
             </div>
@@ -316,16 +316,16 @@ const StockIn: React.FC = () => {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="chart-container border-l-4 border-amber-500">
-                    <p className="text-sm text-slate-400">Chờ duyệt</p>
+                    <p className="text-sm text-slate-600">Chờ duyệt</p>
                     <p className="text-2xl font-bold text-amber-400">{receipts.filter(r => r.status === 'PENDING').length}</p>
                 </div>
                 <div className="chart-container border-l-4 border-emerald-500">
-                    <p className="text-sm text-slate-400">Đã duyệt</p>
-                    <p className="text-2xl font-bold text-emerald-400">{receipts.filter(r => r.status === 'APPROVED').length}</p>
+                    <p className="text-sm text-slate-600">Đã duyệt</p>
+                    <p className="text-2xl font-bold text-emerald-600 font-bold">{receipts.filter(r => r.status === 'APPROVED').length}</p>
                 </div>
                 <div className="chart-container border-l-4 border-indigo-500">
-                    <p className="text-sm text-slate-400">Tổng phiếu</p>
-                    <p className="text-2xl font-bold text-indigo-400">{pagination.total}</p>
+                    <p className="text-sm text-slate-600">Tổng phiếu</p>
+                    <p className="text-2xl font-bold text-blue-600">{pagination.total}</p>
                 </div>
             </div>
 
@@ -341,7 +341,7 @@ const StockIn: React.FC = () => {
                         <option value="CANCELLED">❌ Đã hủy</option>
                     </select>
                     <button onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="text-slate-400 hover:text-white transition-colors">
+                        className="text-slate-600 hover:text-blue-900 transition-colors">
                         Xóa bộ lọc
                     </button>
                 </div>
@@ -357,45 +357,45 @@ const StockIn: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho nhập</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Nhà cung cấp</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày lập</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tổng tiền</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người lập</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Mã phiếu</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Kho nhập</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Nhà cung cấp</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Ngày lập</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Số SP</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Tổng tiền</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Người lập</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {receipts.map(r => (
-                                        <tr key={r.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${r.status === 'PENDING' ? 'bg-amber-500/5' : ''}`}>
-                                            <td className="py-4 px-6 font-mono text-sm font-medium text-indigo-400">{r.receipt_number}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{r.warehouse_name}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{r.supplier_name || '-'}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-400">{new Date(r.receipt_date).toLocaleDateString('vi-VN')}</td>
-                                            <td className="py-4 px-6 text-sm text-right text-white">{r.total_items}</td>
-                                            <td className="py-4 px-6 text-sm text-right font-medium text-emerald-400">{Number(r.total_amount || 0).toLocaleString('vi-VN')} đ</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{r.created_by_name}</td>
+                                        <tr key={r.id} className={`border-b border-slate-100 hover:bg-blue-50 transition-colors ${r.status === 'PENDING' ? 'bg-amber-500/5' : ''}`}>
+                                            <td className="py-4 px-6 font-mono text-sm font-medium text-blue-600">{r.receipt_number}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{r.warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{r.supplier_name || '-'}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-600">{new Date(r.receipt_date).toLocaleDateString('vi-VN')}</td>
+                                            <td className="py-4 px-6 text-sm text-right text-blue-900">{r.total_items}</td>
+                                            <td className="py-4 px-6 text-sm text-right font-medium text-emerald-600 font-bold">{Number(r.total_amount || 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{r.created_by_name}</td>
                                             <td className="py-4 px-6 text-center">{getStatusBadge(r.status)}</td>
                                             <td className="py-4 px-6 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button onClick={() => handleViewDetail(r.id)}
-                                                        className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors">
+                                                        className="text-blue-600 hover:text-blue-600 font-medium text-sm transition-colors">
                                                         Chi tiết
                                                     </button>
                                                     <button onClick={() => handlePrint(r.id)}
-                                                        className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                        className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                         🖨️ In
                                                     </button>
                                                     {r.status === 'PENDING' && (
                                                         <>
                                                             <button onClick={() => handleApprove(r.id)}
                                                                 disabled={approving === String(r.id)}
-                                                                className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                                                className="px-3 py-1 bg-emerald-600 text-blue-900 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
                                                                 ✅ Duyệt
                                                             </button>
                                                             <button onClick={() => handleDelete(r.id)}
@@ -421,7 +421,7 @@ const StockIn: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -431,34 +431,34 @@ const StockIn: React.FC = () => {
             {/* ==================== CREATE MODAL ==================== */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl">
                         <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-xl font-bold text-white">📥 Tạo Phiếu Nhập Kho</h2>
-                            <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                            <h2 className="text-xl font-bold text-blue-900">📥 Tạo Phiếu Nhập Kho</h2>
+                            <button onClick={() => setShowCreateModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
                         </div>
 
                         {/* Form fields grouped into sections */}
                         {/* Section 1: Thông tin chung */}
-                        <div className="mb-6 p-4 rounded-xl border border-slate-700/50 bg-slate-800/50">
-                            <h3 className="font-medium text-white mb-4 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
+                        <div className="mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                            <h3 className="font-medium text-blue-900 mb-4 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Số phiếu</label>
-                                    <input type="text" value="(Tự động tạo)" disabled className="input w-full bg-slate-700/50 text-slate-400 cursor-not-allowed italic" />
+                                    <label className="block text-sm text-slate-600 mb-1">Số phiếu</label>
+                                    <input type="text" value="(Tự động tạo)" disabled className="input w-full bg-slate-100 text-slate-600 cursor-not-allowed italic" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Trạng thái phiếu</label>
-                                    <div className="input w-full bg-slate-700/50 text-amber-400 cursor-not-allowed font-medium flex items-center h-[42px]">
+                                    <label className="block text-sm text-slate-600 mb-1">Trạng thái phiếu</label>
+                                    <div className="input w-full bg-slate-100 text-amber-400 cursor-not-allowed font-medium flex items-center h-[42px]">
                                         ⏳ Chưa duyệt
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Ngày lập *</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Ngày lập *</label>
                                     <input type="date" value={formData.receipt_date} onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })} className="input w-full" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Kho nhập</label>
-                                    <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px]">🏭 Kho tổng</div>
+                                    <label className="block text-sm text-slate-600 mb-1">Kho nhập</label>
+                                    <div className="input w-full bg-slate-100 cursor-not-allowed text-slate-700 font-medium flex items-center h-[42px]">🏭 Kho tổng</div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-red-400 mb-1">🏢 Nhà cung cấp <span className="text-red-500">*</span></label>
@@ -485,7 +485,7 @@ const StockIn: React.FC = () => {
                                             value={customSupplierName}
                                             onChange={e => setCustomSupplierName(e.target.value)}
                                             placeholder="Nhập tên NCC mới..."
-                                            className="input w-full mt-2 border-indigo-500 bg-indigo-500/10 text-white"
+                                            className="input w-full mt-2 border-indigo-500 bg-blue-50 text-blue-900"
                                             autoFocus
                                         />
                                     )}
@@ -494,25 +494,25 @@ const StockIn: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
-                                    <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 flex items-center h-[42px] text-sm">
+                                    <label className="block text-sm text-slate-600 mb-1">📍 Địa chỉ kho</label>
+                                    <div className="input w-full bg-slate-100 cursor-not-allowed text-slate-700 font-medium flex items-center h-[42px] text-sm">
                                         Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
                                     </div>
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-sm text-slate-400 mb-1">Ghi chú phiếu</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Ghi chú phiếu</label>
                                     <textarea value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input w-full" rows={2} placeholder="Nhập ghi chú (không bắt buộc)..." />
                                 </div>
                             </div>
                         </div>
 
                         {/* Section 2: Thông tin nghiệp vụ */}
-                        <div className="mb-6 p-4 rounded-xl border border-slate-700/50 bg-slate-800/50">
-                            <h3 className="font-medium text-white mb-4 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
+                        <div className="mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                            <h3 className="font-medium text-blue-900 mb-4 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* NCC đã được di chuyển lên phần Thông tin chung */}
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Loại chứng từ *</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Loại chứng từ *</label>
                                     <select value={formData.receipt_type} onChange={(e) => setFormData({ ...formData, receipt_type: e.target.value })} className="input w-full">
                                         <option value="purchase">Mua hàng</option>
                                         <option value="return">Trả hàng</option>
@@ -520,37 +520,37 @@ const StockIn: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Số chứng từ gốc</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Số chứng từ gốc</label>
                                     <input type="text" value={formData.reference_document} onChange={(e) => setFormData({ ...formData, reference_document: e.target.value })} className="input w-full" placeholder="Mã chứng từ (nếu có)" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Người giao hàng *</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Người giao hàng *</label>
                                     <input type="text" value={formData.delivery_person} onChange={(e) => setFormData({ ...formData, delivery_person: e.target.value })} className="input w-full" placeholder="Họ tên người giao" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Người lập phiếu</label>
-                                    <input type="text" value={user?.full_name || ''} readOnly className="input w-full bg-slate-700/50 text-slate-300 cursor-not-allowed" />
+                                    <label className="block text-sm text-slate-600 mb-1">Người lập phiếu</label>
+                                    <input type="text" value={user?.full_name || ''} readOnly className="input w-full bg-slate-100 text-slate-700 font-medium cursor-not-allowed" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Thủ kho *</label>
+                                    <label className="block text-sm text-slate-600 mb-1">Thủ kho *</label>
                                     <input type="text" value={formData.storekeeper || ''} onChange={(e) => setFormData({...formData, storekeeper: e.target.value})} className="input w-full" placeholder="Họ tên thủ kho" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Người duyệt</label>
-                                    <input type="text" value="" disabled placeholder="(Chỉ thêm khi admin duyệt)" className="input w-full bg-slate-700/50 text-slate-300 cursor-not-allowed" />
+                                    <label className="block text-sm text-slate-600 mb-1">Người duyệt</label>
+                                    <input type="text" value="" disabled placeholder="(Chỉ thêm khi admin duyệt)" className="input w-full bg-slate-100 text-slate-700 font-medium cursor-not-allowed" />
                                 </div>
                             </div>
                         </div>
 
                         {/* Add items */}
-                        <div className={`border-t border-slate-700/50 pt-4 mb-4 ${!hasAdminSupplier ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className={`border-t border-blue-100 pt-4 mb-4 ${!hasAdminSupplier ? 'opacity-50 pointer-events-none' : ''}`}>
                             {!hasAdminSupplier && (
                                 <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-sm flex items-center gap-2">
                                     <span>⚠️</span>
                                     <span>Vui lòng chọn <strong>Nhà cung cấp</strong> ở phần Thông tin chung trước khi thêm sản phẩm.</span>
                                 </div>
                             )}
-                            <h3 className="font-medium text-white mb-3">📦 Thêm sản phẩm</h3>
+                            <h3 className="font-medium text-blue-900 mb-3">📦 Thêm sản phẩm</h3>
                             
                             {/* Product selector */}
                             <select value={selectedProductId} onChange={(e) => loadVariants(Number(e.target.value))} className="input w-full mb-3">
@@ -560,9 +560,9 @@ const StockIn: React.FC = () => {
 
                             {/* Visual variant picker */}
                             {selectedProductId > 0 && variants.length > 0 && (
-                                <div className="bg-slate-700/20 rounded-xl border border-slate-600/50 p-4">
+                                <div className="bg-slate-100/20 rounded-xl border border-slate-300/50 p-4">
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-slate-300">
+                                        <span className="text-sm font-medium text-slate-700 font-medium">
                                             Chọn biến thể ({variants.length} có sẵn)
                                         </span>
                                         <button
@@ -589,7 +589,7 @@ const StockIn: React.FC = () => {
                                                 });
                                                 if (newItems.length > 0) setFormItems([...formItems, ...newItems]);
                                             }}
-                                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                            className="text-xs text-blue-600 hover:text-blue-600 transition-colors"
                                         >
                                             + Thêm tất cả
                                         </button>
@@ -609,7 +609,7 @@ const StockIn: React.FC = () => {
                                                     onClick={() => addItem(v.id)}
                                                     className={`text-left p-3 rounded-lg border-2 transition-all ${alreadyAdded
                                                         ? 'border-emerald-500/30 bg-emerald-500/10 opacity-60 cursor-not-allowed'
-                                                        : 'border-slate-600/50 bg-slate-700/30 hover:border-indigo-500 hover:bg-indigo-500/10 cursor-pointer'
+                                                        : 'border-slate-300/50 hover:bg-blue-50 hover:border-indigo-500 hover:bg-blue-50 cursor-pointer'
                                                     }`}
                                                 >
                                                     {/* Attribute chips */}
@@ -625,22 +625,22 @@ const StockIn: React.FC = () => {
                                                                         style={{ backgroundColor: attr.color_code }}
                                                                     />
                                                                 )}
-                                                                <span className="text-slate-400">{attr.attribute_display_name || attr.attribute_name}:</span>
+                                                                <span className="text-slate-600">{attr.attribute_display_name || attr.attribute_name}:</span>
                                                                 {attr.display_value}
                                                             </span>
                                                         )) : (
-                                                            <span className="text-xs text-slate-400">Mặc định</span>
+                                                            <span className="text-xs text-slate-600">Mặc định</span>
                                                         )}
                                                     </div>
                                                     {/* SKU + Stock */}
                                                     <div className="flex items-center justify-between text-xs">
                                                         <span className="text-slate-500 font-mono truncate max-w-[160px]" title={v.sku}>{v.sku}</span>
-                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${v.stock > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600/50 text-slate-400'}`}>
+                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${v.stock > 0 ? 'bg-emerald-500/20 text-emerald-600 font-bold' : 'bg-slate-600/50 text-slate-600'}`}>
                                                             Tồn: {v.stock || 0}
                                                         </span>
                                                     </div>
                                                     {alreadyAdded && (
-                                                        <div className="text-[10px] text-emerald-400 mt-1">✓ Đã thêm</div>
+                                                        <div className="text-[10px] text-emerald-600 font-bold mt-1">✓ Đã thêm</div>
                                                     )}
                                                 </button>
                                             );
@@ -659,26 +659,26 @@ const StockIn: React.FC = () => {
 
                         {/* Items table */}
                         {formItems.length > 0 && (
-                            <div className="overflow-x-auto rounded-lg border border-slate-700/50 mb-4">
+                            <div className="overflow-x-auto rounded-lg border border-blue-100 mb-4">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-slate-700/50">
+                                    <thead className="bg-slate-100">
                                         <tr>
-                                            <th className="px-3 py-2 text-left text-slate-300">Sản phẩm</th>
-                                            <th className="px-3 py-2 text-left text-slate-300">SKU</th>
-                                            <th className="px-3 py-2 text-left text-slate-300">ĐVT</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">SL chứng từ</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">SL thực nhập</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">Đơn giá</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">Thành tiền</th>
-                                            <th className="px-3 py-2 text-center text-slate-300">Xóa</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">Sản phẩm</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">SKU</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">ĐVT</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">SL chứng từ</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">SL thực nhập</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">Đơn giá</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">Thành tiền</th>
+                                            <th className="px-3 py-2 text-center text-slate-700 font-medium">Xóa</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {formItems.map((item, idx) => (
-                                            <tr key={idx} className="border-t border-slate-700/50">
-                                                <td className="px-3 py-2 text-white">{item.product_name}</td>
-                                                <td className="px-3 py-2 font-mono text-indigo-300">{item.variant_sku}</td>
-                                                <td className="px-3 py-2 text-slate-400">{item.unit_name}</td>
+                                            <tr key={idx} className="border-t border-blue-100">
+                                                <td className="px-3 py-2 text-blue-900">{item.product_name}</td>
+                                                <td className="px-3 py-2 font-mono text-blue-600">{item.variant_sku}</td>
+                                                <td className="px-3 py-2 text-slate-600">{item.unit_name}</td>
                                                 <td className="px-3 py-2 text-right">
                                                     <input type="number" min={1} value={item.quantity_document}
                                                         onChange={(e) => updateItem(idx, 'quantity_document', Number(e.target.value))}
@@ -698,7 +698,7 @@ const StockIn: React.FC = () => {
                                                         onChange={(e) => updateItem(idx, 'unit_cost', Number(e.target.value))}
                                                         className="input w-28 text-right text-sm" />
                                                 </td>
-                                                <td className="px-3 py-2 text-right font-medium text-emerald-400">
+                                                <td className="px-3 py-2 text-right font-medium text-emerald-600 font-bold">
                                                     {(item.quantity_actual * item.unit_cost).toLocaleString('vi-VN')} đ
                                                 </td>
                                                 <td className="px-3 py-2 text-center">
@@ -707,10 +707,10 @@ const StockIn: React.FC = () => {
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="bg-slate-700/50 font-medium">
+                                    <tfoot className="bg-slate-100 font-medium">
                                         <tr>
-                                            <td colSpan={6} className="px-3 py-2 text-right text-slate-300">Tổng cộng:</td>
-                                            <td className="px-3 py-2 text-right text-lg text-emerald-400">{totalFormAmount.toLocaleString('vi-VN')} đ</td>
+                                            <td colSpan={6} className="px-3 py-2 text-right text-slate-700 font-medium">Tổng cộng:</td>
+                                            <td className="px-3 py-2 text-right text-lg text-emerald-600 font-bold">{totalFormAmount.toLocaleString('vi-VN')} đ</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
@@ -718,10 +718,10 @@ const StockIn: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary">Hủy</button>
                             <button onClick={handleCreate} disabled={submitting}
-                                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all">
+                                className="px-6 py-2.5 bg-indigo-600 text-blue-900 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all">
                                 {submitting ? '⏳ Đang tạo...' : '📥 Tạo phiếu nhập'}
                             </button>
                         </div>
@@ -732,80 +732,80 @@ const StockIn: React.FC = () => {
             {/* ==================== DETAIL MODAL ==================== */}
             {showDetailModal && selectedReceipt && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl shadow-indigo-500/10">
+                    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl shadow-indigo-500/10">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold text-white">📥 Chi tiết phiếu nhập: {selectedReceipt.receipt_number}</h2>
+                                <h2 className="text-xl font-bold text-blue-900">📥 Chi tiết phiếu nhập: {selectedReceipt.receipt_number}</h2>
                                 <div className="flex gap-2 mt-2">{getStatusBadge(selectedReceipt.status)}</div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl transition-colors">×</button>
+                            <button onClick={() => setShowDetailModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl transition-colors">×</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             {/* Thông tin chung */}
-                            <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-700/50">
-                                <h3 className="font-medium text-white mb-3 text-sm flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
+                            <div className="hover:bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <h3 className="font-medium text-blue-900 mb-3 text-sm flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Kho nhập:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.warehouse_name}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.warehouse_name}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">📍 Địa chỉ kho:</span>
-                                        <span className="font-medium text-white text-right">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
+                                        <span className="font-medium text-blue-900 text-right">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Ngày lập:</span>
-                                        <span className="font-medium text-white">{new Date(selectedReceipt.receipt_date).toLocaleDateString('vi-VN')}</span>
+                                        <span className="font-medium text-blue-900">{new Date(selectedReceipt.receipt_date).toLocaleDateString('vi-VN')}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Chứng từ kèm theo:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.reference_document || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.reference_document || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Ghi chú phiếu:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.notes || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.notes || '-'}</span>
                                     </div>
-                                    <div className="flex justify-between pt-2 border-t border-slate-700/50 mt-2">
+                                    <div className="flex justify-between pt-2 border-t border-blue-100 mt-2">
                                         <span className="text-slate-500">Tổng tiền:</span>
                                         <div className="text-right">
-                                            <div className="font-medium text-lg text-emerald-400">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</div>
-                                            <div className="text-xs text-slate-400 italic mt-0.5">{numberToWords(Number(selectedReceipt.total_amount || 0))}</div>
+                                            <div className="font-medium text-lg text-emerald-600 font-bold">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</div>
+                                            <div className="text-xs text-slate-600 italic mt-0.5">{numberToWords(Number(selectedReceipt.total_amount || 0))}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Thông tin nghiệp vụ */}
-                            <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-700/50">
-                                <h3 className="font-medium text-white mb-3 text-sm flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
+                            <div className="hover:bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <h3 className="font-medium text-blue-900 mb-3 text-sm flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Nhà cung cấp:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.supplier_name || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.supplier_name || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Người giao hàng:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.delivery_person || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.delivery_person || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Người lập:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.created_by_name || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.created_by_name || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Thủ kho:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.storekeeper || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.storekeeper || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500">Người duyệt:</span>
-                                        <span className="font-medium text-white">{selectedReceipt.approved_by_name || '-'}</span>
+                                        <span className="font-medium text-blue-900">{selectedReceipt.approved_by_name || '-'}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {selectedReceipt.notes && (
-                            <div className="p-3 bg-slate-700/30 rounded-lg mb-4 text-sm text-slate-300">
+                            <div className="p-3 hover:bg-blue-50 rounded-lg mb-4 text-sm text-slate-700 font-medium">
                                 📝 {selectedReceipt.notes}
                             </div>
                         )}
@@ -813,35 +813,35 @@ const StockIn: React.FC = () => {
                         {/* Items */}
                         {selectedReceipt.items && selectedReceipt.items.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-medium mb-2 text-white">Danh sách sản phẩm ({selectedReceipt.items.length})</h3>
-                                <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+                                <h3 className="font-medium mb-2 text-blue-900">Danh sách sản phẩm ({selectedReceipt.items.length})</h3>
+                                <div className="overflow-x-auto rounded-lg border border-blue-100">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-700/50">
+                                        <thead className="bg-slate-100">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-slate-300">SKU</th>
-                                                <th className="px-4 py-3 text-left text-slate-300">Tên SP</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">SL chứng từ</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">SL thực nhập</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Đơn giá</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Thành tiền</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">SKU</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">Tên SP</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">SL chứng từ</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">SL thực nhập</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Đơn giá</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Thành tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {selectedReceipt.items.map((item: any) => (
-                                                <tr key={item.id} className="border-t border-slate-700/50">
-                                                    <td className="px-4 py-3 font-mono text-indigo-300">{item.variant_sku || item.sku}</td>
-                                                    <td className="px-4 py-3 text-white">{item.product_name}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-400">{item.quantity_document || item.quantity_expected}</td>
-                                                    <td className="px-4 py-3 text-right text-white">{item.quantity_actual || item.quantity_expected}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-300">{Number(item.unit_cost || 0).toLocaleString('vi-VN')} đ</td>
-                                                    <td className="px-4 py-3 text-right font-medium text-emerald-400">{Number(item.line_total || 0).toLocaleString('vi-VN')} đ</td>
+                                                <tr key={item.id} className="border-t border-blue-100">
+                                                    <td className="px-4 py-3 font-mono text-blue-600">{item.variant_sku || item.sku}</td>
+                                                    <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-600">{item.quantity_document || item.quantity_expected}</td>
+                                                    <td className="px-4 py-3 text-right text-blue-900">{item.quantity_actual || item.quantity_expected}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(item.unit_cost || 0).toLocaleString('vi-VN')} đ</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-emerald-600 font-bold">{Number(item.line_total || 0).toLocaleString('vi-VN')} đ</td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="bg-slate-700/50 font-medium">
+                                        <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={5} className="px-4 py-3 text-right text-slate-300">Tổng cộng:</td>
-                                                <td className="px-4 py-3 text-right text-lg text-emerald-400">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</td>
+                                                <td colSpan={5} className="px-4 py-3 text-right text-slate-700 font-medium">Tổng cộng:</td>
+                                                <td className="px-4 py-3 text-right text-lg text-emerald-600 font-bold">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -849,11 +849,11 @@ const StockIn: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             {selectedReceipt.status === 'PENDING' && (
                                 <button onClick={() => handleApprove(selectedReceipt.id)}
                                     disabled={approving === String(selectedReceipt.id)}
-                                    className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                    className="px-5 py-2.5 bg-emerald-600 text-blue-900 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50">
                                     {approving === String(selectedReceipt.id) ? '⏳ Đang duyệt...' : '✅ Duyệt phiếu (cộng tồn kho)'}
                                 </button>
                             )}

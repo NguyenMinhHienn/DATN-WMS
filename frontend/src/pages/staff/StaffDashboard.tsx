@@ -192,26 +192,30 @@ const StaffDashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/60 to-indigo-50/40 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-600 font-medium">Đang tải dữ liệu...</p>
+                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-blue-600 font-medium">Đang tải dữ liệu...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className="animate-fadeIn min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/60 to-indigo-50/40 p-6">
             {/* Header */}
             <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                        <span className="text-2xl">👤</span>
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-800">Dashboard Nhân viên</h1>
-                        <p className="text-slate-500">Quản lý phiếu kho và theo dõi trạng thái</p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
+                            <span className="text-2xl">👤</span>
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+                                Dashboard Nhân viên
+                            </h1>
+                            <p className="text-blue-600/70 mt-1 font-medium">Quản lý phiếu kho và theo dõi trạng thái</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -274,9 +278,9 @@ const StaffDashboard: React.FC = () => {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Status Distribution Chart */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-sm">📊</span>
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 p-6 border border-blue-100">
+                    <h3 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2">
+                        <span className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-sm">📊</span>
                         Phân bố trạng thái phiếu
                     </h3>
                     <div className="h-64">
@@ -294,9 +298,9 @@ const StaffDashboard: React.FC = () => {
                 </div>
 
                 {/* Transfer Type Chart */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-sm">📈</span>
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 p-6 border border-blue-100">
+                    <h3 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2">
+                        <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">📈</span>
                         Phân loại phiếu kho
                     </h3>
                     <div className="h-64">
@@ -317,9 +321,9 @@ const StaffDashboard: React.FC = () => {
             {/* Quick Actions + Recent Transfers */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Quick Actions */}
-                <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-sm">🚀</span>
+                <div className="lg:col-span-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 p-6 border border-blue-100">
+                    <h3 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2">
+                        <span className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">🚀</span>
                         Thao tác nhanh
                     </h3>
                     <div className="space-y-3">
@@ -394,13 +398,13 @@ const StaffDashboard: React.FC = () => {
 
 
                 {/* Recent Transfers */}
-                <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-sm">📝</span>
+                <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 p-6 border border-blue-100">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                            <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm">📝</span>
                             Phiếu gần đây
                         </h3>
-                        <Link to="/staff/my-transfers" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                        <Link to="/staff/my-transfers" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium bg-indigo-50 px-3 py-1 rounded-full text-xs">
                             Xem tất cả →
                         </Link>
                     </div>
@@ -418,27 +422,27 @@ const StaffDashboard: React.FC = () => {
                             </Link>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-xl border border-blue-50 mt-4">
                             <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-100">
-                                        <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
-                                        <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Loại</th>
-                                        <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày tạo</th>
-                                        <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                                <thead className="bg-blue-50/50 border-b border-blue-100">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Mã phiếu</th>
+                                        <th className="text-left py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Loại</th>
+                                        <th className="text-left py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Ngày tạo</th>
+                                        <th className="text-left py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Trạng thái</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-100">
                                     {recentTransfers.map(transfer => (
                                         <tr key={transfer.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="py-3 px-2">
+                                            <td className="py-3 px-4">
                                                 <span className="font-mono text-sm font-medium text-indigo-600">
                                                     #{transfer.id}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-2">{getTypeBadge(transfer.transfer_type)}</td>
-                                            <td className="py-3 px-2 text-sm text-slate-600">{formatDate(transfer.created_at)}</td>
-                                            <td className="py-3 px-2">{getStatusBadge(transfer.status)}</td>
+                                            <td className="py-3 px-4">{getTypeBadge(transfer.transfer_type)}</td>
+                                            <td className="py-3 px-4 text-sm text-slate-600">{formatDate(transfer.created_at)}</td>
+                                            <td className="py-3 px-4">{getStatusBadge(transfer.status)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

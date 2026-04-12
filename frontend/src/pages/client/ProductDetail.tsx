@@ -313,8 +313,8 @@ const ProductDetail: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     {/* Image */}
-                    <div className="card">
-                        <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center text-9xl overflow-hidden">
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
+                        <div className="w-full aspect-square bg-blue-50/50 rounded-lg flex items-center justify-center text-9xl overflow-hidden">
                             {(selectedVariant?.image_url || product.image_url) ? (
                                 <img src={uploadService.getImageUrl(selectedVariant?.image_url || product.image_url || '')} alt={product.name} className="w-full h-full object-cover rounded-lg" />
                             ) : '📦'}
@@ -448,8 +448,8 @@ const ProductDetail: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="card bg-slate-50">
-                            <h2 className="text-lg font-semibold text-slate-800 mb-4">Thuộc tính hàng hóa</h2>
+                        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
+                            <h2 className="text-lg font-bold text-blue-900 mb-4">Thuộc tính hàng hóa</h2>
                             <table className="w-full text-sm">
                                 <tbody>
                                     {product.category_name && (
@@ -569,8 +569,8 @@ const ProductDetail: React.FC = () => {
 
                         {/* Custom Product Specifications */}
                         {specifications.length > 0 && (
-                            <div className="card bg-white border border-slate-200 mt-4">
-                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Chi tiết thuộc tính</h2>
+                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6 mt-4">
+                                <h2 className="text-lg font-bold text-blue-900 mb-4">Chi tiết thuộc tính</h2>
                                 <table className="w-full text-sm">
                                     <tbody>
                                         {specifications.map((spec, index) => (
@@ -599,7 +599,7 @@ const ProductDetail: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="card bg-gradient-to-r from-primary-50 to-white border border-primary-100 mt-6">
+                        <div className="bg-gradient-to-r from-primary-50 to-white rounded-2xl shadow-md border border-primary-100 p-6 mt-6">
                             <div className="flex flex-col sm:flex-row items-center gap-4">
                                 {/* Quantity Selector - Hoạt động */}
                                 <div className="flex items-center gap-2">
@@ -703,7 +703,7 @@ const ProductDetail: React.FC = () => {
                                 key={item.id}
                                 to={`/products/${item.id}`}
                                 id={`related-product-${item.id}`}
-                                className="card p-4 hover:shadow-lg transition-shadow cursor-pointer group block"
+                                className="bg-white rounded-2xl shadow-md border border-slate-200 p-4 hover:shadow-lg transition-shadow cursor-pointer group block"
                             >
                                 <div className="aspect-square bg-slate-100 rounded-lg mb-3 flex items-center justify-center text-4xl group-hover:scale-105 transition-transform overflow-hidden">
                                     {item.image ? (
@@ -731,7 +731,7 @@ const ProductDetail: React.FC = () => {
                     </h2>
 
                     {/* Rating Summary - UI only */}
-                    <div className="card bg-gradient-to-br from-amber-50 to-white border-amber-100">
+                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-2xl shadow-md border border-amber-100 p-6">
                         <div className="flex flex-col md:flex-row items-center gap-6">
                             {/* Average Rating Display */}
                             <div className="text-center">
@@ -793,8 +793,8 @@ const ProductDetail: React.FC = () => {
                     </h2>
 
                     {/* Comment Form - UI only */}
-                    <div className="card mb-6">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-4">Để lại bình luận</h3>
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6 mb-6">
+                        <h3 className="text-lg font-bold text-blue-900 mb-4">Để lại bình luận</h3>
                         <form
                             id="form-comment"
                             // TODO: onSubmit - gọi API POST /comments

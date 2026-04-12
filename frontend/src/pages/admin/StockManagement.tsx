@@ -116,13 +116,13 @@ const StockManagement: React.FC = () => {
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
             pending: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-            approved: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            approved: 'bg-emerald-500/20 text-emerald-600 font-bold border-emerald-500/30',
             rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
         };
         const labels: Record<string, string> = {
             pending: '⏳ Chờ duyệt', approved: '✅ Đã duyệt', rejected: '❌ Từ chối',
         };
-        return <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status] || 'bg-slate-500/20 text-slate-400'}`}>{labels[status] || status}</span>;
+        return <span className={`px-3 py-1 rounded-full text-xs font-medium border ${styles[status] || 'bg-slate-500/20 text-slate-600'}`}>{labels[status] || status}</span>;
     };
 
     const config = TAB_CONFIG[activeTab];
@@ -137,10 +137,10 @@ const StockManagement: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">📦 Quản lý phiếu kho</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Nhập kho, xuất kho & chuyển kho</p>
+                    <p className="text-slate-600 mt-1">Nhập kho, xuất kho & chuyển kho</p>
                 </div>
                 <button onClick={() => loadTransfers()}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium transition-colors">
+                    className="px-4 py-2 bg-indigo-600 text-blue-900 rounded-xl hover:bg-indigo-700 text-sm font-medium transition-colors">
                     🔄 Làm mới
                 </button>
             </div>
@@ -154,8 +154,8 @@ const StockManagement: React.FC = () => {
                         <button key={tab} onClick={() => switchTab(tab)}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all
                                 ${isActive
-                                    ? 'text-white shadow-lg'
-                                    : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-slate-700/50'
+                                    ? 'text-blue-900 shadow-lg'
+                                    : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100 border border-blue-100'
                                 }`}
                             style={isActive ? { backgroundColor: tc.activeColor, boxShadow: `0 10px 15px -3px ${tc.activeColor}40` } : {}}>
                             <span>{tc.icon}</span> {tc.label}
@@ -167,15 +167,15 @@ const StockManagement: React.FC = () => {
             {/* ==================== STATS ==================== */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="chart-container border-l-4 border-emerald-500">
-                    <p className="text-sm text-slate-400">Đã duyệt</p>
-                    <p className="text-2xl font-bold text-emerald-400">{approvedCount}</p>
+                    <p className="text-sm text-slate-600">Đã duyệt</p>
+                    <p className="text-2xl font-bold text-emerald-600 font-bold">{approvedCount}</p>
                 </div>
                 <div className="chart-container border-l-4 border-amber-500">
-                    <p className="text-sm text-slate-400">Chờ duyệt</p>
+                    <p className="text-sm text-slate-600">Chờ duyệt</p>
                     <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
                 </div>
                 <div className="chart-container border-l-4" style={{ borderColor: config.borderColor }}>
-                    <p className="text-sm text-slate-400">Tổng phiếu</p>
+                    <p className="text-sm text-slate-600">Tổng phiếu</p>
                     <p className="text-2xl font-bold" style={{ color: config.textColor }}>{pagination.total}</p>
                 </div>
             </div>
@@ -192,7 +192,7 @@ const StockManagement: React.FC = () => {
                         <option value="rejected">❌ Từ chối</option>
                     </select>
                     <button onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="text-slate-400 hover:text-white transition-colors">
+                        className="text-slate-600 hover:text-blue-900 transition-colors">
                         Xóa bộ lọc
                     </button>
                 </div>
@@ -208,55 +208,55 @@ const StockManagement: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Đơn hàng</th>
-                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">{config.warehouseLabel}</th>
-                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Ngày</th>
-                                        <th className="text-right py-4 px-5 text-sm font-medium text-slate-300">Số SP</th>
-                                        <th className="text-right py-4 px-5 text-sm font-medium text-slate-300">Tổng tiền</th>
-                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-300">Người tạo</th>
-                                        <th className="text-center py-4 px-5 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-5 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-700 font-medium">Mã phiếu</th>
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-700 font-medium">Đơn hàng</th>
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-700 font-medium">{config.warehouseLabel}</th>
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-700 font-medium">Ngày</th>
+                                        <th className="text-right py-4 px-5 text-sm font-medium text-slate-700 font-medium">Số SP</th>
+                                        <th className="text-right py-4 px-5 text-sm font-medium text-slate-700 font-medium">Tổng tiền</th>
+                                        <th className="text-left py-4 px-5 text-sm font-medium text-slate-700 font-medium">Người tạo</th>
+                                        <th className="text-center py-4 px-5 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-5 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {transfers.map(t => (
-                                        <tr key={t.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${t.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
+                                        <tr key={t.id} className={`border-b border-slate-100 hover:bg-blue-50 transition-colors ${t.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
                                             <td className="py-4 px-5 font-mono text-sm font-medium" style={{ color: config.textColor }}>{t.transfer_number}</td>
                                             <td className="py-4 px-5 text-sm font-medium">
                                                 {t.order_id ? (
-                                                    <span className="text-indigo-300">Đơn hàng số #{t.order_id}</span>
+                                                    <span className="text-blue-600">Đơn hàng số #{t.order_id}</span>
                                                 ) : (
-                                                    <span className="text-slate-400">Xuất trực tiếp</span>
+                                                    <span className="text-slate-600">Xuất trực tiếp</span>
                                                 )}
                                             </td>
-                                            <td className="py-4 px-5 text-sm text-slate-300">
+                                            <td className="py-4 px-5 text-sm text-slate-700 font-medium">
                                                 {activeTab === 'IMPORT' ? t.destination_warehouse_name : t.source_warehouse_name}
                                             </td>
-                                            <td className="py-4 px-5 text-sm text-slate-400">{new Date(t.transfer_date).toLocaleDateString('vi-VN')}</td>
-                                            <td className="py-4 px-5 text-sm text-right text-white">{t.total_items}</td>
+                                            <td className="py-4 px-5 text-sm text-slate-600">{new Date(t.transfer_date).toLocaleDateString('vi-VN')}</td>
+                                            <td className="py-4 px-5 text-sm text-right text-blue-900">{t.total_items}</td>
                                             <td className="py-4 px-5 text-sm text-right font-medium" style={{ color: config.textColor }}>
                                                 {new Intl.NumberFormat('vi-VN').format(t.total_value)} đ
                                             </td>
-                                            <td className="py-4 px-5 text-sm text-slate-300">{t.created_by_name}</td>
+                                            <td className="py-4 px-5 text-sm text-slate-700 font-medium">{t.created_by_name}</td>
                                             <td className="py-4 px-5 text-center">{getStatusBadge(t.status)}</td>
                                             <td className="py-4 px-5 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button onClick={() => handleViewDetail(t.id)}
-                                                        className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors">
+                                                        className="text-blue-600 hover:text-blue-600 text-sm transition-colors">
                                                         Chi tiết
                                                     </button>
                                                     <button onClick={() => handlePrint(t.id)}
-                                                        className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                        className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                         🖨️ In
                                                     </button>
                                                     {t.status === 'pending' && (
                                                         <>
                                                             <button onClick={() => handleApprove(t.id)}
                                                                 disabled={actionLoading === `approve-${t.id}`}
-                                                                className="text-emerald-400 hover:text-emerald-300 text-sm font-medium disabled:opacity-50 transition-colors">
+                                                                className="text-emerald-600 font-bold hover:text-emerald-300 text-sm font-medium disabled:opacity-50 transition-colors">
                                                                 {actionLoading === `approve-${t.id}` ? '...' : '✓ Duyệt'}
                                                             </button>
                                                             <button onClick={() => { setSelectedTransfer(t); setShowRejectModal(true); }}
@@ -282,7 +282,7 @@ const StockManagement: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -292,120 +292,120 @@ const StockManagement: React.FC = () => {
             {/* ==================== TRANSFER DETAIL MODAL ==================== */}
             {showDetailModal && selectedTransfer && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold text-white">{config.icon} Chi tiết phiếu: {selectedTransfer.transfer_number}</h2>
+                                <h2 className="text-xl font-bold text-blue-900">{config.icon} Chi tiết phiếu: {selectedTransfer.transfer_number}</h2>
                                 <div className="flex gap-2 mt-2">{getStatusBadge(selectedTransfer.status)}</div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                            <button onClick={() => setShowDetailModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             {/* Thông tin chung */}
-                            <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
-                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
+                            <div className="hover:bg-blue-50 border border-slate-300/50 rounded-xl p-4">
+                                <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>
                                 <div className="space-y-3 text-sm">
                                     {selectedTransfer.transfer_type === 'IMPORT' && selectedTransfer.destination_warehouse_name && (
-                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                            <span className="text-slate-400">Kho nhập:</span>
-                                            <span className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</span>
+                                        <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                            <span className="text-slate-600">Kho nhập:</span>
+                                            <span className="font-medium text-blue-900">{selectedTransfer.destination_warehouse_name}</span>
                                         </div>
                                     )}
                                     {selectedTransfer.transfer_type === 'EXPORT' && selectedTransfer.source_warehouse_name && (
-                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                            <span className="text-slate-400">Kho xuất:</span>
-                                            <span className="font-medium text-white">{selectedTransfer.source_warehouse_name}</span>
+                                        <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                            <span className="text-slate-600">Kho xuất:</span>
+                                            <span className="font-medium text-blue-900">{selectedTransfer.source_warehouse_name}</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">📍 Địa chỉ kho:</span>
-                                        <span className="font-medium text-white text-right text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">📍 Địa chỉ kho:</span>
+                                        <span className="font-medium text-blue-900 text-right text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</span>
                                     </div>
                                     {selectedTransfer.transfer_type === 'TRANSFER' && (
                                         <>
                                             {selectedTransfer.source_warehouse_name && (
-                                                <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                                    <span className="text-slate-400">Kho nguồn:</span>
-                                                    <span className="font-medium text-white">{selectedTransfer.source_warehouse_name}</span>
+                                                <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                                    <span className="text-slate-600">Kho nguồn:</span>
+                                                    <span className="font-medium text-blue-900">{selectedTransfer.source_warehouse_name}</span>
                                                 </div>
                                             )}
                                             {selectedTransfer.destination_warehouse_name && (
-                                                <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                                    <span className="text-slate-400">Kho đích:</span>
-                                                    <span className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</span>
+                                                <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                                    <span className="text-slate-600">Kho đích:</span>
+                                                    <span className="font-medium text-blue-900">{selectedTransfer.destination_warehouse_name}</span>
                                                 </div>
                                             )}
                                         </>
                                     )}
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Ngày tạo:</span>
-                                        <span className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Ngày tạo:</span>
+                                        <span className="font-medium text-blue-900">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Mã đơn hàng:</span>
-                                        <span className={`font-medium ${selectedTransfer.order_id ? 'text-indigo-400' : 'text-slate-300'}`}>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Mã đơn hàng:</span>
+                                        <span className={`font-medium ${selectedTransfer.order_id ? 'text-blue-600' : 'text-slate-700 font-medium'}`}>
                                             {selectedTransfer.order_id ? `Đơn hàng số #${selectedTransfer.order_id}` : 'Xuất trực tiếp'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Ghi chú:</span>
-                                        <span className="font-medium text-white">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Ghi chú:</span>
+                                        <span className="font-medium text-blue-900">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
                                     </div>
-                                    <div className="flex justify-between pt-2 border-t border-slate-600/50 mt-2">
-                                        <span className="text-slate-300 font-medium">Tổng giá trị:</span>
+                                    <div className="flex justify-between pt-2 border-t border-slate-300/50 mt-2">
+                                        <span className="text-slate-700 font-medium font-medium">Tổng giá trị:</span>
                                         <div className="text-right">
                                             <div className="font-bold text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()} đ</div>
-                                            <div className="text-xs text-slate-400 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
+                                            <div className="text-xs text-slate-600 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Thông tin nghiệp vụ */}
-                            <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
-                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
+                            <div className="hover:bg-blue-50 border border-slate-300/50 rounded-xl p-4">
+                                <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2"><span>🏢</span> Thông tin nghiệp vụ</h3>
                                 <div className="space-y-3 text-sm">
                                     {selectedTransfer.transfer_type === 'IMPORT' && (
-                                        <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                            <span className="text-slate-400">Nhà cung cấp:</span>
-                                            <span className="font-medium text-white">{selectedTransfer.supplier_name || '-'}</span>
+                                        <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                            <span className="text-slate-600">Nhà cung cấp:</span>
+                                            <span className="font-medium text-blue-900">{selectedTransfer.supplier_name || '-'}</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Người giao hàng:</span>
-                                        <span className="font-medium text-white">{selectedTransfer.delivery_person || '-'}</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Người giao hàng:</span>
+                                        <span className="font-medium text-blue-900">{selectedTransfer.delivery_person || '-'}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Người lập phiếu:</span>
-                                        <span className="font-medium text-white">{selectedTransfer.created_by_name || '-'}</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Người lập phiếu:</span>
+                                        <span className="font-medium text-blue-900">{selectedTransfer.created_by_name || '-'}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                        <span className="text-slate-400">Thủ kho:</span>
-                                        <span className="font-medium text-white">{selectedTransfer.storekeeper || '-'}</span>
+                                    <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                        <span className="text-slate-600">Thủ kho:</span>
+                                        <span className="font-medium text-blue-900">{selectedTransfer.storekeeper || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Người duyệt:</span>
-                                        <span className="font-medium text-white">{selectedTransfer.approved_by_name || '-'}</span>
+                                        <span className="text-slate-600">Người duyệt:</span>
+                                        <span className="font-medium text-blue-900">{selectedTransfer.approved_by_name || '-'}</span>
                                     </div>
 
                                     {selectedTransfer.transfer_type === 'EXPORT' && (
                                         <>
-                                            <div className="flex justify-between border-t border-slate-600/50 pt-3">
-                                                <span className="text-slate-400">Người nhận hàng:</span>
-                                                <span className="font-medium text-white">{selectedTransfer.receiver_name || '-'}</span>
+                                            <div className="flex justify-between border-t border-slate-300/50 pt-3">
+                                                <span className="text-slate-600">Người nhận hàng:</span>
+                                                <span className="font-medium text-blue-900">{selectedTransfer.receiver_name || '-'}</span>
                                             </div>
-                                            <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                                <span className="text-slate-400">📞 SĐT người nhận:</span>
-                                                <span className="font-medium text-white">{selectedTransfer.receiver_phone || '-'}</span>
+                                            <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                                <span className="text-slate-600">📞 SĐT người nhận:</span>
+                                                <span className="font-medium text-blue-900">{selectedTransfer.receiver_phone || '-'}</span>
                                             </div>
-                                            <div className="flex justify-between border-b border-slate-600/50 pb-2">
-                                                <span className="text-slate-400">🏠 Địa chỉ người nhận:</span>
-                                                <span className="font-medium text-white text-right">{selectedTransfer.receiver_address || '-'}</span>
+                                            <div className="flex justify-between border-b border-slate-300/50 pb-2">
+                                                <span className="text-slate-600">🏠 Địa chỉ người nhận:</span>
+                                                <span className="font-medium text-blue-900 text-right">{selectedTransfer.receiver_address || '-'}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-slate-400">Phòng ban (nội bộ):</span>
-                                                <span className="font-medium text-white">{selectedTransfer.receiver_department || '-'}</span>
+                                                <span className="text-slate-600">Phòng ban (nội bộ):</span>
+                                                <span className="font-medium text-blue-900">{selectedTransfer.receiver_department || '-'}</span>
                                             </div>
                                         </>
                                     )}
@@ -423,33 +423,33 @@ const StockManagement: React.FC = () => {
 
                         {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-medium mb-2 text-white">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
-                                <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+                                <h3 className="font-medium mb-2 text-blue-900">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
+                                <div className="overflow-x-auto rounded-lg border border-blue-100">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-700/50">
+                                        <thead className="bg-slate-100">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-slate-300">SKU</th>
-                                                <th className="px-4 py-3 text-left text-slate-300">Tên SP</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">SL</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Đơn giá</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Thành tiền</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">SKU</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">Tên SP</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">SL</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Đơn giá</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Thành tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {selectedTransfer.items.map(item => (
-                                                <tr key={item.id} className="border-t border-slate-700/50">
+                                                <tr key={item.id} className="border-t border-blue-100">
                                                     <td className="px-4 py-3 font-mono" style={{ color: config.textColor }}>{item.sku}</td>
-                                                    <td className="px-4 py-3 text-white">{item.product_name}</td>
-                                                    <td className="px-4 py-3 text-right text-white">{item.quantity_requested}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-300">{item.unit_cost.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
+                                                    <td className="px-4 py-3 text-right text-blue-900">{item.quantity_requested}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{item.unit_cost.toLocaleString()}</td>
                                                     <td className="px-4 py-3 text-right font-medium" style={{ color: config.textColor }}>{item.line_total.toLocaleString()}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="bg-slate-700/50 font-medium">
+                                        <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={2} className="px-4 py-3 text-slate-300">Tổng cộng:</td>
-                                                <td className="px-4 py-3 text-right text-white">{selectedTransfer.total_quantity}</td>
+                                                <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Tổng cộng:</td>
+                                                <td className="px-4 py-3 text-right text-blue-900">{selectedTransfer.total_quantity}</td>
                                                 <td className="px-4 py-3"></td>
                                                 <td className="px-4 py-3 text-right text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()}</td>
                                             </tr>
@@ -460,13 +460,13 @@ const StockManagement: React.FC = () => {
                         )}
 
                         {/* Modal Action Buttons */}
-                        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             {selectedTransfer.status === 'pending' && (
                                 <>
                                     <button onClick={() => setShowRejectModal(true)} className="btn btn-danger">❌ Từ chối</button>
                                     <button onClick={() => handleApprove(selectedTransfer.id)}
                                         disabled={actionLoading === `approve-${selectedTransfer.id}`}
-                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50">
+                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-blue-900 rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50">
                                         ✅ Duyệt phiếu
                                     </button>
                                 </>
@@ -481,9 +481,9 @@ const StockManagement: React.FC = () => {
             {/* ==================== REJECT MODAL ==================== */}
             {showRejectModal && selectedTransfer && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-md p-6 m-4 border border-slate-700/50 shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 m-4 border border-blue-100 shadow-2xl">
                         <h2 className="text-xl font-bold mb-4 text-red-400">Từ chối phiếu</h2>
-                        <p className="text-slate-300 mb-4">Phiếu: <strong className="text-white">{selectedTransfer.transfer_number}</strong></p>
+                        <p className="text-slate-700 font-medium mb-4">Phiếu: <strong className="text-blue-900">{selectedTransfer.transfer_number}</strong></p>
                         <p className="text-sm text-slate-500 mb-4">Sau khi từ chối, tồn kho sẽ KHÔNG thay đổi.</p>
                         <div className="mb-4">
                             <label className="label">Lý do từ chối *</label>

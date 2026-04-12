@@ -140,7 +140,7 @@ const InventoryPage: React.FC = () => {
                 <h1 className="text-2xl font-bold">
                     <span className="gradient-text">Tồn kho</span>
                 </h1>
-                <p className="text-slate-400 mt-1">Theo dõi tồn kho tại các kho hàng</p>
+                <p className="text-slate-600 mt-1">Theo dõi tồn kho tại các kho hàng</p>
             </div>
 
             {/* Low Stock Alert - Accordion */}
@@ -169,34 +169,34 @@ const InventoryPage: React.FC = () => {
                         <div className="border-t border-red-500/20">
                             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-800/50 sticky top-0 z-10">
+                                    <thead className="bg-blue-50/30 sticky top-0 z-10">
                                         <tr>
-                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">Sản phẩm</th>
-                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">SKU</th>
-                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-300 uppercase">Tồn kho</th>
-                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-300 uppercase">Mức tối thiểu</th>
-                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-300 uppercase">Mức đặt lại</th>
-                                            <th className="text-center py-3 px-5 text-xs font-medium text-slate-300 uppercase">Mức độ</th>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Sản phẩm</th>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">SKU</th>
+                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Tồn kho</th>
+                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Mức tối thiểu</th>
+                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Mức đặt lại</th>
+                                            <th className="text-center py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Mức độ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {lowStock.map((item: any) => {
                                             const severity = getStockSeverity(item.total_quantity, item.min_stock_level);
                                             return (
-                                                <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
+                                                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-100/20 transition-colors">
                                                     <td className="py-3 px-5">
-                                                        <span className="font-medium text-white">{item.name}</span>
+                                                        <span className="font-medium text-blue-900">{item.name}</span>
                                                     </td>
                                                     <td className="py-3 px-5">
-                                                        <span className="text-xs text-indigo-300 font-mono bg-indigo-500/10 px-2 py-1 rounded">{item.sku}</span>
+                                                        <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded">{item.sku}</span>
                                                     </td>
                                                     <td className="py-3 px-5 text-right">
                                                         <span className={`font-bold ${item.total_quantity === 0 ? 'text-red-400' : 'text-amber-400'}`}>
                                                             {item.total_quantity}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 px-5 text-right text-slate-400">{item.min_stock_level}</td>
-                                                    <td className="py-3 px-5 text-right text-slate-400">{item.reorder_point}</td>
+                                                    <td className="py-3 px-5 text-right text-slate-600">{item.min_stock_level}</td>
+                                                    <td className="py-3 px-5 text-right text-slate-600">{item.reorder_point}</td>
                                                     <td className="py-3 px-5 text-center">
                                                         <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${severity.color}`}>
                                                             {severity.label}
@@ -239,27 +239,27 @@ const InventoryPage: React.FC = () => {
                         <div className="border-t border-amber-500/20">
                             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-800/50 sticky top-0 z-10">
+                                    <thead className="bg-blue-50/30 sticky top-0 z-10">
                                         <tr>
-                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">Sản phẩm</th>
-                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-300 uppercase">SKU</th>
-                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-300 uppercase">Tồn kho</th>
-                                            <th className="text-center py-3 px-5 text-xs font-medium text-slate-300 uppercase">Mức độ</th>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Sản phẩm</th>
+                                            <th className="text-left py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">SKU</th>
+                                            <th className="text-right py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Tồn kho</th>
+                                            <th className="text-center py-3 px-5 text-xs font-medium text-slate-700 font-medium uppercase">Mức độ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {underTenStock.map((item: any) => (
-                                            <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
+                                            <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-100/20 transition-colors">
                                                 <td className="py-3 px-5">
-                                                    <span className="font-medium text-white">{item.name}</span>
+                                                    <span className="font-medium text-blue-900">{item.name}</span>
                                                     {item.variant_label && (
-                                                        <span className="text-xs text-indigo-400 block mt-0.5">
+                                                        <span className="text-xs text-blue-600 block mt-0.5">
                                                             ↳ {item.variant_label}
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-5">
-                                                    <span className="text-xs text-indigo-300 font-mono bg-indigo-500/10 px-2 py-1 rounded">{item.sku}</span>
+                                                    <span className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded">{item.sku}</span>
                                                 </td>
                                                 <td className="py-3 px-5 text-right">
                                                     <span className="font-bold text-amber-500">
@@ -293,16 +293,16 @@ const InventoryPage: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tồn kho</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Đã giữ</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Có sẵn</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Giá bán</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Sản phẩm</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Kho</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Tồn kho</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Đã giữ</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Có sẵn</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Giá bán</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -338,24 +338,24 @@ const InventoryPage: React.FC = () => {
                                             <React.Fragment key={`group-${group.product_id}`}>
                                                 {/* Summary Row for Product */}
                                                 <tr 
-                                                    className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                                                    className="border-b border-slate-100 hover:bg-blue-50 transition-colors cursor-pointer"
                                                     onClick={() => setExpandedProducts(prev => 
                                                         prev.includes(group.product_id) ? prev.filter(id => id !== group.product_id) : [...prev, group.product_id]
                                                     )}
                                                 >
                                                     <td className="py-4 px-6 flex items-center gap-3">
-                                                        <span className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                                                        <span className={`text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
                                                             ▶
                                                         </span>
                                                         <div>
-                                                            <p className="font-medium text-white">{group.product_name}</p>
-                                                            <p className="text-xs text-indigo-300 font-mono">{group.sku} <span className="text-slate-500">• {group.variants.length} biến thể</span></p>
+                                                            <p className="font-medium text-blue-900">{group.product_name}</p>
+                                                            <p className="text-xs text-blue-600 font-mono">{group.sku} <span className="text-slate-500">• {group.variants.length} biến thể</span></p>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm text-slate-300">{group.warehouse_name}</td>
-                                                    <td className="py-4 px-6 text-sm text-right font-medium text-white">{group.total_on_hand.toLocaleString()}</td>
+                                                    <td className="py-4 px-6 text-sm text-slate-700 font-medium">{group.warehouse_name}</td>
+                                                    <td className="py-4 px-6 text-sm text-right font-medium text-blue-900">{group.total_on_hand.toLocaleString()}</td>
                                                     <td className="py-4 px-6 text-sm text-right text-amber-400">{group.total_reserved > 0 ? group.total_reserved.toLocaleString() : '0'}</td>
-                                                    <td className="py-4 px-6 text-sm text-right font-bold text-indigo-400">{group.total_available.toLocaleString()}</td>
+                                                    <td className="py-4 px-6 text-sm text-right font-bold text-blue-600">{group.total_available.toLocaleString()}</td>
                                                     <td className="py-4 px-6 text-sm text-right text-slate-500">-</td>
                                                     <td className="py-4 px-6 text-center">
                                                         <span className={`badge ${group.status === 'available' ? 'badge-success' :
@@ -371,23 +371,23 @@ const InventoryPage: React.FC = () => {
                                                 
                                                 {/* Expanded Variant Rows */}
                                                 {isExpanded && group.variants.map((variant: any) => (
-                                                    <tr key={variant.id} className="border-b border-slate-700/10 bg-slate-800/30 hover:bg-slate-700/50 transition-colors">
+                                                    <tr key={variant.id} className="border-b border-slate-200/10 bg-white/30 hover:bg-slate-100 transition-colors">
                                                         <td className="py-3 px-6 pl-12 flex items-center gap-3">
                                                             <div>
                                                                 {variant.variant_label ? (
-                                                                    <p className="text-sm text-indigo-400">
+                                                                    <p className="text-sm text-blue-600">
                                                                         ↳ {variant.variant_label}
                                                                         {variant.variant_sku && <span className="text-slate-500 ml-1">({variant.variant_sku})</span>}
                                                                     </p>
                                                                 ) : (
-                                                                    <p className="text-sm text-indigo-400">↳ Chi tiết</p>
+                                                                    <p className="text-sm text-blue-600">↳ Chi tiết</p>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="py-3 px-6 text-xs text-slate-400">{variant.warehouse_name}</td>
-                                                        <td className="py-3 px-6 text-sm text-right font-medium text-slate-300">{variant.onHand.toLocaleString()}</td>
+                                                        <td className="py-3 px-6 text-xs text-slate-600">{variant.warehouse_name}</td>
+                                                        <td className="py-3 px-6 text-sm text-right font-medium text-slate-700 font-medium">{variant.onHand.toLocaleString()}</td>
                                                         <td className="py-3 px-6 text-sm text-right text-amber-500/80">{variant.reserved > 0 ? variant.reserved.toLocaleString() : '0'}</td>
-                                                        <td className="py-3 px-6 text-sm text-right font-bold text-indigo-300">{variant.available.toLocaleString()}</td>
+                                                        <td className="py-3 px-6 text-sm text-right font-bold text-blue-600">{variant.available.toLocaleString()}</td>
                                                         <td className="py-3 px-6 text-sm text-right flex justify-end">
                                                             {editingPriceId === variant.id ? (
                                                                 <div className="flex items-center justify-end gap-1">
@@ -402,25 +402,25 @@ const InventoryPage: React.FC = () => {
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); handleSavePrice(variant); }} 
                                                                         disabled={priceLoading}
-                                                                        className="p-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded"
+                                                                        className="p-1 bg-emerald-500/20 text-emerald-600 font-bold hover:bg-emerald-500/30 rounded"
                                                                     >
                                                                         ✓
                                                                     </button>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} 
-                                                                        className="p-1 bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 rounded"
+                                                                        className="p-1 bg-slate-500/20 text-slate-600 hover:bg-slate-500/30 rounded"
                                                                     >
                                                                         ✕
                                                                     </button>
                                                                 </div>
                                                             ) : (
                                                                 <div className="group flex items-center justify-end gap-2">
-                                                                    <span className="font-medium text-emerald-400">
+                                                                    <span className="font-medium text-emerald-600 font-bold">
                                                                         {variant.variant_price ? new Intl.NumberFormat('vi-VN').format(variant.variant_price) + '₫' : '-'}
                                                                     </span>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); handleEditPrice(variant); }}
-                                                                        className="p-1 text-slate-500 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        className="p-1 text-slate-500 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                         title="Chỉnh sửa giá bán"
                                                                     >
                                                                         ✏️
@@ -438,7 +438,7 @@ const InventoryPage: React.FC = () => {
                                                         <td className="py-3 px-6 text-center">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleViewHistory(variant); }}
-                                                                className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                                className="p-1.5 text-blue-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                                 title="Xem lịch sử biến động"
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -464,7 +464,7 @@ const InventoryPage: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -474,29 +474,29 @@ const InventoryPage: React.FC = () => {
             {/* History Modal */}
             {showHistoryModal && selectedInventoryForHistory && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-700 shadow-2xl overflow-hidden animate-scaleIn">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-700/50 bg-slate-800/80">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden animate-scaleIn">
+                        <div className="flex items-center justify-between p-5 border-b border-blue-100 bg-white/80">
                             <div>
-                                <h3 className="text-lg font-bold text-white">Lịch sử biến động</h3>
-                                <p className="text-sm text-slate-400 mt-1">
+                                <h3 className="text-lg font-bold text-blue-900">Lịch sử biến động</h3>
+                                <p className="text-sm text-slate-600 mt-1">
                                     {selectedInventoryForHistory.product_name} 
                                     {selectedInventoryForHistory.variant_label ? ` - ${selectedInventoryForHistory.variant_label}` : ''} 
-                                    <span className="text-indigo-400 ml-2">({selectedInventoryForHistory.warehouse_name})</span>
+                                    <span className="text-blue-600 ml-2">({selectedInventoryForHistory.warehouse_name})</span>
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowHistoryModal(false)}
-                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all"
+                                className="p-2 text-slate-600 hover:text-blue-900 hover:bg-slate-100 rounded-xl transition-all"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
-                        <div className="p-5 overflow-y-auto flex-1 bg-slate-800/50">
+                        <div className="p-5 overflow-y-auto flex-1 bg-blue-50/30">
                             {/* Báo cáo Hiệu quả Sản phẩm */}
-                            <div className="mb-6 border border-slate-700/50 rounded-xl overflow-hidden bg-slate-800/30 shadow-sm">
-                                <div className="px-5 py-3 border-b border-slate-700/50 bg-slate-800 flex items-center gap-2">
+                            <div className="mb-6 border border-blue-100 rounded-xl overflow-hidden bg-white/30 shadow-sm">
+                                <div className="px-5 py-3 border-b border-blue-100 bg-white flex items-center gap-2">
                                     <span className="text-xl">📊</span>
                                     <h3 className="font-semibold text-slate-200">Hiệu quả kinh doanh</h3>
                                 </div>
@@ -506,22 +506,22 @@ const InventoryPage: React.FC = () => {
                                         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                     </div>
                                 ) : metrics ? (
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-slate-700/50 bg-slate-800/20">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-slate-700/50 bg-white/20">
                                         <div className="p-4 text-center">
-                                            <p className="text-xs font-semibold text-slate-400 uppercase">Đơn hoàn thành</p>
+                                            <p className="text-xs font-semibold text-slate-600 uppercase">Đơn hoàn thành</p>
                                             <p className="text-xl font-bold text-slate-200 mt-1">{metrics.totalCompletedOrders}</p>
                                         </div>
                                         <div className="p-4 text-center">
-                                            <p className="text-xs font-semibold text-slate-400 uppercase">Doanh thu</p>
-                                            <p className="text-xl font-bold text-indigo-400 mt-1">{metrics.totalRevenue.toLocaleString()} ₫</p>
+                                            <p className="text-xs font-semibold text-slate-600 uppercase">Doanh thu</p>
+                                            <p className="text-xl font-bold text-blue-600 mt-1">{metrics.totalRevenue.toLocaleString()} ₫</p>
                                         </div>
                                         <div className="p-4 text-center">
-                                            <p className="text-xs font-semibold text-slate-400 uppercase">Giá vốn (MAC)</p>
+                                            <p className="text-xs font-semibold text-slate-600 uppercase">Giá vốn (MAC)</p>
                                             <p className="text-xl font-bold text-rose-400 mt-1">{metrics.totalCost.toLocaleString()} ₫</p>
                                         </div>
                                         <div className="p-4 text-center">
-                                            <p className="text-xs font-semibold text-slate-400 uppercase">Lợi nhuận</p>
-                                            <p className={`text-xl font-bold mt-1 ${metrics.totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            <p className="text-xs font-semibold text-slate-600 uppercase">Lợi nhuận</p>
+                                            <p className={`text-xl font-bold mt-1 ${metrics.totalProfit >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-400'}`}>
                                                 {metrics.totalProfit > 0 ? '+' : ''}{metrics.totalProfit.toLocaleString()} ₫
                                             </p>
                                         </div>
@@ -540,50 +540,50 @@ const InventoryPage: React.FC = () => {
                                     <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto rounded-xl border border-slate-700/50">
+                                <div className="overflow-x-auto rounded-xl border border-blue-100">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-900/50 border-b border-slate-700/50">
+                                        <thead className="bg-slate-900/50 border-b border-blue-100">
                                             <tr>
-                                                <th className="text-left py-3 px-4 text-slate-300 font-medium whitespace-nowrap">Thời gian</th>
-                                                <th className="text-left py-3 px-4 text-slate-300 font-medium">Nghiệp vụ</th>
-                                                <th className="text-left py-3 px-4 text-slate-300 font-medium">Mã tham chiếu</th>
-                                                <th className="text-center py-3 px-4 text-slate-300 font-medium">Thay đổi</th>
-                                                <th className="text-right py-3 px-4 text-slate-300 font-medium">Tồn sau</th>
-                                                <th className="text-left py-3 px-4 text-slate-300 font-medium">Người thực hiện</th>
+                                                <th className="text-left py-3 px-4 text-slate-700 font-medium font-medium whitespace-nowrap">Thời gian</th>
+                                                <th className="text-left py-3 px-4 text-slate-700 font-medium font-medium">Nghiệp vụ</th>
+                                                <th className="text-left py-3 px-4 text-slate-700 font-medium font-medium">Mã tham chiếu</th>
+                                                <th className="text-center py-3 px-4 text-slate-700 font-medium font-medium">Thay đổi</th>
+                                                <th className="text-right py-3 px-4 text-slate-700 font-medium font-medium">Tồn sau</th>
+                                                <th className="text-left py-3 px-4 text-slate-700 font-medium font-medium">Người thực hiện</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {historyLogs.map((log: any) => (
-                                                <tr key={log.id} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
-                                                    <td className="py-3 px-4 text-slate-300 whitespace-nowrap">
+                                                <tr key={log.id} className="border-b border-slate-100 hover:bg-blue-50 transition-colors">
+                                                    <td className="py-3 px-4 text-slate-700 font-medium whitespace-nowrap">
                                                         {new Date(log.created_at).toLocaleString('vi-VN')}
                                                     </td>
                                                     <td className="py-3 px-4">
                                                         <span className={`px-2.5 py-1 text-xs font-medium rounded-md ${
-                                                            log.movement_type === 'IMPORT' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' :
+                                                            log.movement_type === 'IMPORT' ? 'bg-emerald-500/20 text-emerald-600 font-bold border border-emerald-500/20' :
                                                             log.movement_type === 'EXPORT' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/20' :
                                                             log.movement_type === 'RESERVE' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' :
                                                             log.movement_type === 'RELEASE' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' :
-                                                            'bg-slate-500/20 text-slate-400 border border-slate-500/20'
+                                                            'bg-slate-500/20 text-slate-600 border border-slate-500/20'
                                                         }`}>
                                                             {log.movement_type}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 px-4 font-mono text-xs text-indigo-300">
+                                                    <td className="py-3 px-4 font-mono text-xs text-blue-600">
                                                         {log.reference_number || log.reference_id || '-'}
                                                     </td>
                                                     <td className="py-3 px-4 text-center font-medium font-mono">
-                                                        <span className={log.quantity_change > 0 ? 'text-emerald-400' : log.quantity_change < 0 ? 'text-rose-400' : 'text-slate-400'}>
+                                                        <span className={log.quantity_change > 0 ? 'text-emerald-600 font-bold' : log.quantity_change < 0 ? 'text-rose-400' : 'text-slate-600'}>
                                                             {log.quantity_change > 0 ? '+' : ''}{log.quantity_change}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 px-4 text-right font-medium text-white">
+                                                    <td className="py-3 px-4 text-right font-medium text-blue-900">
                                                         {log.quantity_after}
                                                     </td>
-                                                    <td className="py-3 px-4 text-slate-400 text-xs max-w-[200px] truncate" title={log.performed_by_name || 'Hệ thống'}>
+                                                    <td className="py-3 px-4 text-slate-600 text-xs max-w-[200px] truncate" title={log.performed_by_name || 'Hệ thống'}>
                                                         {log.performed_by_name ? (
                                                             <div className="flex items-center gap-1.5">
-                                                                <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-white font-medium">
+                                                                <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-blue-900 font-medium">
                                                                     {log.performed_by_name.charAt(0)}
                                                                 </div>
                                                                 <span>{log.performed_by_name}</span>
@@ -606,7 +606,7 @@ const InventoryPage: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-700/50 bg-slate-800/80">
+                        <div className="p-4 border-t border-blue-100 bg-white/80">
                             <Pagination 
                                 pagination={historyPagination} 
                                 onPageChange={(page) => loadHistory(selectedInventoryForHistory.id, page)} 

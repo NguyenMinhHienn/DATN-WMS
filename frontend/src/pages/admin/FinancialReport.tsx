@@ -105,13 +105,13 @@ const FinancialReport: React.FC = () => {
     const getStatusBadge = (status: string) => {
         const statusMap: Record<string, { label: string, class: string }> = {
             'pending': { label: 'Chờ duyệt', class: 'bg-amber-500/20 text-amber-400' },
-            'approved': { label: 'Đã duyệt', class: 'bg-emerald-500/20 text-emerald-400' },
+            'approved': { label: 'Đã duyệt', class: 'bg-emerald-500/20 text-emerald-600 font-bold' },
             'completed': { label: 'Hoàn thành', class: 'bg-blue-500/20 text-blue-400' },
-            'delivered': { label: 'Đã giao', class: 'bg-emerald-500/20 text-emerald-400' },
+            'delivered': { label: 'Đã giao', class: 'bg-emerald-500/20 text-emerald-600 font-bold' },
             'cancelled': { label: 'Đã hủy', class: 'bg-red-500/20 text-red-400' },
         };
         const s = status.toLowerCase();
-        const config = statusMap[s] || { label: status, class: 'bg-slate-700/50 text-slate-400' };
+        const config = statusMap[s] || { label: status, class: 'bg-slate-100 text-slate-600' };
         return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.class}`}>{config.label}</span>;
     };
 
@@ -227,23 +227,23 @@ const FinancialReport: React.FC = () => {
                     <div>
                         <button
                             onClick={() => navigate('/admin/dashboard')}
-                            className="text-slate-400 hover:text-white text-sm flex items-center gap-1 mb-2 transition-colors"
+                            className="text-slate-600 hover:text-blue-900 text-sm flex items-center gap-1 mb-2 transition-colors"
                         >
                             ← Quay lại Dashboard
                         </button>
                         <h1 className="text-3xl font-bold">
                             <span className="gradient-text">Báo cáo tài chính</span>
                         </h1>
-                        <p className="text-slate-400 mt-1">Chi tiết doanh thu, giá vốn & lợi nhuận theo từng tháng</p>
+                        <p className="text-slate-600 mt-1">Chi tiết doanh thu, giá vốn & lợi nhuận theo từng tháng</p>
                     </div>
                     
                     <div className="flex flex-col items-end gap-2">
                         <div className="flex items-center gap-3">
-                            <label className="text-slate-400 text-sm">Năm:</label>
+                            <label className="text-slate-600 text-sm">Năm:</label>
                             <select
                                 value={selectedYear}
                                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                className="bg-slate-800/80 text-white border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 backdrop-blur-sm transition-all cursor-pointer"
+                                className="bg-blue-50/80 text-blue-900 border border-blue-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 backdrop-blur-sm transition-all cursor-pointer"
                             >
                                 {yearOptions.map(y => (
                                     <option key={y} value={y}>{y}</option>
@@ -262,7 +262,7 @@ const FinancialReport: React.FC = () => {
                             <p className="text-sm text-blue-100 mb-1 opacity-80">Tổng doanh thu {selectedYear}</p>
                             <p className="text-2xl font-bold">{formatCompact(totalRevenue)}</p>
                         </div>
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
+                        <div className="w-14 h-14 bg-blue-50/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
                             💰
                         </div>
                     </div>
@@ -274,7 +274,7 @@ const FinancialReport: React.FC = () => {
                             <p className="text-sm text-amber-100 mb-1 opacity-80">Tổng giá vốn {selectedYear}</p>
                             <p className="text-2xl font-bold">{formatCompact(totalCost)}</p>
                         </div>
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
+                        <div className="w-14 h-14 bg-blue-50/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
                             📊
                         </div>
                     </div>
@@ -291,7 +291,7 @@ const FinancialReport: React.FC = () => {
                                 Biên LN: {profitMargin}%
                             </p>
                         </div>
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
+                        <div className="w-14 h-14 bg-blue-50/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">
                             {totalProfit < 0 ? '📉' : '📈'}
                         </div>
                     </div>
@@ -302,8 +302,8 @@ const FinancialReport: React.FC = () => {
             <div className="chart-container mb-8">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-xl font-semibold text-white">📊 Biểu đồ tài chính theo tháng</h2>
-                        <p className="text-sm text-slate-400 mt-1">So sánh doanh thu, giá vốn và lợi nhuận năm {selectedYear} (Click vào cột để xem chi tiết)</p>
+                        <h2 className="text-xl font-semibold text-blue-900">📊 Biểu đồ tài chính theo tháng</h2>
+                        <p className="text-sm text-slate-600 mt-1">So sánh doanh thu, giá vốn và lợi nhuận năm {selectedYear} (Click vào cột để xem chi tiết)</p>
                     </div>
                     <span className="badge badge-success">Real Data</span>
                 </div>
@@ -315,27 +315,27 @@ const FinancialReport: React.FC = () => {
             {/* Monthly Table */}
             <div className="chart-container">
                 <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-white">📋 Chi tiết theo từng tháng</h2>
-                    <p className="text-sm text-slate-400 mt-1">Bảng tổng hợp doanh thu, giá vốn, lợi nhuận năm {selectedYear} (Click để xem chi tiết tháng)</p>
+                    <h2 className="text-xl font-semibold text-blue-900">📋 Chi tiết theo từng tháng</h2>
+                    <p className="text-sm text-slate-600 mt-1">Bảng tổng hợp doanh thu, giá vốn, lợi nhuận năm {selectedYear} (Click để xem chi tiết tháng)</p>
                 </div>
 
                 {loading ? (
                     <div className="flex items-center justify-center py-16">
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-slate-400">Đang tải dữ liệu...</p>
+                            <p className="text-slate-600">Đang tải dữ liệu...</p>
                         </div>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-slate-700/50">
-                                    <th className="text-left py-4 px-4 text-sm font-medium text-slate-400">Tháng</th>
-                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-400">Doanh thu</th>
-                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-400">Giá vốn</th>
-                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-400">Lợi nhuận</th>
-                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-400">Biên LN</th>
+                                <tr className="border-b border-blue-100">
+                                    <th className="text-left py-4 px-4 text-sm font-medium text-slate-600">Tháng</th>
+                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-600">Doanh thu</th>
+                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-600">Giá vốn</th>
+                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-600">Lợi nhuận</th>
+                                    <th className="text-right py-4 px-4 text-sm font-medium text-slate-600">Biên LN</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -351,9 +351,9 @@ const FinancialReport: React.FC = () => {
                                         <tr
                                             key={item.month}
                                             onClick={() => handleMonthClick(item.month)}
-                                            className={`border-b border-slate-700/30 transition-colors cursor-pointer ${isNegative
+                                            className={`border-b border-slate-100 transition-colors cursor-pointer ${isNegative
                                                     ? 'bg-red-500/10 hover:bg-red-500/20'
-                                                    : 'hover:bg-slate-700/30'
+                                                    : 'hover:bg-blue-50'
                                                 }`}
                                         >
                                             <td className="py-4 px-4">
@@ -361,13 +361,13 @@ const FinancialReport: React.FC = () => {
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isNegative
                                                             ? 'bg-red-500/20 text-red-400'
                                                             : hasData
-                                                                ? 'bg-indigo-500/20 text-indigo-400'
-                                                                : 'bg-slate-700/50 text-slate-500'
+                                                                ? 'bg-blue-100 text-blue-600'
+                                                                : 'bg-slate-100 text-slate-500'
                                                         }`}>
                                                         {item.month}
                                                     </div>
                                                     <div>
-                                                        <span className="text-slate-200 font-medium block">
+                                                        <span className="text-slate-700 font-medium block">
                                                             {MONTH_LABELS[item.month - 1]}
                                                         </span>
                                                     </div>
@@ -387,7 +387,7 @@ const FinancialReport: React.FC = () => {
                                                 <span className={`font-bold ${isNegative
                                                         ? 'text-red-400'
                                                         : hasData
-                                                            ? 'text-emerald-400'
+                                                            ? 'text-emerald-600 font-bold'
                                                             : 'text-slate-600'
                                                     }`}>
                                                     {isNegative && '⚠️ '}
@@ -399,7 +399,7 @@ const FinancialReport: React.FC = () => {
                                                         ? 'bg-red-500/20 text-red-300'
                                                         : hasData
                                                             ? 'bg-emerald-500/20 text-emerald-300'
-                                                            : 'bg-slate-700/30 text-slate-500'
+                                                            : 'hover:bg-blue-50 text-slate-500'
                                                     }`}>
                                                     {margin}%
                                                 </span>
@@ -409,9 +409,9 @@ const FinancialReport: React.FC = () => {
                                 })}
                             </tbody>
                             <tfoot>
-                                <tr className="border-t-2 border-indigo-500/50 bg-slate-800/50">
+                                <tr className="border-t-2 border-indigo-500/50 bg-blue-50/30">
                                     <td className="py-4 px-4">
-                                        <span className="text-white font-bold text-base">📊 TỔNG CỘNG</span>
+                                        <span className="text-blue-900 font-bold text-base">📊 TỔNG CỘNG</span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
                                         <span className="text-blue-300 font-bold text-base">{formatCurrency(totalRevenue)}</span>
@@ -420,7 +420,7 @@ const FinancialReport: React.FC = () => {
                                         <span className="text-amber-300 font-bold text-base">{formatCurrency(totalCost)}</span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
-                                        <span className={`font-bold text-base ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                        <span className={`font-bold text-base ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-600 font-bold'}`}>
                                             {totalProfit < 0 && '⚠️ '}
                                             {formatCurrency(totalProfit)}
                                         </span>
@@ -442,50 +442,50 @@ const FinancialReport: React.FC = () => {
 
             {/* Monthly Detail Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-800/40 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-blue-50 border border-blue-100 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                        <div className="p-6 border-b border-blue-100 flex items-center justify-between bg-blue-50/50">
                             <div>
-                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    <span className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center">
+                                <h2 className="text-2xl font-bold text-blue-900 flex items-center gap-3">
+                                    <span className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
                                         {selectedMonth}
                                     </span>
                                     Chi tiết tài chính {MONTH_LABELS[selectedMonth! - 1]} {selectedYear}
                                 </h2>
-                                <p className="text-slate-400 mt-1">Danh sách các giao dịch phát sinh trong tháng</p>
+                                <p className="text-slate-600 mt-1">Danh sách các giao dịch phát sinh trong tháng</p>
                             </div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-slate-600 hover:text-blue-900 hover:bg-slate-100 transition-all"
                             >
                                 ✕
                             </button>
                         </div>
 
                         {/* Modal Tabs */}
-                        <div className="flex px-6 pt-2 bg-slate-900/50 overflow-x-auto border-b border-slate-800">
+                        <div className="flex px-6 pt-2 bg-blue-50/50 overflow-x-auto border-b border-blue-100">
                             <button
                                 onClick={() => setActiveTab('products')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'products' ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'products' ? 'border-indigo-500 text-blue-600 bg-indigo-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
                             >
                                 ✨ Theo sản phẩm
                             </button>
                             <button
                                 onClick={() => setActiveTab('orders')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-emerald-500 text-emerald-600 font-bold bg-emerald-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
                             >
                                 📦 Đơn hàng ({detailData?.orders?.length || 0})
                             </button>
                             <button
                                 onClick={() => setActiveTab('receipts')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'receipts' ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'receipts' ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
                             >
                                 📥 Phiếu nhập ({detailData?.receipts?.length || 0})
                             </button>
                             <button
                                 onClick={() => setActiveTab('issues')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'issues' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'issues' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
                             >
                                 📤 Phiếu xuất ({detailData?.issues?.length || 0})
                             </button>
@@ -496,17 +496,17 @@ const FinancialReport: React.FC = () => {
                             {detailLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                                     <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                    <p className="text-slate-400">Đang truy xuất dữ liệu...</p>
+                                    <p className="text-slate-600">Đang truy xuất dữ liệu...</p>
                                 </div>
                             ) : (
                                 <div className="animate-fadeIn">
                                     {activeTab === 'products' && (
                                         <div>
-                                            <h3 className="text-lg font-semibold text-white mb-4">Bảng chi tiết theo sản phẩm trong tháng</h3>
+                                            <h3 className="text-lg font-semibold text-blue-900 mb-4">Bảng chi tiết theo sản phẩm trong tháng</h3>
                                             <div className="overflow-x-auto">
                                                 <table className="w-full">
                                                     <thead>
-                                                        <tr className="border-b border-slate-800">
+                                                        <tr className="border-b border-blue-100">
                                                             <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Sản phẩm</th>
                                                             <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">SL bán</th>
                                                             <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Doanh thu</th>
@@ -514,16 +514,16 @@ const FinancialReport: React.FC = () => {
                                                             <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Lợi nhuận</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y divide-slate-800">
+                                                    <tbody className="divide-y divide-blue-50">
                                                         {!detailData || !detailData.products || detailData.products.length === 0 ? (
                                                             <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có dữ liệu bán hàng trong tháng này</td></tr>
                                                         ) : detailData.products.map((p: any, idx: number) => (
-                                                            <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                                                                <td className="py-4 px-4 text-slate-200 font-medium">{p.product_name}</td>
-                                                                <td className="py-4 px-4 text-right text-slate-300">{p.quantity_sold}</td>
+                                                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                                                <td className="py-4 px-4 text-slate-700 font-medium">{p.product_name}</td>
+                                                                <td className="py-4 px-4 text-right text-slate-700 font-medium">{p.quantity_sold}</td>
                                                                 <td className="py-4 px-4 text-right text-blue-400 font-medium">{formatCurrency(p.revenue)}</td>
                                                                 <td className="py-4 px-4 text-right text-amber-400">{formatCurrency(p.cost)}</td>
-                                                                <td className={`py-4 px-4 text-right font-bold ${p.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                <td className={`py-4 px-4 text-right font-bold ${p.profit >= 0 ? 'text-emerald-600 font-bold' : 'text-red-400'}`}>
                                                                     {formatCurrency(p.profit)}
                                                                 </td>
                                                             </tr>
@@ -537,7 +537,7 @@ const FinancialReport: React.FC = () => {
                                     {activeTab === 'orders' && (
                                         <table className="w-full">
                                             <thead>
-                                                <tr className="border-b border-slate-800">
+                                                <tr className="border-b border-blue-100">
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã đơn</th>
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày tạo</th>
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng tiền</th>
@@ -545,19 +545,19 @@ const FinancialReport: React.FC = () => {
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800">
+                                            <tbody className="divide-y divide-blue-50">
                                                 {!detailData || !detailData.orders || detailData.orders.length === 0 ? (
                                                     <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có đơn hàng nào trong tháng này</td></tr>
                                                 ) : detailData.orders.map((o: any) => (
-                                                    <tr key={o.id} className="hover:bg-slate-800/30 transition-colors">
-                                                        <td className="py-4 px-4 font-mono text-indigo-400 font-medium">{o.code}</td>
-                                                        <td className="py-4 px-4 text-slate-300">{formatDate(o.date)}</td>
-                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(o.total_amount)}</td>
+                                                    <tr key={o.id} className="hover:bg-blue-50/30 transition-colors">
+                                                        <td className="py-4 px-4 font-mono text-blue-600 font-medium">{o.code}</td>
+                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(o.date)}</td>
+                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(o.total_amount)}</td>
                                                         <td className="py-4 px-4 text-center">{getStatusBadge(o.status)}</td>
                                                         <td className="py-4 px-4 text-right">
                                                             <button 
                                                                 onClick={() => handleNavigateToOrder(o.code)}
-                                                                className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+                                                                className="text-xs text-blue-600 hover:text-blue-600 underline"
                                                             >
                                                                 Chi tiết
                                                             </button>
@@ -571,7 +571,7 @@ const FinancialReport: React.FC = () => {
                                     {activeTab === 'receipts' && (
                                         <table className="w-full">
                                             <thead>
-                                                <tr className="border-b border-slate-800">
+                                                <tr className="border-b border-blue-100">
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày nhập</th>
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị nhập</th>
@@ -579,14 +579,14 @@ const FinancialReport: React.FC = () => {
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800">
+                                            <tbody className="divide-y divide-blue-50">
                                                 {!detailData || !detailData.receipts || detailData.receipts.length === 0 ? (
                                                     <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có phiếu nhập kho nào trong tháng này</td></tr>
                                                 ) : detailData.receipts.map((r: any) => (
-                                                    <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
+                                                    <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
                                                         <td className="py-4 px-4 font-mono text-amber-400 font-medium">{r.receipt_number || 'N/A'}</td>
-                                                        <td className="py-4 px-4 text-slate-300">{formatDate(r.receipt_date)}</td>
-                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(r.total_amount)}</td>
+                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(r.receipt_date)}</td>
+                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(r.total_amount)}</td>
                                                         <td className="py-4 px-4 text-center">{getStatusBadge(r.status)}</td>
                                                         <td className="py-4 px-4 text-right">
                                                             <button 
@@ -605,7 +605,7 @@ const FinancialReport: React.FC = () => {
                                     {activeTab === 'issues' && (
                                         <table className="w-full">
                                             <thead>
-                                                <tr className="border-b border-slate-800">
+                                                <tr className="border-b border-blue-100">
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày xuất</th>
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị xuất</th>
@@ -613,14 +613,14 @@ const FinancialReport: React.FC = () => {
                                                     <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800">
+                                            <tbody className="divide-y divide-blue-50">
                                                 {!detailData || !detailData.issues || detailData.issues.length === 0 ? (
                                                     <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có phiếu xuất kho nào trong tháng này</td></tr>
                                                 ) : detailData.issues.map((i: any) => (
-                                                    <tr key={i.id} className="hover:bg-slate-800/30 transition-colors">
+                                                    <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
                                                         <td className="py-4 px-4 font-mono text-red-400 font-medium">{i.issue_number || 'N/A'}</td>
-                                                        <td className="py-4 px-4 text-slate-300">{formatDate(i.issue_date)}</td>
-                                                        <td className="py-4 px-4 text-right text-white font-medium">{formatCurrency(i.total_amount)}</td>
+                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(i.issue_date)}</td>
+                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(i.total_amount)}</td>
                                                         <td className="py-4 px-4 text-center">{getStatusBadge(i.status)}</td>
                                                         <td className="py-4 px-4 text-right">
                                                             <button 
@@ -640,10 +640,10 @@ const FinancialReport: React.FC = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+                        <div className="p-4 border-t border-blue-100 bg-blue-50/50 flex justify-end">
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-medium"
+                                className="px-6 py-2 bg-blue-50 text-blue-900 rounded-xl hover:bg-slate-100 transition-all font-medium"
                             >
                                 Đóng
                             </button>

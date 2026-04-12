@@ -315,10 +315,10 @@ const ExportReceipt: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">📤 Phiếu Xuất Kho Độc Lập</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Xuất kho nội bộ, phi duyệt đơn hàng, xuất trả NCC, v.v...</p>
+                    <p className="text-slate-600 mt-1">Xuất kho nội bộ, phi duyệt đơn hàng, xuất trả NCC, v.v...</p>
                 </div>
                 <button onClick={openCreateModal}
-                    className="px-5 py-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 text-sm font-medium shadow-lg shadow-orange-500/30 transition-all">
+                    className="px-5 py-2.5 bg-orange-500 text-blue-900 rounded-xl hover:bg-orange-600 text-sm font-medium shadow-lg shadow-orange-500/30 transition-all">
                     ➕ Tạo phiếu xuất
                 </button>
             </div>
@@ -326,16 +326,16 @@ const ExportReceipt: React.FC = () => {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="chart-container border-l-4 border-amber-500">
-                    <p className="text-sm text-slate-400">Chờ duyệt trừ kho</p>
+                    <p className="text-sm text-slate-600">Chờ duyệt trừ kho</p>
                     <p className="text-2xl font-bold text-amber-400">{receipts.filter(r => r.status === 'PENDING').length}</p>
                 </div>
                 <div className="chart-container border-l-4 border-emerald-500">
-                    <p className="text-sm text-slate-400">Đã xuất kho</p>
-                    <p className="text-2xl font-bold text-emerald-400">{receipts.filter(r => r.status === 'APPROVED').length}</p>
+                    <p className="text-sm text-slate-600">Đã xuất kho</p>
+                    <p className="text-2xl font-bold text-emerald-600 font-bold">{receipts.filter(r => r.status === 'APPROVED').length}</p>
                 </div>
                 <div className="chart-container border-l-4 border-indigo-500">
-                    <p className="text-sm text-slate-400">Tổng phiếu</p>
-                    <p className="text-2xl font-bold text-indigo-400">{pagination.total}</p>
+                    <p className="text-sm text-slate-600">Tổng phiếu</p>
+                    <p className="text-2xl font-bold text-blue-600">{pagination.total}</p>
                 </div>
             </div>
 
@@ -351,7 +351,7 @@ const ExportReceipt: React.FC = () => {
                         <option value="CANCELLED">❌ Đã hủy</option>
                     </select>
                     <button onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="text-slate-400 hover:text-white transition-colors">
+                        className="text-slate-600 hover:text-blue-900 transition-colors">
                         Xóa bộ lọc
                     </button>
                 </div>
@@ -367,31 +367,31 @@ const ExportReceipt: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho xuất</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày xuất</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Lý do</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người nhận</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Mã phiếu</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Kho xuất</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Ngày xuất</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Lý do</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Số SP</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Người nhận</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {receipts.map(r => {
                                         const statusInfo = exportReceiptService.getStatusInfo(r.status);
                                         return (
-                                            <tr key={r.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${r.status === 'PENDING' ? 'bg-amber-500/5' : ''}`}>
+                                            <tr key={r.id} className={`border-b border-slate-100 hover:bg-blue-50 transition-colors ${r.status === 'PENDING' ? 'bg-amber-500/5' : ''}`}>
                                                 <td className="py-4 px-6 font-mono text-sm font-medium text-orange-400">{r.receipt_number}</td>
-                                                <td className="py-4 px-6 text-sm text-slate-300">{r.warehouse_name}</td>
-                                                <td className="py-4 px-6 text-sm text-slate-400">{new Date(r.receipt_date).toLocaleDateString('vi-VN')}</td>
-                                                <td className="py-4 px-6 text-sm text-white">
-                                                    <span className="px-2 py-1 bg-slate-700 rounded text-xs">{exportReceiptService.getExportReasonLabel(r.export_reason)}</span>
+                                                <td className="py-4 px-6 text-sm text-slate-700 font-medium">{r.warehouse_name}</td>
+                                                <td className="py-4 px-6 text-sm text-slate-600">{new Date(r.receipt_date).toLocaleDateString('vi-VN')}</td>
+                                                <td className="py-4 px-6 text-sm text-blue-900">
+                                                    <span className="px-2 py-1 bg-slate-100 rounded text-xs">{exportReceiptService.getExportReasonLabel(r.export_reason)}</span>
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-right text-white">{r.total_items}</td>
-                                                <td className="py-4 px-6 text-sm text-slate-300">{r.receiver_name || '-'} {r.receiver_department ? `(${r.receiver_department})` : ''}</td>
+                                                <td className="py-4 px-6 text-sm text-right text-blue-900">{r.total_items}</td>
+                                                <td className="py-4 px-6 text-sm text-slate-700 font-medium">{r.receiver_name || '-'} {r.receiver_department ? `(${r.receiver_department})` : ''}</td>
                                                 <td className="py-4 px-6 text-center">
                                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold`} style={{ color: statusInfo.color, backgroundColor: statusInfo.bg }}>
                                                         {statusInfo.text}
@@ -400,18 +400,18 @@ const ExportReceipt: React.FC = () => {
                                                 <td className="py-4 px-6 text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button onClick={() => handleViewDetail(r.id)}
-                                                            className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors">
+                                                            className="text-blue-600 hover:text-blue-600 font-medium text-sm transition-colors">
                                                             Chi tiết
                                                         </button>
                                                         <button onClick={() => handlePrint(r.id)}
-                                                            className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                            className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                             🖨️ In
                                                         </button>
                                                         {r.status === 'PENDING' && (
                                                             <>
                                                                 <button onClick={() => handleApprove(r.id)}
                                                                     disabled={approving === String(r.id)}
-                                                                    className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                                                    className="px-3 py-1 bg-emerald-600 text-blue-900 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
                                                                     ✅ Duyệt trừ kho
                                                                 </button>
                                                                 <button onClick={() => handleDelete(r.id)}
@@ -438,7 +438,7 @@ const ExportReceipt: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -448,35 +448,35 @@ const ExportReceipt: React.FC = () => {
             {/* ==================== CREATE MODAL ==================== */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl">
                         <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-xl font-bold text-white">📤 Tạo Phiếu Xuất Kho (Trừ Tồn Kho)</h2>
+                            <h2 className="text-xl font-bold text-blue-900">📤 Tạo Phiếu Xuất Kho (Trừ Tồn Kho)</h2>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={loadConfirmedOrders}
                                     disabled={loadingOrders}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium transition-all disabled:opacity-50"
+                                    className="px-4 py-2 bg-blue-600 text-blue-900 rounded-xl hover:bg-blue-700 text-sm font-medium transition-all disabled:opacity-50"
                                 >
                                     {loadingOrders ? '⏳ Đang tải...' : '📋 Tạo từ đơn hàng'}
                                 </button>
-                                <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                                <button onClick={() => setShowCreateModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
                             </div>
                         </div>
 
                         {/* Form fields */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Kho xuất</label>
-                                <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300">🏭 Kho tổng</div>
+                                <label className="block text-sm text-slate-600 mb-1">Kho xuất</label>
+                                <div className="input w-full bg-slate-100 cursor-not-allowed text-slate-700 font-medium">🏭 Kho tổng</div>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">📍 Địa chỉ kho</label>
-                                <div className="input w-full bg-slate-700/50 cursor-not-allowed text-slate-300 text-sm">
+                                <label className="block text-sm text-slate-600 mb-1">📍 Địa chỉ kho</label>
+                                <div className="input w-full bg-slate-100 cursor-not-allowed text-slate-700 font-medium text-sm">
                                     Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Lý do xuất *</label>
+                                <label className="block text-sm text-slate-600 mb-1">Lý do xuất *</label>
                                 <select value={formData.export_reason} onChange={(e) => setFormData({ ...formData, export_reason: e.target.value })} className="input w-full">
                                     <option value="sale">Bán hàng ngoài</option>
                                     <option value="internal">Xuất dùng nội bộ/cho biếu</option>
@@ -485,48 +485,48 @@ const ExportReceipt: React.FC = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Ngày xuất *</label>
+                                <label className="block text-sm text-slate-600 mb-1">Ngày xuất *</label>
                                 <input type="date" value={formData.receipt_date} onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })} className="input w-full" />
                             </div>
 
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Người nhận hàng</label>
+                                <label className="block text-sm text-slate-600 mb-1">Người nhận hàng</label>
                                 <input type="text" value={formData.receiver_name} onChange={(e) => setFormData({ ...formData, receiver_name: e.target.value })} className="input w-full" placeholder="Tên NV/KH" />
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">📞 SĐT người nhận</label>
+                                <label className="block text-sm text-slate-600 mb-1">📞 SĐT người nhận</label>
                                 <input type="text" value={formData.receiver_phone} onChange={(e) => setFormData({ ...formData, receiver_phone: e.target.value })} className="input w-full" placeholder="Số điện thoại" />
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm text-slate-400 mb-1">🏠 Địa chỉ người nhận</label>
+                                <label className="block text-sm text-slate-600 mb-1">🏠 Địa chỉ người nhận</label>
                                 <input type="text" value={formData.receiver_address} onChange={(e) => setFormData({ ...formData, receiver_address: e.target.value })} className="input w-full" placeholder="Địa chỉ giao hàng" />
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Bộ phận nhận (nội bộ)</label>
+                                <label className="block text-sm text-slate-600 mb-1">Bộ phận nhận (nội bộ)</label>
                                 <input type="text" value={formData.receiver_department} onChange={(e) => setFormData({ ...formData, receiver_department: e.target.value })} className="input w-full" placeholder="Ví dụ: Phòng Marketing" />
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Người lập/người giao</label>
+                                <label className="block text-sm text-slate-600 mb-1">Người lập/người giao</label>
                                 <input type="text" value={formData.delivery_person} onChange={(e) => setFormData({ ...formData, delivery_person: e.target.value })} className="input w-full" placeholder="Người phụ trách" />
                             </div>
 
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Thủ kho duyệt lại</label>
+                                <label className="block text-sm text-slate-600 mb-1">Thủ kho duyệt lại</label>
                                 <input type="text" value={formData.storekeeper} onChange={(e) => setFormData({ ...formData, storekeeper: e.target.value })} className="input w-full" placeholder="Tên thủ kho" />
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Số chứng từ / Phiếu yêu cầu</label>
+                                <label className="block text-sm text-slate-600 mb-1">Số chứng từ / Phiếu yêu cầu</label>
                                 <input type="text" value={formData.reference_document} onChange={(e) => setFormData({ ...formData, reference_document: e.target.value })} className="input w-full" placeholder="Mã chứng từ" />
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Ghi chú thêm</label>
+                                <label className="block text-sm text-slate-600 mb-1">Ghi chú thêm</label>
                                 <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="input w-full" placeholder="...Ghi chú" />
                             </div>
                         </div>
 
                         {/* Add items */}
-                        <div className="border-t border-slate-700/50 pt-4 mb-4">
-                            <h3 className="font-medium text-white mb-3">📦 Thêm sản phẩm cần xuất</h3>
+                        <div className="border-t border-blue-100 pt-4 mb-4">
+                            <h3 className="font-medium text-blue-900 mb-3">📦 Thêm sản phẩm cần xuất</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                 <select value={selectedProductId} onChange={(e) => loadVariants(Number(e.target.value))} className="input">
                                     <option value={0}>-- Chọn sản phẩm --</option>
@@ -545,30 +545,30 @@ const ExportReceipt: React.FC = () => {
 
                         {/* Items table */}
                         {formItems.length > 0 && (
-                            <div className="overflow-x-auto rounded-lg border border-slate-700/50 mb-4">
+                            <div className="overflow-x-auto rounded-lg border border-blue-100 mb-4">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-slate-700/50">
+                                    <thead className="bg-slate-100">
                                         <tr>
-                                            <th className="px-3 py-2 text-left text-slate-300">Sản phẩm</th>
-                                            <th className="px-3 py-2 text-left text-slate-300">SKU</th>
-                                            <th className="px-3 py-2 text-left text-slate-300">ĐVT</th>
-                                            <th className="px-3 py-2 text-left text-slate-300">Tồn kho</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">SL yêu cầu</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">SL thực xuất</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">Đơn giá</th>
-                                            <th className="px-3 py-2 text-right text-slate-300">Thành tiền</th>
-                                            <th className="px-3 py-2 text-center text-slate-300">Xóa</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">Sản phẩm</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">SKU</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">ĐVT</th>
+                                            <th className="px-3 py-2 text-left text-slate-700 font-medium">Tồn kho</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">SL yêu cầu</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">SL thực xuất</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">Đơn giá</th>
+                                            <th className="px-3 py-2 text-right text-slate-700 font-medium">Thành tiền</th>
+                                            <th className="px-3 py-2 text-center text-slate-700 font-medium">Xóa</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {formItems.map((item, idx) => {
                                             const isWarning = item.quantity_actual > item.current_stock;
                                             return (
-                                                <tr key={idx} className="border-t border-slate-700/50">
-                                                    <td className="px-3 py-2 text-white">{item.product_name}</td>
-                                                    <td className="px-3 py-2 font-mono text-indigo-300">{item.variant_sku}</td>
-                                                    <td className="px-3 py-2 text-slate-400">{item.unit_name}</td>
-                                                    <td className="px-3 py-2 font-mono text-slate-300">{item.current_stock}</td>
+                                                <tr key={idx} className="border-t border-blue-100">
+                                                    <td className="px-3 py-2 text-blue-900">{item.product_name}</td>
+                                                    <td className="px-3 py-2 font-mono text-blue-600">{item.variant_sku}</td>
+                                                    <td className="px-3 py-2 text-slate-600">{item.unit_name}</td>
+                                                    <td className="px-3 py-2 font-mono text-slate-700 font-medium">{item.current_stock}</td>
                                                     <td className="px-3 py-2 text-right">
                                                         <input type="number" min={1} value={item.quantity_requested}
                                                             onChange={(e) => updateItem(idx, 'quantity_requested', Number(e.target.value))}
@@ -589,7 +589,7 @@ const ExportReceipt: React.FC = () => {
                                                             onChange={(e) => updateItem(idx, 'unit_price', Number(e.target.value))}
                                                             className="input w-28 text-right text-sm" />
                                                     </td>
-                                                    <td className="px-3 py-2 text-right font-medium text-emerald-400">
+                                                    <td className="px-3 py-2 text-right font-medium text-emerald-600 font-bold">
                                                         {(item.quantity_actual * item.unit_price).toLocaleString('vi-VN')}
                                                     </td>
                                                     <td className="px-3 py-2 text-center">
@@ -599,10 +599,10 @@ const ExportReceipt: React.FC = () => {
                                             );
                                         })}
                                     </tbody>
-                                    <tfoot className="bg-slate-700/50 font-medium">
+                                    <tfoot className="bg-slate-100 font-medium">
                                         <tr>
-                                            <td colSpan={7} className="px-3 py-2 text-right text-slate-300">Tổng cộng:</td>
-                                            <td className="px-3 py-2 text-right text-lg text-emerald-400">{totalFormAmount.toLocaleString('vi-VN')} đ</td>
+                                            <td colSpan={7} className="px-3 py-2 text-right text-slate-700 font-medium">Tổng cộng:</td>
+                                            <td className="px-3 py-2 text-right text-lg text-emerald-600 font-bold">{totalFormAmount.toLocaleString('vi-VN')} đ</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
@@ -610,10 +610,10 @@ const ExportReceipt: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary">Hủy</button>
                             <button onClick={handleCreate} disabled={submitting}
-                                className="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50 transition-all">
+                                className="px-6 py-2.5 bg-orange-600 text-blue-900 rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50 transition-all">
                                 {submitting ? '⏳ Đang tạo...' : '📤 Tạo phiếu xuất (CHƯA trừ kho)'}
                             </button>
                         </div>
@@ -624,52 +624,52 @@ const ExportReceipt: React.FC = () => {
             {/* ==================== DETAIL MODAL ==================== */}
             {showDetailModal && selectedReceipt && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl shadow-indigo-500/10">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl shadow-indigo-500/10">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold text-white">📤 Chi tiết phiếu xuất: {selectedReceipt.receipt_number}</h2>
+                                <h2 className="text-xl font-bold text-blue-900">📤 Chi tiết phiếu xuất: {selectedReceipt.receipt_number}</h2>
                                 <div className="flex gap-2 mt-2">
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold`} style={{ color: exportReceiptService.getStatusInfo(selectedReceipt.status).color, backgroundColor: exportReceiptService.getStatusInfo(selectedReceipt.status).bg }}>
                                         {exportReceiptService.getStatusInfo(selectedReceipt.status).text}
                                     </span>
                                 </div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl transition-colors">×</button>
+                            <button onClick={() => setShowDetailModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl transition-colors">×</button>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4 text-sm bg-slate-700/20 p-4 rounded-xl border border-slate-700/50">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4 text-sm bg-slate-100/20 p-4 rounded-xl border border-blue-100">
                             <div>
                                 <span className="text-slate-500 font-medium">Kho xuất:</span>
-                                <p className="font-semibold text-white">{selectedReceipt.warehouse_name}</p>
+                                <p className="font-semibold text-blue-900">{selectedReceipt.warehouse_name}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">📍 Địa chỉ kho:</span>
-                                <p className="font-semibold text-white text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</p>
+                                <p className="font-semibold text-blue-900 text-sm">Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">Lý do xuất:</span>
-                                <p className="font-semibold text-white"><span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded text-xs">{exportReceiptService.getExportReasonLabel(selectedReceipt.export_reason)}</span></p>
+                                <p className="font-semibold text-blue-900"><span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs">{exportReceiptService.getExportReasonLabel(selectedReceipt.export_reason)}</span></p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">Ngày xuất:</span>
-                                <p className="font-semibold text-white">{new Date(selectedReceipt.receipt_date).toLocaleDateString('vi-VN')}</p>
+                                <p className="font-semibold text-blue-900">{new Date(selectedReceipt.receipt_date).toLocaleDateString('vi-VN')}</p>
                             </div>
 
                             <div>
                                 <span className="text-slate-500 font-medium">Người nhận hàng:</span>
-                                <p className="font-semibold text-white">{selectedReceipt.receiver_name || '-'}</p>
+                                <p className="font-semibold text-blue-900">{selectedReceipt.receiver_name || '-'}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">📞 SĐT người nhận:</span>
-                                <p className="font-semibold text-white">{selectedReceipt.receiver_phone || '-'}</p>
+                                <p className="font-semibold text-blue-900">{selectedReceipt.receiver_phone || '-'}</p>
                             </div>
                             <div className="lg:col-span-2">
                                 <span className="text-slate-500 font-medium">🏠 Địa chỉ người nhận:</span>
-                                <p className="font-semibold text-white">{selectedReceipt.receiver_address || '-'}</p>
+                                <p className="font-semibold text-blue-900">{selectedReceipt.receiver_address || '-'}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">Phòng ban (nội bộ):</span>
-                                <p className="font-semibold text-white">{selectedReceipt.receiver_department || '-'}</p>
+                                <p className="font-semibold text-blue-900">{selectedReceipt.receiver_department || '-'}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500 font-medium">Tổng tiền (Q.A x Đơn giá):</span>
@@ -679,25 +679,25 @@ const ExportReceipt: React.FC = () => {
                             {selectedReceipt.delivery_person && (
                                 <div>
                                     <span className="text-slate-500 font-medium">Người lập/giao:</span>
-                                    <p className="font-semibold text-white">{selectedReceipt.delivery_person}</p>
+                                    <p className="font-semibold text-blue-900">{selectedReceipt.delivery_person}</p>
                                 </div>
                             )}
                             {selectedReceipt.storekeeper && (
                                 <div>
                                     <span className="text-slate-500 font-medium">Thủ kho duyệt:</span>
-                                    <p className="font-semibold text-white">{selectedReceipt.storekeeper}</p>
+                                    <p className="font-semibold text-blue-900">{selectedReceipt.storekeeper}</p>
                                 </div>
                             )}
                             {selectedReceipt.reference_document && (
                                 <div>
                                     <span className="text-slate-500 font-medium">Số chứng từ:</span>
-                                    <p className="font-semibold text-white">{selectedReceipt.reference_document}</p>
+                                    <p className="font-semibold text-blue-900">{selectedReceipt.reference_document}</p>
                                 </div>
                             )}
                         </div>
 
                         {selectedReceipt.notes && (
-                            <div className="p-3 bg-slate-700/30 rounded-lg mb-4 text-sm text-slate-300">
+                            <div className="p-3 hover:bg-blue-50 rounded-lg mb-4 text-sm text-slate-700 font-medium">
                                 <span className="font-medium mr-2">📝 Ghi chú:</span> {selectedReceipt.notes}
                             </div>
                         )}
@@ -705,19 +705,19 @@ const ExportReceipt: React.FC = () => {
                         {/* Items */}
                         {selectedReceipt.items && selectedReceipt.items.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-bold mb-2 text-white">Danh sách sản phẩm xuất</h3>
-                                <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+                                <h3 className="font-bold mb-2 text-blue-900">Danh sách sản phẩm xuất</h3>
+                                <div className="overflow-x-auto rounded-lg border border-blue-100">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-700/50">
+                                        <thead className="bg-slate-100">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-slate-300">SKU</th>
-                                                <th className="px-4 py-3 text-left text-slate-300">Tên SP</th>
-                                                <th className="px-4 py-3 text-left text-slate-300">ĐVT</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Tồn hiện tại</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">SL yêu cầu</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">SKU</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">Tên SP</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">ĐVT</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Tồn hiện tại</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">SL yêu cầu</th>
                                                 <th className="px-4 py-3 text-right text-orange-300 font-bold">SL thực xuất</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Đơn giá</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Thành tiền</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Đơn giá</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Thành tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -725,22 +725,22 @@ const ExportReceipt: React.FC = () => {
                                                 const isWarning = item.quantity_actual > (item.current_stock || 0);
 
                                                 return (
-                                                    <tr key={item.id} className="border-t border-slate-700/50">
-                                                        <td className="px-4 py-3 font-mono text-indigo-300">{item.variant_sku || item.sku}</td>
-                                                        <td className="px-4 py-3 text-white">{item.product_name}</td>
-                                                        <td className="px-4 py-3 text-slate-400">{item.unit_name || '-'}</td>
-                                                        <td className={`px-4 py-3 text-right font-mono ${isWarning ? 'text-red-400' : 'text-slate-400'}`}>{item.current_stock}</td>
-                                                        <td className="px-4 py-3 text-right text-slate-400">{item.quantity_requested}</td>
-                                                        <td className="px-4 py-3 text-right text-white font-bold">{item.quantity_actual}</td>
-                                                        <td className="px-4 py-3 text-right text-slate-300">{Number(item.unit_price || 0).toLocaleString('vi-VN')}</td>
+                                                    <tr key={item.id} className="border-t border-blue-100">
+                                                        <td className="px-4 py-3 font-mono text-blue-600">{item.variant_sku || item.sku}</td>
+                                                        <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
+                                                        <td className="px-4 py-3 text-slate-600">{item.unit_name || '-'}</td>
+                                                        <td className={`px-4 py-3 text-right font-mono ${isWarning ? 'text-red-400' : 'text-slate-600'}`}>{item.current_stock}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-600">{item.quantity_requested}</td>
+                                                        <td className="px-4 py-3 text-right text-blue-900 font-bold">{item.quantity_actual}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(item.unit_price || 0).toLocaleString('vi-VN')}</td>
                                                         <td className="px-4 py-3 text-right font-medium text-red-400">{Number(item.line_total || 0).toLocaleString('vi-VN')}</td>
                                                     </tr>
                                                 );
                                             })}
                                         </tbody>
-                                        <tfoot className="bg-slate-700/50 font-medium">
+                                        <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={7} className="px-4 py-3 text-right text-slate-300">Tổng tiền thu:</td>
+                                                <td colSpan={7} className="px-4 py-3 text-right text-slate-700 font-medium">Tổng tiền thu:</td>
                                                 <td className="px-4 py-3 text-right text-lg text-red-400">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</td>
                                             </tr>
                                         </tfoot>
@@ -749,18 +749,18 @@ const ExportReceipt: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-between items-center pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-between items-center pt-4 border-t border-blue-100">
                             <div className="text-xs text-slate-500">
-                                👤 Người tạo: <span className="font-semibold text-slate-400 mr-4">{selectedReceipt.created_by_name}</span>
+                                👤 Người tạo: <span className="font-semibold text-slate-600 mr-4">{selectedReceipt.created_by_name}</span>
                                 {selectedReceipt.status === 'APPROVED' && (
-                                    <>✅ Người duyệt: <span className="font-semibold text-slate-400 mr-4">{selectedReceipt.approved_by_name}</span></>
+                                    <>✅ Người duyệt: <span className="font-semibold text-slate-600 mr-4">{selectedReceipt.approved_by_name}</span></>
                                 )}
                             </div>
                             <div className="flex gap-3">
                                 {selectedReceipt.status === 'PENDING' && (
                                     <button onClick={() => handleApprove(selectedReceipt.id)}
                                         disabled={approving === String(selectedReceipt.id)}
-                                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2">
+                                        className="px-5 py-2.5 bg-emerald-600 text-blue-900 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2">
                                         {approving === String(selectedReceipt.id) ? '⏳ Đang giảm tồn kho...' : '🔥 Duyệt phiếu (bắt đầu trừ Tồn Kho)'}
                                     </button>
                                 )}
@@ -775,19 +775,19 @@ const ExportReceipt: React.FC = () => {
             {/* ==================== ORDER PICKER MODAL ==================== */}
             {showOrderPicker && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold text-white">📋 Chọn đơn hàng đã duyệt</h2>
-                                <p className="text-slate-400 text-sm mt-1">Chọn đơn hàng để tự động điền thông tin người nhận và sản phẩm</p>
+                                <h2 className="text-xl font-bold text-blue-900">📋 Chọn đơn hàng đã duyệt</h2>
+                                <p className="text-slate-600 text-sm mt-1">Chọn đơn hàng để tự động điền thông tin người nhận và sản phẩm</p>
                             </div>
-                            <button onClick={() => setShowOrderPicker(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+                            <button onClick={() => setShowOrderPicker(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
                         </div>
 
                         {confirmedOrders.length === 0 ? (
                             <div className="text-center py-12">
                                 <span className="text-4xl mb-3 block">📦</span>
-                                <p className="text-slate-400">Không có đơn hàng nào đã duyệt (confirmed)</p>
+                                <p className="text-slate-600">Không có đơn hàng nào đã duyệt (confirmed)</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -795,17 +795,17 @@ const ExportReceipt: React.FC = () => {
                                     <div
                                         key={order.id}
                                         onClick={() => fillFromOrder(order)}
-                                        className="p-4 bg-slate-700/50 rounded-xl border border-slate-600/50 hover:border-blue-500/50 hover:bg-slate-700 cursor-pointer transition-all group"
+                                        className="p-4 bg-slate-100 rounded-xl border border-slate-300/50 hover:border-blue-500/50 hover:bg-slate-100 cursor-pointer transition-all group"
                                     >
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-bold text-white">ĐH #{order.id}</span>
+                                                    <span className="font-bold text-blue-900">ĐH #{order.id}</span>
                                                     <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">Đã duyệt</span>
                                                 </div>
-                                                <p className="text-slate-300 text-sm">👤 {order.shipping_name}</p>
-                                                <p className="text-slate-400 text-sm">📞 {order.shipping_phone}</p>
-                                                <p className="text-slate-400 text-sm">🏠 {order.shipping_address}</p>
+                                                <p className="text-slate-700 font-medium text-sm">👤 {order.shipping_name}</p>
+                                                <p className="text-slate-600 text-sm">📞 {order.shipping_phone}</p>
+                                                <p className="text-slate-600 text-sm">🏠 {order.shipping_address}</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-orange-400">{Number(order.total_amount).toLocaleString('vi-VN')} đ</p>

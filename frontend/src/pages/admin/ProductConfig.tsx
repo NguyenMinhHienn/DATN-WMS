@@ -207,7 +207,7 @@ const ProductConfig: React.FC = () => {
                 <h1 className="text-2xl font-bold">
                     <span className="gradient-text">⚙️ Cấu hình Sản phẩm</span>
                 </h1>
-                <p className="text-slate-400 mt-1">Quản lý danh mục và thuộc tính biến thể</p>
+                <p className="text-slate-600 mt-1">Quản lý danh mục và thuộc tính biến thể</p>
             </div>
 
             {/* Messages */}
@@ -217,7 +217,7 @@ const ProductConfig: React.FC = () => {
                 </div>
             )}
             {success && (
-                <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-400">
+                <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-600 font-bold">
                     {success}
                 </div>
             )}
@@ -227,8 +227,8 @@ const ProductConfig: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('categories')}
                     className={`px-4 py-2 rounded-xl font-medium transition-all ${activeTab === 'categories'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
-                        : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-blue-900 shadow-lg shadow-indigo-500/25'
+                        : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100'
                         }`}
                 >
                     📁 Danh mục sản phẩm
@@ -236,8 +236,8 @@ const ProductConfig: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('attributes')}
                     className={`px-4 py-2 rounded-xl font-medium transition-all ${activeTab === 'attributes'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
-                        : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-blue-900 shadow-lg shadow-indigo-500/25'
+                        : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100'
                         }`}
                 >
                     🎨 Thuộc tính biến thể
@@ -250,7 +250,7 @@ const ProductConfig: React.FC = () => {
                 {activeTab === 'categories' && (
                     <div>
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold text-white">Danh sách danh mục</h2>
+                            <h2 className="text-lg font-semibold text-blue-900">Danh sách danh mục</h2>
                             {canEdit && (
                                 <button
                                     onClick={handleAddCategory}
@@ -262,7 +262,7 @@ const ProductConfig: React.FC = () => {
                         </div>
 
                         {categoriesLoading ? (
-                            <div className="text-center py-8 text-slate-400">
+                            <div className="text-center py-8 text-slate-600">
                                 <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                                 Đang tải...
                             </div>
@@ -275,28 +275,28 @@ const ProductConfig: React.FC = () => {
                                 {categories.map(cat => (
                                     <div
                                         key={cat.id}
-                                        className="border border-slate-700/50 rounded-lg overflow-hidden"
+                                        className="border border-blue-100 rounded-lg overflow-hidden"
                                     >
                                         {/* Category Header */}
                                         <div
-                                            className="flex items-center justify-between p-4 bg-slate-800/50 cursor-pointer hover:bg-slate-700/50 transition-all"
+                                            className="flex items-center justify-between p-4 bg-blue-50/30 cursor-pointer hover:bg-slate-100 transition-all"
                                             onClick={() => handleCategoryClick(cat.id)}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <span className="text-2xl">📁</span>
                                                 <div>
-                                                    <p className="font-medium text-white">{cat.name}</p>
+                                                    <p className="font-medium text-blue-900">{cat.name}</p>
                                                     <p className="text-xs text-slate-500 font-mono">{cat.code}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {canEdit && (
                                                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                        <button onClick={(e) => handleEditCategory(cat, e)} className="p-2 hover:bg-slate-600 rounded text-slate-400 hover:text-white transition-colors">✏️</button>
+                                                        <button onClick={(e) => handleEditCategory(cat, e)} className="p-2 hover:bg-slate-600 rounded text-slate-600 hover:text-blue-900 transition-colors">✏️</button>
                                                         <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-2 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
                                                     </div>
                                                 )}
-                                                <span className="text-slate-400 ml-2">
+                                                <span className="text-slate-600 ml-2">
                                                     {expandedCategory === cat.id ? '▼' : '▶'}
                                                 </span>
                                             </div>
@@ -304,9 +304,9 @@ const ProductConfig: React.FC = () => {
 
                                         {/* Products in Category (Expanded) */}
                                         {expandedCategory === cat.id && (
-                                            <div className="p-4 bg-slate-900/50 border-t border-slate-700/50">
+                                            <div className="p-4 bg-slate-50 border-t border-blue-100">
                                                 {categoryProductsLoading ? (
-                                                    <div className="text-center py-4 text-slate-400">
+                                                    <div className="text-center py-4 text-slate-600">
                                                         <span className="animate-pulse">Đang tải sản phẩm...</span>
                                                     </div>
                                                 ) : categoryProducts.length === 0 ? (
@@ -315,13 +315,13 @@ const ProductConfig: React.FC = () => {
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        <p className="text-sm font-medium text-slate-400 mb-3">
+                                                        <p className="text-sm font-medium text-slate-600 mb-3">
                                                             📦 {categoryProducts.length} sản phẩm trong danh mục
                                                         </p>
                                                         {categoryProducts.map(product => (
                                                             <div
                                                                 key={product.id}
-                                                                className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-all"
+                                                                className="flex items-center gap-3 p-3 bg-blue-50/30 rounded-lg hover:bg-slate-100 transition-all"
                                                             >
                                                                 {product.image_url ? (
                                                                     <img
@@ -330,19 +330,19 @@ const ProductConfig: React.FC = () => {
                                                                         className="w-12 h-12 object-cover rounded"
                                                                     />
                                                                 ) : (
-                                                                    <div className="w-12 h-12 bg-slate-700 rounded flex items-center justify-center text-slate-500">
+                                                                    <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center text-slate-500">
                                                                         📷
                                                                     </div>
                                                                 )}
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className="font-medium text-white truncate">{product.name}</p>
+                                                                    <p className="font-medium text-blue-900 truncate">{product.name}</p>
                                                                     <p className="text-xs text-slate-500">
                                                                         SKU: {product.sku} • {product.selling_price?.toLocaleString()}₫
                                                                     </p>
                                                                 </div>
                                                                 <span className={`px-2 py-1 text-xs rounded-full ${product.status === 'active'
-                                                                    ? 'bg-emerald-500/20 text-emerald-400'
-                                                                    : 'bg-slate-600/50 text-slate-400'
+                                                                    ? 'bg-emerald-500/20 text-emerald-600 font-bold'
+                                                                    : 'bg-slate-600/50 text-slate-600'
                                                                     }`}>
                                                                     {product.status === 'active' ? 'Đang bán' : product.status}
                                                                 </span>
@@ -363,7 +363,7 @@ const ProductConfig: React.FC = () => {
                 {activeTab === 'attributes' && (
                     <div>
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold text-white">Danh sách thuộc tính</h2>
+                            <h2 className="text-lg font-semibold text-blue-900">Danh sách thuộc tính</h2>
                             {canEdit && (
                                 <button
                                     onClick={handleAddAttribute}
@@ -375,7 +375,7 @@ const ProductConfig: React.FC = () => {
                         </div>
 
                         {attributesLoading ? (
-                            <div className="text-center py-8 text-slate-400">
+                            <div className="text-center py-8 text-slate-600">
                                 <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                                 Đang tải...
                             </div>
@@ -388,11 +388,11 @@ const ProductConfig: React.FC = () => {
                                 {attributes.map(attr => (
                                     <div
                                         key={attr.id}
-                                        className="border border-slate-700/50 rounded-lg overflow-hidden"
+                                        className="border border-blue-100 rounded-lg overflow-hidden"
                                     >
                                         {/* Attribute Header */}
                                         <div
-                                            className="flex items-center justify-between p-4 bg-slate-800/50 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                            className="flex items-center justify-between p-4 bg-blue-50/30 cursor-pointer hover:bg-slate-100 transition-colors"
                                             onClick={() => setExpandedAttr(expandedAttr === attr.id ? null : attr.id)}
                                         >
                                             <div className="flex items-center gap-3">
@@ -400,7 +400,7 @@ const ProductConfig: React.FC = () => {
                                                     {attr.type === 'color' ? '🎨' : '📏'}
                                                 </span>
                                                 <div>
-                                                    <p className="font-medium text-white">{attr.display_name}</p>
+                                                    <p className="font-medium text-blue-900">{attr.display_name}</p>
                                                     <p className="text-xs text-slate-500">
                                                         {attr.name} • {attr.values?.length || 0} giá trị
                                                     </p>
@@ -411,13 +411,13 @@ const ProductConfig: React.FC = () => {
                                                     <>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleAddValue(attr.id); }}
-                                                            className="px-3 py-1 text-sm bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
+                                                            className="px-3 py-1 text-sm bg-emerald-500/20 text-emerald-600 font-bold rounded-lg hover:bg-emerald-500/30 transition-colors"
                                                         >
                                                             + Thêm giá trị
                                                         </button>
                                                     </>
                                                 )}
-                                                <span className="text-slate-400">
+                                                <span className="text-slate-600">
                                                     {expandedAttr === attr.id ? '▼' : '▶'}
                                                 </span>
                                             </div>
@@ -425,20 +425,20 @@ const ProductConfig: React.FC = () => {
 
                                         {/* Attribute Values (Expanded) */}
                                         {expandedAttr === attr.id && attr.values && attr.values.length > 0 && (
-                                            <div className="p-4 bg-slate-900/50 border-t border-slate-700/50">
+                                            <div className="p-4 bg-slate-50 border-t border-blue-100">
                                                 <div className="flex flex-wrap gap-2">
                                                     {attr.values.map(val => (
                                                         <div
                                                             key={val.id}
-                                                            className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-full text-sm border border-slate-700/50"
+                                                            className="flex items-center gap-2 px-3 py-2 bg-blue-50/30 rounded-full text-sm border border-blue-100"
                                                         >
                                                             {attr.type === 'color' && val.color_code && (
                                                                 <span
-                                                                    className="w-4 h-4 rounded-full border border-slate-600"
+                                                                    className="w-4 h-4 rounded-full border border-slate-300"
                                                                     style={{ backgroundColor: val.color_code }}
                                                                 />
                                                             )}
-                                                            <span className="text-slate-300">{val.display_value}</span>
+                                                            <span className="text-slate-700 font-medium">{val.display_value}</span>
                                                             {canEdit && (
                                                                 <button className="text-red-400 hover:text-red-300 ml-1 transition-colors">×</button>
                                                             )}
@@ -449,7 +449,7 @@ const ProductConfig: React.FC = () => {
                                         )}
 
                                         {expandedAttr === attr.id && (!attr.values || attr.values.length === 0) && (
-                                            <div className="p-4 bg-slate-900/50 border-t border-slate-700/50 text-center text-slate-500 text-sm">
+                                            <div className="p-4 bg-slate-50 border-t border-blue-100 text-center text-slate-500 text-sm">
                                                 Chưa có giá trị nào. Nhấn "+ Thêm giá trị" để bắt đầu.
                                             </div>
                                         )}
@@ -541,7 +541,7 @@ const ProductConfig: React.FC = () => {
                                 type="color"
                                 value={valueForm.color_code || '#000000'}
                                 onChange={(e) => setValueForm(prev => ({ ...prev, color_code: e.target.value }))}
-                                className="w-12 h-10 rounded border border-slate-600 bg-slate-700"
+                                className="w-12 h-10 rounded border border-slate-300 bg-slate-100"
                             />
                             <input
                                 type="text"

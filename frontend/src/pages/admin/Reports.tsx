@@ -128,7 +128,7 @@ const Reports: React.FC = () => {
                 <h1 className="text-2xl font-bold">
                     <span className="gradient-text">Báo cáo</span>
                 </h1>
-                <p className="text-slate-400 mt-1">Tạo và xem báo cáo hệ thống</p>
+                <p className="text-slate-600 mt-1">Tạo và xem báo cáo hệ thống</p>
             </div>
 
             {/* Tabs */}
@@ -142,8 +142,8 @@ const Reports: React.FC = () => {
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as any)}
                         className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 ${activeTab === tab.key
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
-                                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-slate-700/50'
+                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-blue-900 shadow-lg shadow-indigo-500/25'
+                                : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100 border border-blue-100'
                             }`}
                     >
                         {tab.label}
@@ -190,14 +190,14 @@ const Reports: React.FC = () => {
                     <div className="flex flex-col gap-6">
                         {/* CHART SECTIONS */}
                         {activeTab === 'inventory' && inventoryChartData && (
-                            <div className="p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                                <h3 className="text-lg font-bold text-white mb-4">Top 10 Sản phẩm tồn kho nhiều nhất</h3>
+                            <div className="p-5 bg-white rounded-xl border border-blue-100">
+                                <h3 className="text-lg font-bold text-blue-900 mb-4">Top 10 Sản phẩm tồn kho nhiều nhất</h3>
                                 <div className="h-80"><Bar data={inventoryChartData} options={{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }} /></div>
                             </div>
                         )}
                         {activeTab === 'movements' && movementsChartData && (
-                            <div className="p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                                <h3 className="text-lg font-bold text-white mb-4">Lưu lượng biến động theo ngày</h3>
+                            <div className="p-5 bg-white rounded-xl border border-blue-100">
+                                <h3 className="text-lg font-bold text-blue-900 mb-4">Lưu lượng biến động theo ngày</h3>
                                 <div className="h-80"><Bar data={movementsChartData} options={{ maintainAspectRatio: false }} /></div>
                             </div>
                         )}
@@ -206,12 +206,12 @@ const Reports: React.FC = () => {
                         {activeTab === 'stockValue' && reportData[0] ? (
                             <div className="space-y-6 mt-2">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="bg-gradient-to-br from-indigo-900/50 to-slate-800 p-6 rounded-2xl border border-indigo-500/20">
+                                    <div className="bg-gradient-to-br from-indigo-900/50 to-slate-800 p-6 rounded-2xl border border-blue-200">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-2xl">📦</div>
+                                            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">📦</div>
                                             <div>
-                                                <p className="text-slate-400 text-sm font-medium">Tổng mã hàng hóa</p>
-                                                <h3 className="text-2xl font-bold text-white mt-1">{reportData[0].product_count}</h3>
+                                                <p className="text-slate-600 text-sm font-medium">Tổng mã hàng hóa</p>
+                                                <h3 className="text-2xl font-bold text-blue-900 mt-1">{reportData[0].product_count}</h3>
                                             </div>
                                         </div>
                                     </div>
@@ -219,8 +219,8 @@ const Reports: React.FC = () => {
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-2xl">📋</div>
                                             <div>
-                                                <p className="text-slate-400 text-sm font-medium">Tổng SL kiểm kê</p>
-                                                <h3 className="text-2xl font-bold text-white mt-1">{reportData[0].total_quantity}</h3>
+                                                <p className="text-slate-600 text-sm font-medium">Tổng SL kiểm kê</p>
+                                                <h3 className="text-2xl font-bold text-blue-900 mt-1">{reportData[0].total_quantity}</h3>
                                             </div>
                                         </div>
                                     </div>
@@ -228,15 +228,15 @@ const Reports: React.FC = () => {
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl">💰</div>
                                             <div>
-                                                <p className="text-slate-400 text-sm font-medium">Tổng tài sản (VNĐ)</p>
+                                                <p className="text-slate-600 text-sm font-medium">Tổng tài sản (VNĐ)</p>
                                                 <h3 className="text-2xl font-bold text-amber-400 mt-1">{new Intl.NumberFormat('vi-VN').format(reportData[0].total_value)} ₫</h3>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 {stockValueChartData && (
-                                    <div className="p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                                        <h3 className="text-lg font-bold text-white mb-6 text-center">Tỷ trọng Giá trị tồn kho theo Sản phẩm</h3>
+                                    <div className="p-5 bg-white rounded-xl border border-blue-100">
+                                        <h3 className="text-lg font-bold text-blue-900 mb-6 text-center">Tỷ trọng Giá trị tồn kho theo Sản phẩm</h3>
                                         <div className="h-80 flex justify-center"><Doughnut data={stockValueChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#cbd5e1' } } } }} /></div>
                                     </div>
                                 )}
@@ -244,49 +244,49 @@ const Reports: React.FC = () => {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                            <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                            <thead className="bg-blue-50/30 border-b border-blue-100">
                                 <tr>
                                     {activeTab === 'inventory' && (
                                         <>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã SKU</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">SL</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Giá trị</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Sản phẩm</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Mã SKU</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">SL</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Giá trị</th>
                                         </>
                                     )}
                                     {activeTab === 'movements' && (
                                         <>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày</th>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Loại</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Thay đổi</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Ngày</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Sản phẩm</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Loại</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thay đổi</th>
                                         </>
                                     )}
                                     {activeTab === 'stockValue' && (
                                         <>
-                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Tên Kho</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số loại sản phẩm</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tổng SL</th>
-                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Tổng giá trị</th>
+                                            <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Tên Kho</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Số loại sản phẩm</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Tổng SL</th>
+                                            <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Tổng giá trị</th>
                                         </>
                                     )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {reportData.map((row, i) => (
-                                    <tr key={i} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
+                                    <tr key={i} className="border-b border-slate-100 hover:bg-blue-50 transition-colors">
                                         {activeTab === 'inventory' && (
                                             <>
-                                                <td className="py-4 px-6 text-sm font-medium text-white">{row.product_name}</td>
-                                                <td className="py-4 px-6 text-sm text-indigo-300 font-mono">{row.sku}</td>
-                                                <td className="py-4 px-6 text-sm text-right text-white">{row.quantity_on_hand}</td>
-                                                <td className="py-4 px-6 text-sm text-right font-medium text-emerald-400">{new Intl.NumberFormat('vi-VN').format(row.total_value)}</td>
+                                                <td className="py-4 px-6 text-sm font-medium text-blue-900">{row.product_name}</td>
+                                                <td className="py-4 px-6 text-sm text-blue-600 font-mono">{row.sku}</td>
+                                                <td className="py-4 px-6 text-sm text-right text-blue-900">{row.quantity_on_hand}</td>
+                                                <td className="py-4 px-6 text-sm text-right font-medium text-emerald-600 font-bold">{new Intl.NumberFormat('vi-VN').format(row.total_value)}</td>
                                             </>
                                         )}
                                         {activeTab === 'movements' && (
                                             <>
-                                                <td className="py-4 px-6 text-sm text-slate-400">{row.date}</td>
-                                                <td className="py-4 px-6 text-sm font-medium text-white">{row.product_name}</td>
+                                                <td className="py-4 px-6 text-sm text-slate-600">{row.date}</td>
+                                                <td className="py-4 px-6 text-sm font-medium text-blue-900">{row.product_name}</td>
                                                 <td className="py-4 px-6">
                                                     <span className={`badge ${row.quantity_change > 0 ? 'badge-success' : 'badge-danger'}`}>
                                                         {(!row.movement_type || row.movement_type.trim() === '') 
@@ -299,17 +299,17 @@ const Reports: React.FC = () => {
                                                         }
                                                     </span>
                                                 </td>
-                                                <td className={`py-4 px-6 text-sm text-right font-bold ${row.quantity_change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <td className={`py-4 px-6 text-sm text-right font-bold ${row.quantity_change > 0 ? 'text-emerald-600 font-bold' : 'text-red-400'}`}>
                                                     {row.quantity_change > 0 ? '+' : ''}{row.quantity_change}
                                                 </td>
                                             </>
                                         )}
                                         {activeTab === 'stockValue' && (
                                             <>
-                                                <td className="py-4 px-6 text-sm font-medium text-white">{row.warehouse_name}</td>
-                                                <td className="py-4 px-6 text-sm text-right text-slate-300">{row.product_count}</td>
-                                                <td className="py-4 px-6 text-sm text-right text-slate-300">{row.total_quantity}</td>
-                                                <td className="py-4 px-6 text-sm text-right font-bold text-indigo-400">{new Intl.NumberFormat('vi-VN').format(row.total_value)}</td>
+                                                <td className="py-4 px-6 text-sm font-medium text-blue-900">{row.warehouse_name}</td>
+                                                <td className="py-4 px-6 text-sm text-right text-slate-700 font-medium">{row.product_count}</td>
+                                                <td className="py-4 px-6 text-sm text-right text-slate-700 font-medium">{row.total_quantity}</td>
+                                                <td className="py-4 px-6 text-sm text-right font-bold text-blue-600">{new Intl.NumberFormat('vi-VN').format(row.total_value)}</td>
                                             </>
                                         )}
                                     </tr>

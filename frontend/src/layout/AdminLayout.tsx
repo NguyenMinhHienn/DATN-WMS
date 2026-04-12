@@ -30,26 +30,26 @@ export const AdminLayout: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950">
+        <div className="min-h-screen bg-slate-50">
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} badges={badges} />
 
             {/* Main content area - always pushed right by sidebar on lg screens */}
             <div className="lg:ml-64 min-h-screen">
                 {/* Mobile header */}
-                <header className="lg:hidden bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+                <header className="lg:hidden bg-white/80 backdrop-blur-xl border-b border-blue-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-white transition-all"
+                        className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 transition-all"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
                             <span className="text-sm">📦</span>
                         </div>
-                        <span className="font-bold text-white">StockFlow</span>
+                        <span className="font-bold text-blue-900">StockFlow</span>
                     </div>
                     <div className="w-10" /> {/* Spacer */}
                 </header>
