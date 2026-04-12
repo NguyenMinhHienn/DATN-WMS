@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
             const [dashData, salesData, monthlyData] = await Promise.all([
                 reportService.getDashboard(),
                 reportService.getSalesSummary().catch(() => null),
-                reportService.getMonthlyReport().catch(() => []),
+                reportService.getMonthlyReport(new Date().getFullYear()).catch(() => []),
             ]);
             setStats(dashData);
             setSalesSummary(salesData);

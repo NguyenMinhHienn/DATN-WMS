@@ -28,7 +28,6 @@ interface MonthlyDetailData {
 const FinancialReport: React.FC = () => {
     const navigate = useNavigate();
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -194,7 +193,7 @@ const FinancialReport: React.FC = () => {
                 },
             },
         },
-        onClick: (event: any, elements: any) => {
+        onClick: (_event: any, elements: any) => {
             if (elements.length > 0) {
                 const index = elements[0].index;
                 handleMonthClick(index + 1);

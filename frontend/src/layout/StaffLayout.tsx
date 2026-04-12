@@ -75,14 +75,14 @@ export const StaffLayout: React.FC = () => {
                                         to={item.path}
                                         className={({ isActive }) =>
                                             `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                                                : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50'
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 font-medium'
+                                                : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50 font-medium flex-1'
                                             }`
                                         }
                                         onClick={() => setSidebarOpen(false)}
                                     >
                                         <span className="text-xl group-hover:scale-110 transition-transform">{item.icon}</span>
-                                        <span className={({ isActive }) => isActive ? "font-medium" : "font-medium flex-1"}>{item.label}</span>
+                                        <span>{item.label}</span>
                                     </NavLink>
                                 </li>
                             ))}
