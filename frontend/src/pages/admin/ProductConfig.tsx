@@ -473,7 +473,10 @@ const ProductConfig: React.FC = () => {
                         <input
                             type="text"
                             value={attrForm.name}
-                            onChange={(e) => setAttrForm(prev => ({ ...prev, name: e.target.value }))}
+                            onChange={(e) => setAttrForm(prev => ({ 
+                                ...prev, 
+                                name: e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+                            }))}
                             className="input"
                             placeholder="VD: color, size, storage"
                         />
@@ -519,9 +522,12 @@ const ProductConfig: React.FC = () => {
                         <input
                             type="text"
                             value={valueForm.value}
-                            onChange={(e) => setValueForm(prev => ({ ...prev, value: e.target.value }))}
+                            onChange={(e) => setValueForm(prev => ({ 
+                                ...prev, 
+                                value: e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-]/g, '') 
+                            }))}
                             className="input"
-                            placeholder="VD: black, M, 64GB"
+                            placeholder="VD: BLACK, M, 64GB"
                         />
                     </div>
                     <div>
@@ -571,7 +577,10 @@ const ProductConfig: React.FC = () => {
                         <input
                             type="text"
                             value={categoryForm.code}
-                            onChange={(e) => setCategoryForm(prev => ({ ...prev, code: e.target.value }))}
+                            onChange={(e) => setCategoryForm(prev => ({ 
+                                ...prev, 
+                                code: e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-]/g, '') 
+                            }))}
                             className="input"
                             placeholder="VD: PHONE, LAPTOP"
                         />

@@ -364,7 +364,16 @@ const Products: React.FC = () => {
                 // Auto-generate unique SKU
                 const categoryId = Number(formData.category_id);
                 const category = categories.find(c => c.id === categoryId);
-                const categoryCode = category?.code?.toUpperCase() || 'PROD';
+                let categoryCode = (category?.code || 'PROD').toUpperCase();
+                
+                // Loại bỏ dấu tiếng Việt và ký tự đặc biệt cho SKU
+                categoryCode = categoryCode
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/Đ/g, 'D').replace(/đ/g, 'd')
+                    .replace(/\s+/g, '') // Xóa khoảng trắng
+                    .replace(/[^A-Z0-9-]/gi, ''); // Chỉ giữ lại chữ, số và gạch ngang
+                    
                 const timestamp = Date.now().toString(36).toUpperCase();
                 const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
                 const autoSku = `${categoryCode}-${timestamp}-${randomSuffix}`;
