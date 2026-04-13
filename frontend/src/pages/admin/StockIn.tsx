@@ -680,22 +680,29 @@ const StockIn: React.FC = () => {
                                                 <td className="px-3 py-2 font-mono text-blue-600">{item.variant_sku}</td>
                                                 <td className="px-3 py-2 text-slate-600">{item.unit_name}</td>
                                                 <td className="px-3 py-2 text-right">
-                                                    <input type="number" min={1} value={item.quantity_document}
-                                                        onChange={(e) => updateItem(idx, 'quantity_document', Number(e.target.value))}
-                                                        className="input w-20 text-right text-sm" />
-                                                </td>
-                                                <td className="px-3 py-2 text-right">
-                                                    <input type="number" min={1} value={item.quantity_actual}
+                                                    <input type="text" value={item.quantity_document ? Number(item.quantity_document).toLocaleString('vi-VN') : ''}
                                                         onChange={(e) => {
-                                                            const val = Number(e.target.value);
-                                                            updateItem(idx, 'quantity_actual', val);
-                                                            updateItem(idx, 'quantity_expected', val);
+                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                            updateItem(idx, 'quantity_document', val ? Number(val) : 0);
                                                         }}
                                                         className="input w-20 text-right text-sm" />
                                                 </td>
                                                 <td className="px-3 py-2 text-right">
-                                                    <input type="number" min={0} value={item.unit_cost}
-                                                        onChange={(e) => updateItem(idx, 'unit_cost', Number(e.target.value))}
+                                                    <input type="text" value={item.quantity_actual ? Number(item.quantity_actual).toLocaleString('vi-VN') : ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                            const numVal = val ? Number(val) : 0;
+                                                            updateItem(idx, 'quantity_actual', numVal);
+                                                            updateItem(idx, 'quantity_expected', numVal);
+                                                        }}
+                                                        className="input w-20 text-right text-sm" />
+                                                </td>
+                                                <td className="px-3 py-2 text-right">
+                                                    <input type="text" value={item.unit_cost ? Number(item.unit_cost).toLocaleString('vi-VN') : ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                            updateItem(idx, 'unit_cost', val ? Number(val) : 0);
+                                                        }}
                                                         className="input w-28 text-right text-sm" />
                                                 </td>
                                                 <td className="px-3 py-2 text-right font-medium text-emerald-600 font-bold">

@@ -215,7 +215,7 @@ const InterWarehouseTransfer: React.FC = () => {
                             </div>
                             <div>
                                 <span className="text-slate-500">Tổng giá trị:</span>
-                                <p className="font-medium text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()} đ</p>
+                                <p className="font-medium text-lg text-purple-400">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</p>
                             </div>
                             {selectedTransfer.reason && (
                                 <div>
@@ -269,8 +269,8 @@ const InterWarehouseTransfer: React.FC = () => {
                                                     <td className="px-4 py-3 font-mono text-purple-300">{item.sku}</td>
                                                     <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
                                                     <td className="px-4 py-3 text-right text-blue-900">{item.quantity_requested}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{item.unit_cost.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-right font-medium text-purple-400">{item.line_total.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(item.unit_cost).toLocaleString('vi-VN')}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-purple-400">{Number(item.line_total).toLocaleString('vi-VN')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -279,7 +279,7 @@ const InterWarehouseTransfer: React.FC = () => {
                                                 <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Tổng cộng:</td>
                                                 <td className="px-4 py-3 text-right text-blue-900">{selectedTransfer.total_quantity}</td>
                                                 <td className="px-4 py-3"></td>
-                                                <td className="px-4 py-3 text-right text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()}</td>
+                                                <td className="px-4 py-3 text-right text-lg text-purple-400">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')}</td>
                                             </tr>
                                         </tfoot>
                                     </table>

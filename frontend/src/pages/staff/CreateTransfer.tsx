@@ -972,10 +972,12 @@ const CreateTransfer: React.FC = () => {
                                             Số lượng {item.product_id ? `(${products.find(p => p.id === item.product_id)?.unit_name || 'SP'})` : ''} *
                                         </label>
                                         <input
-                                            type="number"
-                                            min="1"
-                                            value={item.quantity}
-                                            onChange={(e) => updateItemField(index, 'quantity', Number(e.target.value))}
+                                            type="text"
+                                            value={item.quantity ? Number(item.quantity).toLocaleString('vi-VN') : ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                updateItemField(index, 'quantity', val ? Number(val) : 0);
+                                            }}
                                             disabled={!item.product_variant_id}
                                             className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                                             required
@@ -994,10 +996,12 @@ const CreateTransfer: React.FC = () => {
                                         </label>
                                         <div className="relative">
                                             <input
-                                                type="number"
-                                                min="0"
-                                                value={item.unit_price}
-                                                onChange={(e) => updateItemField(index, 'unit_price', Number(e.target.value))}
+                                                type="text"
+                                                value={item.unit_price ? Number(item.unit_price).toLocaleString('vi-VN') : ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                    updateItemField(index, 'unit_price', val ? Number(val) : 0);
+                                                }}
                                                 disabled={!item.product_variant_id}
                                                 className="w-full px-3 py-2 pr-8 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                                             />
@@ -1009,7 +1013,7 @@ const CreateTransfer: React.FC = () => {
                                 {/* Thành tiền */}
                                 <div className="mt-4 text-right">
                                     <span className="text-sm text-slate-500">Thành tiền: </span>
-                                    <span className="font-bold text-green-600 text-lg">{calculations.itemTotals[index]?.toLocaleString() || 0} đ</span>
+                                    <span className="font-bold text-green-600 text-lg">{calculations.itemTotals[index]?.toLocaleString('vi-VN') || 0} đ</span>
                                 </div>
                             </div>
                         ))}
@@ -1025,7 +1029,7 @@ const CreateTransfer: React.FC = () => {
                         </div>
                         <div className="text-right">
                             <p className="text-sm text-slate-600 mb-1">Tổng tiền:</p>
-                            <p className="text-3xl font-bold text-green-600">{calculations.grandTotal.toLocaleString()} đ</p>
+                            <p className="text-3xl font-bold text-green-600">{calculations.grandTotal.toLocaleString('vi-VN')} đ</p>
                         </div>
                     </div>
 

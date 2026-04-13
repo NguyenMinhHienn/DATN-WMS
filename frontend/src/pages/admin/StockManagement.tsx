@@ -355,7 +355,7 @@ const StockManagement: React.FC = () => {
                                     <div className="flex justify-between pt-2 border-t border-slate-300/50 mt-2">
                                         <span className="text-slate-700 font-medium font-medium">Tổng giá trị:</span>
                                         <div className="text-right">
-                                            <div className="font-bold text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()} đ</div>
+                                            <div className="font-bold text-lg" style={{ color: config.textColor }}>{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
                                             <div className="text-xs text-slate-600 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
                                         </div>
                                     </div>
@@ -441,8 +441,8 @@ const StockManagement: React.FC = () => {
                                                     <td className="px-4 py-3 font-mono" style={{ color: config.textColor }}>{item.sku}</td>
                                                     <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
                                                     <td className="px-4 py-3 text-right text-blue-900">{item.quantity_requested}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{item.unit_cost.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-right font-medium" style={{ color: config.textColor }}>{item.line_total.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(item.unit_cost).toLocaleString('vi-VN')}</td>
+                                                    <td className="px-4 py-3 text-right font-medium" style={{ color: config.textColor }}>{Number(item.line_total).toLocaleString('vi-VN')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -451,7 +451,7 @@ const StockManagement: React.FC = () => {
                                                 <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Tổng cộng:</td>
                                                 <td className="px-4 py-3 text-right text-blue-900">{selectedTransfer.total_quantity}</td>
                                                 <td className="px-4 py-3"></td>
-                                                <td className="px-4 py-3 text-right text-lg" style={{ color: config.textColor }}>{selectedTransfer.total_value.toLocaleString()}</td>
+                                                <td className="px-4 py-3 text-right text-lg" style={{ color: config.textColor }}>{Number(selectedTransfer.total_value).toLocaleString('vi-VN')}</td>
                                             </tr>
                                         </tfoot>
                                     </table>

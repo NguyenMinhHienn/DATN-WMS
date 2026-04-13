@@ -780,14 +780,16 @@ const Products: React.FC = () => {
                         <div>
                             <label className="label text-slate-700 font-medium">Giá nhập *</label>
                             <input
-                                type="number"
+                                type="text"
                                 name="cost_price"
-                                value={formData.cost_price}
-                                onChange={handleInputChange}
+                                value={formData.cost_price ? Number(formData.cost_price).toLocaleString('vi-VN') : ''}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    // Simulated event to pass to handleInputChange
+                                    handleInputChange({ target: { name: 'cost_price', value: val ? Number(val) : 0 } } as any);
+                                }}
                                 className={`input ${editingProduct ? 'bg-slate-100 text-slate-600 cursor-not-allowed border-slate-300' : ''}`}
                                 readOnly={!!editingProduct}
-                                min="0"
-                                step="1000"
                                 required
                             />
                             {editingProduct && (
@@ -798,7 +800,17 @@ const Products: React.FC = () => {
                         </div>
                         <div>
                             <label className="label text-slate-700 font-medium">Giá bán cơ bản *</label>
-                            <input type="number" name="selling_price" value={formData.selling_price} onChange={handleInputChange} className="input" min="0" step="1000" required />
+                            <input 
+                                type="text" 
+                                name="selling_price" 
+                                value={formData.selling_price ? Number(formData.selling_price).toLocaleString('vi-VN') : ''} 
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    handleInputChange({ target: { name: 'selling_price', value: val ? Number(val) : 0 } } as any);
+                                }} 
+                                className="input" 
+                                required 
+                            />
                         </div>
                     </div>
 

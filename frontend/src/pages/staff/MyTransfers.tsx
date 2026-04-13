@@ -330,7 +330,7 @@ const MyTransfers: React.FC = () => {
                                         <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
                                             <span className="text-slate-600 font-medium">Tổng giá trị:</span>
                                             <div className="text-right">
-                                                <div className="font-bold text-green-600 text-base">{selectedTransfer.total_value.toLocaleString()} đ</div>
+                                                <div className="font-bold text-green-600 text-base">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
                                                 <div className="text-xs text-slate-500 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
                                             </div>
                                         </div>
@@ -418,7 +418,7 @@ const MyTransfers: React.FC = () => {
                                                         <td className="px-4 py-3 text-slate-500 font-mono">{item.sku}</td>
                                                         <td className="px-4 py-3 text-slate-800 font-medium">{item.product_name}</td>
                                                         <td className="px-4 py-3 text-right text-slate-800 font-semibold">{item.quantity_requested}</td>
-                                                        <td className="px-4 py-3 text-right text-green-600 font-medium">{item.unit_cost.toLocaleString()} đ</td>
+                                                        <td className="px-4 py-3 text-right text-green-600 font-medium">{Number(item.unit_cost).toLocaleString('vi-VN')} đ</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
