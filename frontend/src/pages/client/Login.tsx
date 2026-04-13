@@ -84,19 +84,19 @@ const Login: React.FC = () => {
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-8"
             style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)'
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f1f5f9 100%)'
             }}>
 
             {/* Animated Background Effects */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-300/30 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl" />
             </div>
 
             <div className="w-full max-w-md relative z-10">
                 {/* Main Card with Glassmorphism */}
-                <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 relative overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-500/10 border border-white p-8 relative overflow-hidden">
 
                     {/* Decorative corner accents */}
                     <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-transparent rounded-br-full" />
@@ -114,22 +114,22 @@ const Login: React.FC = () => {
                                 </svg>
                             </div>
                         </div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent mt-2">
                             Đăng nhập WMS
                         </h1>
-                        <p className="text-slate-400 mt-2">Warehouse Management System</p>
+                        <p className="text-slate-500 mt-2">Warehouse Management System</p>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-sm animate-fadeIn">
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl backdrop-blur-sm animate-fadeIn">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <p className="text-red-300 text-sm">{error}</p>
+                                <p className="text-red-700 text-sm font-medium">{error}</p>
                             </div>
                         </div>
                     )}
@@ -138,9 +138,9 @@ const Login: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Username Field */}
                         <div className="group">
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 <span className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                     Tên đăng nhập
@@ -151,20 +151,20 @@ const Login: React.FC = () => {
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full px-4 py-3.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                     placeholder="Nhập username"
                                     required
                                     autoFocus
                                 />
-                                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/0 via-indigo-500/0 to-purple-500/0 group-focus-within:from-indigo-500/10 group-focus-within:to-purple-500/10 pointer-events-none transition-all duration-300" />
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/0 via-indigo-500/0 to-purple-500/0 group-focus-within:from-indigo-50/50 group-focus-within:to-purple-50/50 pointer-events-none transition-all duration-300" />
                             </div>
                         </div>
 
                         {/* Password Field */}
                         <div className="group">
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 <span className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                     </svg>
                                     Mật khẩu
@@ -175,14 +175,14 @@ const Login: React.FC = () => {
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3.5 pr-12 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                    className="w-full px-4 py-3.5 pr-12 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                     placeholder="Nhập password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors p-1"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors p-1"
                                 >
                                     {showPassword ? (
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -226,20 +226,20 @@ const Login: React.FC = () => {
                     {/* Divider */}
                     <div className="relative my-8">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-700/50"></div>
+                            <div className="w-full border-t border-slate-200"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-slate-800/40 text-slate-500">hoặc</span>
+                            <span className="px-4 bg-white text-slate-500 rounded-full">hoặc</span>
                         </div>
                     </div>
 
                     {/* Register Link */}
                     <div className="text-center">
-                        <p className="text-slate-400">
+                        <p className="text-slate-600">
                             Chưa có tài khoản?{' '}
                             <Link
                                 to="/register"
-                                className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors hover:underline underline-offset-4"
+                                className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors hover:underline underline-offset-4"
                             >
                                 Đăng ký ngay
                             </Link>
@@ -247,58 +247,58 @@ const Login: React.FC = () => {
                     </div>
 
                     {/* Demo Credentials - Redesigned */}
-                    <div className="mt-8 p-5 bg-slate-900/50 rounded-2xl border border-slate-700/30">
+                    <div className="mt-8 p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center">
-                                <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <p className="font-medium text-slate-300">Tài khoản demo</p>
+                            <p className="font-semibold text-slate-700">Tài khoản demo</p>
                         </div>
                         <div className="space-y-2">
                             <button
                                 type="button"
                                 onClick={() => fillDemoAccount('admin')}
-                                className="w-full flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-all duration-300 group border border-transparent hover:border-indigo-500/30"
+                                className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 rounded-xl transition-all duration-300 group border border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow"
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-indigo-500/30">
+                                    <span className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-xs font-bold shadow-sm shadow-indigo-200">
                                         ADMIN
                                     </span>
-                                    <span className="text-slate-300 font-mono text-sm">admin / admin123</span>
+                                    <span className="text-slate-700 font-mono text-sm font-medium">admin / admin123</span>
                                 </div>
-                                <svg className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => fillDemoAccount('staff')}
-                                className="w-full flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-all duration-300 group border border-transparent hover:border-emerald-500/30"
+                                className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 rounded-xl transition-all duration-300 group border border-slate-200 hover:border-emerald-300 shadow-sm hover:shadow"
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className="px-2.5 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-500/30">
+                                    <span className="px-2.5 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-xs font-bold shadow-sm shadow-emerald-200">
                                         STAFF
                                     </span>
-                                    <span className="text-slate-300 font-mono text-sm">staff / staff123</span>
+                                    <span className="text-slate-700 font-mono text-sm font-medium">staff / staff123</span>
                                 </div>
-                                <svg className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => fillDemoAccount('client')}
-                                className="w-full flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-all duration-300 group border border-transparent hover:border-slate-500/30"
+                                className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 rounded-xl transition-all duration-300 group border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow"
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className="px-2.5 py-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg text-xs font-bold shadow-lg shadow-slate-500/30">
+                                    <span className="px-2.5 py-1 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg text-xs font-bold shadow-sm shadow-slate-200">
                                         CLIENT
                                     </span>
-                                    <span className="text-slate-300 font-mono text-sm">user / user123</span>
+                                    <span className="text-slate-700 font-mono text-sm font-medium">user / user123</span>
                                 </div>
-                                <svg className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
