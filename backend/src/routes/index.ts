@@ -129,6 +129,14 @@ router.get('/reports/inventory', authenticate, isViewer, reportController.getInv
 router.get('/reports/movements', authenticate, isViewer, reportController.getMovementReport);
 router.get('/reports/stock-value', authenticate, isViewer, reportController.getStockValueReport);
 router.get('/reports/products/:productId/stock', authenticate, isViewer, reportController.getProductStockSummary);
+// New analytics endpoints
+router.get('/reports/kpi', authenticate, isViewer, reportController.getKpiOverview);
+router.get('/reports/top-selling', authenticate, isViewer, reportController.getTopSellingProducts);
+router.get('/reports/movement-summary', authenticate, isViewer, reportController.getMovementSummary);
+router.get('/reports/stock-value-by-product', authenticate, isViewer, reportController.getStockValueByProduct);
+router.get('/reports/stock-value-by-category', authenticate, isViewer, reportController.getStockValueByCategory);
+router.get('/reports/alerts', authenticate, isViewer, reportController.getSmartAlerts);
+router.get('/reports/products/:productId/drill-down', authenticate, isViewer, reportController.getProductDrillDown);
 
 // ==================== PRINT ROUTES ====================
 // These endpoints render EJS templates for printing

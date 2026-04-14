@@ -59,5 +59,52 @@ export const reportService = {
         const response = await api.get<ApiResponse<any[]>>('/reports/stock-value');
         return response.data.data || [];
     },
+
+    // ==================== NEW ANALYTICS METHODS ====================
+
+    async getKpiOverview(startDate: string, endDate: string): Promise<any> {
+        const response = await api.get<ApiResponse<any>>('/reports/kpi', {
+            params: { start_date: startDate, end_date: endDate }
+        });
+        return response.data.data;
+    },
+
+    async getTopSellingProducts(startDate: string, endDate: string, limit: number = 10): Promise<any[]> {
+        const response = await api.get<ApiResponse<any[]>>('/reports/top-selling', {
+            params: { start_date: startDate, end_date: endDate, limit }
+        });
+        return response.data.data || [];
+    },
+
+    async getMovementSummary(startDate: string, endDate: string): Promise<any> {
+        const response = await api.get<ApiResponse<any>>('/reports/movement-summary', {
+            params: { start_date: startDate, end_date: endDate }
+        });
+        return response.data.data;
+    },
+
+    async getStockValueByProduct(warehouseId?: number): Promise<any[]> {
+        const params = warehouseId ? { warehouse_id: warehouseId } : {};
+        const response = await api.get<ApiResponse<any[]>>('/reports/stock-value-by-product', { params });
+        return response.data.data || [];
+    },
+
+    async getStockValueByCategory(): Promise<any[]> {
+        const response = await api.get<ApiResponse<any[]>>('/reports/stock-value-by-category');
+        return response.data.data || [];
+    },
+
+    async getSmartAlerts(): Promise<any> {
+        const response = await api.get<ApiResponse<any>>('/reports/alerts');
+        return response.data.data;
+    },
+
+    async getProductDrillDown(productId: number, startDate?: string, endDate?: string): Promise<any> {
+        const params: any = {};
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        const response = await api.get<ApiResponse<any>>(`/reports/products/${productId}/drill-down`, { params });
+        return response.data.data;
+    },
 };
 
