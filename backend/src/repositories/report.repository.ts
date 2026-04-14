@@ -72,11 +72,17 @@ export class ReportRepository {
         w.name as warehouse_name,
         COALESCE(i.quantity_on_hand, 0) as quantity_on_hand,
         COALESCE(i.quantity_available, 0) as quantity_available,
-        COALESCE(i.unit_cost, p.cost_price) as unit_cost,
-        COALESCE(i.quantity_on_hand * COALESCE(i.unit_cost, p.cost_price), 0) as total_value
+        COALESCE(pv.average_cost, p.cost_price) as unit_cost,
+        COALESCE(i.quantity_on_hand * COALESCE(pv.average_cost, p.cost_price), 0) as total_value
       FROM products p
       CROSS JOIN warehouses w
       LEFT JOIN inventories i ON p.id = i.product_id AND w.id = i.warehouse_id
+      LEFT JOIN (
+          SELECT product_id, AVG(average_cost) as average_cost 
+          FROM product_variants 
+          WHERE average_cost > 0 
+          GROUP BY product_id
+      ) pv ON p.id = pv.product_id
       WHERE p.deleted_at IS NULL AND w.deleted_at IS NULL
     `;
 
@@ -201,12 +207,14 @@ export class ReportRepository {
 
         SELECT 
           CONCAT('T-', st.id) as ref_id,
-          st.total_value as revenue
+          COALESCE(SUM(sti.line_total), 0) as revenue
         FROM stock_transfers st
+        JOIN stock_transfer_items sti ON st.id = sti.stock_transfer_id
         WHERE st.transfer_type = 'EXPORT'
           AND st.status IN ('approved', 'completed')
           AND st.deleted_at IS NULL
           AND st.created_at BETWEEN ? AND ?
+        GROUP BY st.id
       )
       SELECT 
         COUNT(DISTINCT ref_id) as total_orders,

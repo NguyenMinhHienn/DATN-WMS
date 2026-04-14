@@ -493,6 +493,17 @@ const Reports: React.FC = () => {
                                                         </tr>
                                                     ))}
                                                 </tbody>
+                                                <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold">
+                                                    <tr>
+                                                        <td colSpan={2} className="py-3 px-4 text-right text-slate-700 uppercase text-xs tracking-wider">Tổng cộng:</td>
+                                                        <td className="py-3 px-4 text-right text-indigo-700 text-base">
+                                                            {inventoryData.filter(r => r.quantity_on_hand > 0).reduce((acc, curr) => acc + Number(curr.quantity_on_hand), 0)}
+                                                        </td>
+                                                        <td className="py-3 px-4 text-right text-emerald-700 text-base">
+                                                            {formatVND(inventoryData.filter(r => r.quantity_on_hand > 0).reduce((acc, curr) => acc + Number(curr.total_value), 0))} ₫
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
                                             </table>
                                         </div>
                                     </>
