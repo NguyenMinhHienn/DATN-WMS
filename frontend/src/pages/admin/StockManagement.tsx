@@ -348,16 +348,34 @@ const StockManagement: React.FC = () => {
                                             {selectedTransfer.order_id ? `Đơn hàng số #${selectedTransfer.order_id}` : 'Xuất trực tiếp'}
                                         </span>
                                     </div>
+                                    <div className="border-t border-slate-300/50 pt-3 mt-2 space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-slate-600 font-medium">Tổng tiền hàng:</span>
+                                            <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.subtotal || selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
+                                        </div>
+                                        {Number(selectedTransfer.vat_amount) > 0 && (
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-slate-600 font-medium">VAT ({Number(selectedTransfer.vat_percent || 0) * 100}%):</span>
+                                                <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.vat_amount).toLocaleString('vi-VN')} đ</div>
+                                            </div>
+                                        )}
+                                        {Number(selectedTransfer.shipping_fee) > 0 && (
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-slate-600 font-medium">Phí vận chuyển:</span>
+                                                <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.shipping_fee).toLocaleString('vi-VN')} đ</div>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-start pt-2 border-t border-slate-200 mt-2">
+                                            <span className="font-semibold text-slate-700 mt-1">Tổng thanh toán:</span>
+                                            <div className="text-right">
+                                                <div className="font-bold text-xl" style={{ color: config.textColor }}>{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
+                                                <div className="text-xs text-slate-600 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="flex justify-between border-b border-slate-300/50 pb-2">
                                         <span className="text-slate-600">Ghi chú:</span>
                                         <span className="font-medium text-blue-900">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
-                                    </div>
-                                    <div className="flex justify-between pt-2 border-t border-slate-300/50 mt-2">
-                                        <span className="text-slate-700 font-medium font-medium">Tổng giá trị:</span>
-                                        <div className="text-right">
-                                            <div className="font-bold text-lg" style={{ color: config.textColor }}>{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
-                                            <div className="text-xs text-slate-600 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

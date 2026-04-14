@@ -113,14 +113,33 @@
             <table>
                 <tr>
                     <td class="text-right">Tổng mặt hàng:</td>
-                    <td class="text-right" width="120"><%= receipt.total_items %></td>
+                    <td class="text-right" width="150"><%= receipt.total_items %></td>
                 </tr>
                 <tr>
                     <td class="text-right">Tổng số lượng:</td>
                     <td class="text-right"><%= receipt.total_quantity %></td>
                 </tr>
                 <tr>
-                    <td class="text-right final-total">TỔNG TIỀN:</td>
+                    <td class="text-right">Tổng tiền hàng:</td>
+                    <td class="text-right"><%= formatCurrency(receipt.subtotal || receipt.total_amount) %></td>
+                </tr>
+                <% var vatPct = Number(receipt.vat_percent) || 0; %>
+                <% var vatAmt = Number(receipt.tax_amount) || 0; %>
+                <% if (vatAmt > 0) { %>
+                <tr>
+                    <td class="text-right">VAT (<%= (vatPct * 100).toFixed(0) %>%):</td>
+                    <td class="text-right"><%= formatCurrency(vatAmt) %></td>
+                </tr>
+                <% } %>
+                <% var shipCost = Number(receipt.shipping_cost) || 0; %>
+                <% if (shipCost > 0) { %>
+                <tr>
+                    <td class="text-right">Phí vận chuyển:</td>
+                    <td class="text-right"><%= formatCurrency(shipCost) %></td>
+                </tr>
+                <% } %>
+                <tr>
+                    <td class="text-right final-total">TỔNG THANH TOÁN:</td>
                     <td class="text-right final-total"><%= formatCurrency(receipt.total_amount) %></td>
                 </tr>
             </table>

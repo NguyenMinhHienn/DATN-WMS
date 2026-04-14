@@ -134,10 +134,29 @@
             <table>
                 <tr>
                     <td class="text-right">Tổng mặt hàng:</td>
-                    <td class="text-right" width="120"><%= receipt.total_items %></td>
+                    <td class="text-right" width="150"><%= receipt.total_items %></td>
                 </tr>
                 <tr>
-                    <td class="text-right final-total">TỔNG GIÁ TRỊ:</td>
+                    <td class="text-right">Tổng tiền hàng:</td>
+                    <td class="text-right"><%= formatCurrency(receipt.subtotal || receipt.total_amount) %></td>
+                </tr>
+                <% var vatPct = Number(receipt.vat_percent) || 0; %>
+                <% var vatAmt = Number(receipt.vat_amount) || 0; %>
+                <% if (vatAmt > 0) { %>
+                <tr>
+                    <td class="text-right">VAT (<%= (vatPct * 100).toFixed(0) %>%):</td>
+                    <td class="text-right"><%= formatCurrency(vatAmt) %></td>
+                </tr>
+                <% } %>
+                <% var shipFee = Number(receipt.shipping_fee) || 0; %>
+                <% if (shipFee > 0) { %>
+                <tr>
+                    <td class="text-right">Phí vận chuyển:</td>
+                    <td class="text-right"><%= formatCurrency(shipFee) %></td>
+                </tr>
+                <% } %>
+                <tr>
+                    <td class="text-right final-total">TỔNG THANH TOÁN:</td>
                     <td class="text-right final-total"><%= formatCurrency(receipt.total_amount) %></td>
                 </tr>
             </table>

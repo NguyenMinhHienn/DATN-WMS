@@ -28,22 +28,22 @@ ALTER TABLE goods_receipts MODIFY COLUMN status
 -- ==================== 4. EXPORT RECEIPTS - Phiếu xuất kho độc lập ====================
 
 CREATE TABLE IF NOT EXISTS export_receipts (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   receipt_number VARCHAR(50) UNIQUE NOT NULL,
   receipt_date DATE NOT NULL,
   receiver_name VARCHAR(100) DEFAULT NULL COMMENT 'Người nhận hàng',
   receiver_department VARCHAR(100) DEFAULT NULL COMMENT 'Bộ phận nhận',
   export_reason ENUM('sale','internal','disposal','transfer') DEFAULT 'sale' COMMENT 'Lý do xuất',
-  warehouse_id INT NOT NULL,
+  warehouse_id INT UNSIGNED NOT NULL,
   notes TEXT,
   reference_document VARCHAR(200) DEFAULT NULL COMMENT 'Số chứng từ kèm theo',
   delivery_person VARCHAR(100) DEFAULT NULL COMMENT 'Người giao hàng',
   storekeeper VARCHAR(100) DEFAULT NULL COMMENT 'Thủ kho',
-  total_items INT DEFAULT 0,
+  total_items INT UNSIGNED DEFAULT 0,
   total_quantity INT DEFAULT 0,
   total_amount DECIMAL(15,2) DEFAULT 0,
-  created_by INT DEFAULT NULL,
-  approved_by INT DEFAULT NULL,
+  created_by INT UNSIGNED DEFAULT NULL,
+  approved_by INT UNSIGNED DEFAULT NULL,
   approved_at DATETIME DEFAULT NULL,
   status ENUM('PENDING','APPROVED','CANCELLED') DEFAULT 'PENDING',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS export_receipts (
 -- ==================== 5. EXPORT RECEIPT ITEMS ====================
 
 CREATE TABLE IF NOT EXISTS export_receipt_items (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  export_receipt_id INT NOT NULL,
-  product_id INT NOT NULL,
-  product_variant_id INT DEFAULT NULL,
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  export_receipt_id INT UNSIGNED NOT NULL,
+  product_id INT UNSIGNED NOT NULL,
+  product_variant_id INT UNSIGNED DEFAULT NULL,
   quantity_requested INT DEFAULT 0 COMMENT 'Số lượng yêu cầu',
   quantity_actual INT DEFAULT 0 COMMENT 'Số lượng thực xuất',
   unit_price DECIMAL(15,2) DEFAULT 0 COMMENT 'Đơn giá',

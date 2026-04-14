@@ -355,10 +355,11 @@ export interface GoodsReceipt {
     total_items: number;
     total_quantity: number;
     subtotal: number;
-    tax_amount: number;
-    shipping_cost: number;
+    vat_percent: number;      // % VAT (0.10 = 10%)
+    tax_amount: number;       // = subtotal * vat_percent (tiền VAT)
+    shipping_cost: number;    // Phí vận chuyển
     discount_amount: number;
-    total_amount: number;
+    total_amount: number;     // = subtotal + tax_amount + shipping_cost
     currency: string;
     status: 'PENDING' | 'APPROVED' | 'CANCELLED';
     shipping_method?: string;
@@ -608,6 +609,8 @@ export interface CreateGoodsReceiptDto {
     receipt_date: string;
     expected_date?: string;
     shipping_method?: string;
+    vat_percent?: number;     // % VAT, mặc định 0.1 (10%)
+    shipping_fee?: number;    // Phí vận chuyển (nhập thủ công)
     notes?: string;
     delivery_person?: string;
     storekeeper?: string;
@@ -645,7 +648,12 @@ export interface ExportReceipt {
     storekeeper?: string;
     total_items: number;
     total_quantity: number;
-    total_amount: number;
+    subtotal: number;           // Tổng tiền hàng
+    vat_percent: number;        // % VAT (0.10 = 10%)
+    vat_amount: number;         // Tiền VAT
+    shipping_fee: number;       // Phí vận chuyển
+    delivery_method?: string;   // 'delivery' | 'pickup'
+    total_amount: number;       // = subtotal + vat_amount + shipping_fee
     created_by?: number;
     approved_by?: number;
     approved_at?: Date;
@@ -685,6 +693,9 @@ export interface CreateExportReceiptDto {
     receiver_phone?: string;
     export_reason?: 'sale' | 'internal' | 'disposal' | 'transfer';
     warehouse_id: number;
+    vat_percent?: number;       // % VAT (0 nếu tắt, 0.1 nếu bật 10%)
+    shipping_fee?: number;      // Phí vận chuyển
+    delivery_method?: string;   // 'delivery' | 'pickup'
     notes?: string;
     reference_document?: string;
     delivery_person?: string;
@@ -782,6 +793,10 @@ export interface StockTransfer {
     total_items: number;
     total_quantity: number;
     total_value: number;
+    subtotal: number;
+    vat_percent: number;
+    vat_amount: number;
+    shipping_fee: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'partial_received' | 'completed' | 'cancelled';
     shipping_method?: string;
     tracking_number?: string;
@@ -850,6 +865,10 @@ export interface CreateStockTransferDto {
     orderId?: number; // Alias for robustness
     reason?: string;
     notes?: string;
+    subtotal?: number;
+    vat_percent?: number;
+    vat_amount?: number;
+    shipping_fee?: number;
     items: CreateStockTransferItemDto[];
 }
 

@@ -19,6 +19,11 @@ export interface ExportReceiptSummary {
     storekeeper?: string;
     total_items: number;
     total_quantity: number;
+    subtotal: number;
+    vat_percent: number;
+    vat_amount: number;
+    shipping_fee: number;
+    delivery_method?: string;
     total_amount: number;
     created_by?: number;
     created_by_name?: string;
@@ -59,6 +64,9 @@ export interface CreateExportReceiptPayload {
     receiver_phone?: string;
     export_reason?: string;
     warehouse_id: number;
+    vat_percent?: number;
+    shipping_fee?: number;
+    delivery_method?: string;
     notes?: string;
     reference_document?: string;
     delivery_person?: string;

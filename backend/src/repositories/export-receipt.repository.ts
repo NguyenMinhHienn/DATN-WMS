@@ -121,22 +121,43 @@ export class ExportReceiptRepository {
 
             let totalItems = dto.items.length;
             let totalQuantity = 0;
-            let totalAmount = 0;
+            let subtotal = 0;
 
             for (const item of dto.items) {
                 const qty = item.quantity_actual || item.quantity_requested;
                 totalQuantity += qty;
-                totalAmount += qty * (item.unit_price || 0);
+                subtotal += qty * (item.unit_price || 0);
             }
+
+            // === Tính VAT ===
+            const vatPercent = dto.vat_percent !== undefined ? dto.vat_percent : 0; // Mặc định TẮT (0%)
+            const vatAmount = Math.round(subtotal * vatPercent);
+
+            // === Tính phí vận chuyển ===
+            const deliveryMethod = dto.delivery_method || 'delivery';
+            let shippingFee: number;
+            if (dto.shipping_fee !== undefined) {
+                // User đã nhập thủ công → dùng giá trị đó
+                shippingFee = dto.shipping_fee;
+            } else if (deliveryMethod === 'pickup') {
+                // Nhận tại cửa hàng → miễn phí
+                shippingFee = 0;
+            } else {
+                // Giao hàng: nếu subtotal > 500,000 → miễn phí, ngược lại 30,000
+                shippingFee = subtotal > 500000 ? 0 : 30000;
+            }
+
+            const totalAmount = subtotal + vatAmount + shippingFee;
 
             const [result] = await connection.query<ResultSetHeader>(`
         INSERT INTO export_receipts (
           receipt_number, receipt_date, receiver_name, receiver_department,
           receiver_address, receiver_phone,
           export_reason, warehouse_id, notes, reference_document,
-          delivery_person, storekeeper, total_items, total_quantity, total_amount,
+          delivery_person, storekeeper, total_items, total_quantity,
+          subtotal, vat_percent, vat_amount, shipping_fee, delivery_method, total_amount,
           created_by, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
       `, [
                 receiptNumber,
                 dto.receipt_date,
@@ -152,6 +173,11 @@ export class ExportReceiptRepository {
                 dto.storekeeper || null,
                 totalItems,
                 totalQuantity,
+                subtotal,
+                vatPercent,
+                vatAmount,
+                shippingFee,
+                deliveryMethod,
                 totalAmount,
                 userId || null,
             ]);

@@ -68,6 +68,8 @@ const CreateTransfer: React.FC = () => {
     const [receiverPhone, setReceiverPhone] = useState('');
     const [exportNote, setExportNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
+    const [vatPercent, setVatPercent] = useState<number>(0);
+    const [shippingFee, setShippingFee] = useState<number>(0);
 
     // Reference data
     const [products, setProducts] = useState<Product[]>([]);
@@ -416,6 +418,10 @@ const CreateTransfer: React.FC = () => {
                 receiver_department: transferType === 'EXPORT' ? receiverDepartment || undefined : undefined,
                 receiver_address: transferType === 'EXPORT' ? receiverAddress || undefined : undefined,
                 receiver_phone: transferType === 'EXPORT' ? receiverPhone || undefined : undefined,
+                subtotal: calculations.grandTotal,
+                vat_percent: vatPercent,
+                vat_amount: calculations.grandTotal * vatPercent,
+                shipping_fee: shippingFee,
                 items: validItems.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -1022,14 +1028,59 @@ const CreateTransfer: React.FC = () => {
 
                 {/* Summary & Actions */}
                 <div className="p-6 bg-gradient-to-r from-slate-50 to-indigo-50">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="space-y-1">
+                    <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-1 self-end">
                             <p className="text-sm text-slate-600">Số sản phẩm: <strong className="text-slate-800">{formItems.length}</strong></p>
                             <p className="text-sm text-slate-600">Tổng SL: <strong className="text-slate-800">{calculations.totalQty}</strong></p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-sm text-slate-600 mb-1">Tổng tiền:</p>
-                            <p className="text-3xl font-bold text-green-600">{calculations.grandTotal.toLocaleString('vi-VN')} đ</p>
+                        <div className="space-y-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span>Tổng tiền hàng:</span>
+                                <span className="font-semibold">{calculations.grandTotal.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-600 flex items-center gap-2">
+                                    VAT (%)
+                                    <select
+                                        value={vatPercent}
+                                        onChange={(e) => setVatPercent(Number(e.target.value))}
+                                        className="w-20 px-2 py-1 text-sm border-b-2 border-indigo-200 focus:border-indigo-500 bg-transparent outline-none"
+                                    >
+                                        <option value={0}>0%</option>
+                                        <option value={0.05}>5%</option>
+                                        <option value={0.08}>8%</option>
+                                        <option value={0.10}>10%</option>
+                                    </select>
+                                </span>
+                                <span className="font-semibold text-slate-700">
+                                    {(calculations.grandTotal * vatPercent).toLocaleString('vi-VN')} đ
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-600">Phí vận chuyển:</span>
+                                <div className="relative w-32">
+                                    <input
+                                        type="text"
+                                        value={shippingFee ? shippingFee.toLocaleString('vi-VN') : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '');
+                                            setShippingFee(val ? Number(val) : 0);
+                                        }}
+                                        className="w-full text-right px-2 py-1 text-sm border-b-2 border-indigo-200 focus:border-indigo-500 bg-transparent outline-none pr-6 font-semibold"
+                                        placeholder="0"
+                                    />
+                                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-500 text-xs">đ</span>
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-200 flex justify-between items-end">
+                                <span className="text-slate-800 font-bold">TỔNG THANH TOÁN:</span>
+                                <span className="text-3xl font-bold text-green-600">
+                                    {(calculations.grandTotal + (calculations.grandTotal * vatPercent) + shippingFee).toLocaleString('vi-VN')} đ
+                                </span>
+                            </div>
                         </div>
                     </div>
 

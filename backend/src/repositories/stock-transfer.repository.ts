@@ -226,14 +226,20 @@ export class StockTransferRepository {
             // Tính tổng
             let totalItems = dto.items.length;
             let totalQuantity = 0;
-            let totalValue = 0;
+            let calculatedSubtotal = 0;
 
             for (const item of dto.items) {
                 const qty = item.quantity_requested ?? 0;
                 const cost = item.unit_cost ?? 0;
                 totalQuantity += qty;
-                totalValue += qty * cost;
+                calculatedSubtotal += qty * cost;
             }
+
+            const subtotal = dto.subtotal ?? calculatedSubtotal;
+            const vatPercent = dto.vat_percent ?? 0;
+            const vatAmount = dto.vat_amount ?? 0;
+            const shippingFee = dto.shipping_fee ?? 0;
+            const totalValue = subtotal + vatAmount + shippingFee;
 
             // Xử lý warehouse IDs - schema yêu cầu cả 2
             // Với IMPORT: source và dest giống nhau (nhập vào cùng 1 kho)
@@ -254,6 +260,10 @@ export class StockTransferRepository {
                 totalItems,
                 totalQuantity,
                 totalValue,
+                subtotal,
+                vatPercent,
+                vatAmount,
+                shippingFee,
                 'pending', // status
                 dto.reason || null,
                 dto.order_id || null,
@@ -269,7 +279,7 @@ export class StockTransferRepository {
             ];
 
             console.log('[StockTransferRepository] Executing INSERT with order_id:', dto.order_id);
-            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[12]);
+            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[16]);
 
             const [result] = await connection.query<ResultSetHeader>(`
                 INSERT INTO stock_transfers (
@@ -277,11 +287,12 @@ export class StockTransferRepository {
                     source_warehouse_id, destination_warehouse_id,
                     transfer_date, expected_arrival_date,
                     total_items, total_quantity, total_value,
+                    subtotal, vat_percent, vat_amount, shipping_fee,
                     status, reason, order_id, notes,
                     delivery_person, storekeeper, receiver_name, receiver_department,
                     receiver_address, receiver_phone,
                     requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, params);
 
             const transferId = result.insertId;

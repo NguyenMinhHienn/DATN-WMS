@@ -327,8 +327,24 @@ const MyTransfers: React.FC = () => {
                                             <span className="text-slate-500">Ghi chú:</span>
                                             <span className="font-medium text-slate-800">{selectedTransfer.reason || selectedTransfer.notes || '-'}</span>
                                         </div>
+                                        <div className="flex justify-between border-t border-slate-200 pt-2 pb-2">
+                                            <span className="text-slate-500">Tổng tiền hàng:</span>
+                                            <span className="font-medium text-slate-800">{Number(selectedTransfer.subtotal || selectedTransfer.total_value).toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        {Number(selectedTransfer.vat_amount) > 0 && (
+                                            <div className="flex justify-between pb-2">
+                                                <span className="text-slate-500">VAT ({Number(selectedTransfer.vat_percent || 0) * 100}%):</span>
+                                                <span className="font-medium text-slate-800">{Number(selectedTransfer.vat_amount).toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        )}
+                                        {Number(selectedTransfer.shipping_fee) > 0 && (
+                                            <div className="flex justify-between pb-2">
+                                                <span className="text-slate-500">Phí vận chuyển:</span>
+                                                <span className="font-medium text-slate-800">{Number(selectedTransfer.shipping_fee).toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
-                                            <span className="text-slate-600 font-medium">Tổng giá trị:</span>
+                                            <span className="text-slate-600 font-medium">TỔNG THANH TOÁN:</span>
                                             <div className="text-right">
                                                 <div className="font-bold text-green-600 text-base">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
                                                 <div className="text-xs text-slate-500 italic mt-0.5">{numberToWords(selectedTransfer.total_value)}</div>

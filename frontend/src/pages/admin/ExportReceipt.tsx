@@ -47,6 +47,11 @@ const ExportReceipt: React.FC = () => {
         storekeeper: '',
         reference_document: '',
         notes: '',
+        enable_vat: false,         // Toggle bật/tắt VAT
+        vat_percent: 10,           // % VAT (khi bật)
+        delivery_method: 'delivery' as string, // 'delivery' | 'pickup'
+        shipping_fee: 30000,       // Phí ship mặc định
+        shipping_fee_manual: false, // User đã sửa thủ công chưa
     });
     const [formItems, setFormItems] = useState<ReceiptItem[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -92,6 +97,11 @@ const ExportReceipt: React.FC = () => {
                 storekeeper: '',
                 reference_document: '',
                 notes: '',
+                enable_vat: false,
+                vat_percent: 10,
+                delivery_method: 'delivery',
+                shipping_fee: 30000,
+                shipping_fee_manual: false,
             });
             setFormItems([]);
             setShowCreateModal(true);
@@ -237,6 +247,9 @@ const ExportReceipt: React.FC = () => {
 
         setSubmitting(true);
         try {
+            // Tính VAT và shipping để gửi lên server
+            const vatPctDecimal = formData.enable_vat ? formData.vat_percent / 100 : 0;
+
             await exportReceiptService.createReceipt({
                 receipt_date: formData.receipt_date,
                 warehouse_id: formData.warehouse_id,
@@ -249,6 +262,9 @@ const ExportReceipt: React.FC = () => {
                 storekeeper: formData.storekeeper || undefined,
                 reference_document: formData.reference_document || undefined,
                 notes: formData.notes || undefined,
+                vat_percent: vatPctDecimal,
+                shipping_fee: currentShippingFee,
+                delivery_method: formData.delivery_method,
                 items: formItems.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -305,7 +321,19 @@ const ExportReceipt: React.FC = () => {
         }
     };
 
-    const totalFormAmount = formItems.reduce((s, i) => s + i.quantity_actual * i.unit_price, 0);
+    // === Tính toán tài chính live ===
+    const subtotalForm = formItems.reduce((s, i) => s + i.quantity_actual * i.unit_price, 0);
+    const vatAmountForm = formData.enable_vat ? Math.round(subtotalForm * formData.vat_percent / 100) : 0;
+
+    // Tính phí ship tự động nếu user chưa sửa thủ công
+    const currentShippingFee = (() => {
+        if (formData.delivery_method === 'pickup') return 0;
+        if (formData.shipping_fee_manual) return formData.shipping_fee;
+        // Auto: miễn phí nếu > 500k
+        return subtotalForm > 500000 ? 0 : 30000;
+    })();
+
+    const totalFormAmount = subtotalForm + vatAmountForm + currentShippingFee;
 
     return (
         <div className="animate-fadeIn">
@@ -608,12 +636,115 @@ const ExportReceipt: React.FC = () => {
                                     </tbody>
                                     <tfoot className="bg-slate-100 font-medium">
                                         <tr>
-                                            <td colSpan={7} className="px-3 py-2 text-right text-slate-700 font-medium">Tổng cộng:</td>
-                                            <td className="px-3 py-2 text-right text-lg text-emerald-600 font-bold">{totalFormAmount.toLocaleString('vi-VN')} đ</td>
+                                            <td colSpan={7} className="px-3 py-2 text-right text-slate-500">Tổng tiền hàng:</td>
+                                            <td className="px-3 py-2 text-right text-slate-700 font-medium">{subtotalForm.toLocaleString('vi-VN')} đ</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
+                            </div>
+                        )}
+
+                        {/* === Section: Thông tin tài chính (VAT + Shipping) === */}
+                        {formItems.length > 0 && (
+                            <div className="mb-4 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                                <h3 className="font-medium text-blue-900 mb-4 flex items-center gap-2"><span>💰</span> Thông tin tài chính</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    {/* VAT Toggle */}
+                                    <div>
+                                        <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.enable_vat}
+                                                onChange={(e) => setFormData({ ...formData, enable_vat: e.target.checked })}
+                                                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <span className="text-sm font-medium text-slate-700">Áp dụng VAT</span>
+                                        </label>
+                                        {formData.enable_vat && (
+                                            <input
+                                                type="text"
+                                                value={formData.vat_percent ? Number(formData.vat_percent).toLocaleString('vi-VN') : '0'}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                    setFormData({ ...formData, vat_percent: val ? Number(val) : 0 });
+                                                }}
+                                                className="input w-full"
+                                                placeholder="% VAT (ví dụ: 10)"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Phương thức giao hàng */}
+                                    <div>
+                                        <label className="block text-sm text-slate-600 mb-1">Phương thức giao hàng</label>
+                                        <select
+                                            value={formData.delivery_method}
+                                            onChange={(e) => {
+                                                const method = e.target.value;
+                                                setFormData({
+                                                    ...formData,
+                                                    delivery_method: method,
+                                                    shipping_fee_manual: false,
+                                                    shipping_fee: method === 'pickup' ? 0 : 30000,
+                                                });
+                                            }}
+                                            className="input w-full"
+                                        >
+                                            <option value="delivery">🚚 Giao hàng</option>
+                                            <option value="pickup">🏠 Nhận tại cửa hàng</option>
+                                        </select>
+                                        {formData.delivery_method === 'delivery' && subtotalForm > 500000 && !formData.shipping_fee_manual && (
+                                            <p className="text-xs text-emerald-600 mt-1">✨ Miễn phí ship (đơn &gt; 500,000đ)</p>
+                                        )}
+                                    </div>
+
+                                    {/* Phí vận chuyển */}
+                                    <div>
+                                        <label className="block text-sm text-slate-600 mb-1">Phí vận chuyển (VND)</label>
+                                        <input
+                                            type="text"
+                                            value={currentShippingFee ? Number(currentShippingFee).toLocaleString('vi-VN') : '0'}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setFormData({
+                                                    ...formData,
+                                                    shipping_fee: val ? Number(val) : 0,
+                                                    shipping_fee_manual: true,
+                                                });
+                                            }}
+                                            className="input w-full"
+                                            disabled={formData.delivery_method === 'pickup'}
+                                            placeholder="Tự động tính hoặc nhập thủ công"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Live preview tổng tiền */}
+                                <div className="bg-white rounded-lg border border-blue-200 p-4">
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Tổng tiền hàng (Subtotal):</span>
+                                            <span className="font-medium text-slate-700">{subtotalForm.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">VAT ({formData.enable_vat ? formData.vat_percent : 0}%):</span>
+                                            <span className={`font-medium ${vatAmountForm > 0 ? 'text-blue-600' : 'text-slate-400'}`}>{vatAmountForm.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Phí vận chuyển ({formData.delivery_method === 'pickup' ? 'Nhận tại CH' : 'Giao hàng'}):</span>
+                                            <span className={`font-medium ${currentShippingFee > 0 ? 'text-slate-700' : 'text-emerald-600'}`}>
+                                                {currentShippingFee > 0 ? `${currentShippingFee.toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                                            </span>
+                                        </div>
+                                        <div className="border-t border-dashed border-blue-200 pt-2 mt-2">
+                                            <div className="flex justify-between">
+                                                <span className="font-semibold text-blue-900">Tổng thanh toán:</span>
+                                                <span className="font-bold text-lg text-red-500">{totalFormAmount.toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -679,8 +810,8 @@ const ExportReceipt: React.FC = () => {
                                 <p className="font-semibold text-blue-900">{selectedReceipt.receiver_department || '-'}</p>
                             </div>
                             <div>
-                                <span className="text-slate-500 font-medium">Tổng tiền (Q.A x Đơn giá):</span>
-                                <p className="font-bold text-lg text-red-400">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</p>
+                                <span className="text-slate-500 font-medium">Tổng giá trị hàng:</span>
+                                <p className="font-bold text-slate-700">{Number(selectedReceipt.subtotal || 0).toLocaleString('vi-VN')} đ</p>
                             </div>
 
                             {selectedReceipt.delivery_person && (
@@ -701,6 +832,40 @@ const ExportReceipt: React.FC = () => {
                                     <p className="font-semibold text-blue-900">{selectedReceipt.reference_document}</p>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Thông tin tài chính - Detail */}
+                        <div className="mb-4 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                            <h3 className="font-medium text-blue-900 mb-3 text-sm flex items-center gap-2"><span>💰</span> Thông tin tài chính</h3>
+                            <div className="bg-white rounded-lg border border-blue-200 p-4">
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Tổng tiền hàng (Subtotal):</span>
+                                        <span className="font-medium text-slate-700">{Number(selectedReceipt.subtotal || 0).toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">VAT ({((Number(selectedReceipt.vat_percent) || 0) * 100).toFixed(0)}%):</span>
+                                        <span className={`font-medium ${Number(selectedReceipt.vat_amount || 0) > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                                            {Number(selectedReceipt.vat_amount || 0).toLocaleString('vi-VN')} đ
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Phí vận chuyển ({selectedReceipt.delivery_method === 'pickup' ? 'Nhận tại CH' : 'Giao hàng'}):</span>
+                                        <span className={`font-medium ${Number(selectedReceipt.shipping_fee || 0) > 0 ? 'text-slate-700' : 'text-emerald-600'}`}>
+                                            {Number(selectedReceipt.shipping_fee || 0) > 0
+                                                ? `${Number(selectedReceipt.shipping_fee).toLocaleString('vi-VN')} đ`
+                                                : 'Miễn phí'
+                                            }
+                                        </span>
+                                    </div>
+                                    <div className="border-t border-dashed border-blue-200 pt-2 mt-2">
+                                        <div className="flex justify-between">
+                                            <span className="font-semibold text-blue-900">Tổng thanh toán:</span>
+                                            <span className="font-bold text-lg text-red-500">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {selectedReceipt.notes && (
@@ -747,8 +912,24 @@ const ExportReceipt: React.FC = () => {
                                         </tbody>
                                         <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={7} className="px-4 py-3 text-right text-slate-700 font-medium">Tổng tiền thu:</td>
-                                                <td className="px-4 py-3 text-right text-lg text-red-400">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</td>
+                                                <td colSpan={7} className="px-4 py-3 text-right text-slate-500 text-sm">Tổng tiền hàng:</td>
+                                                <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(selectedReceipt.subtotal || 0).toLocaleString('vi-VN')} đ</td>
+                                            </tr>
+                                            {Number(selectedReceipt.vat_amount || 0) > 0 && (
+                                                <tr>
+                                                    <td colSpan={7} className="px-4 py-1 text-right text-slate-500 text-sm">VAT ({((Number(selectedReceipt.vat_percent) || 0) * 100).toFixed(0)}%):</td>
+                                                    <td className="px-4 py-1 text-right text-blue-600 font-medium">{Number(selectedReceipt.vat_amount || 0).toLocaleString('vi-VN')} đ</td>
+                                                </tr>
+                                            )}
+                                            {Number(selectedReceipt.shipping_fee || 0) > 0 && (
+                                                <tr>
+                                                    <td colSpan={7} className="px-4 py-1 text-right text-slate-500 text-sm">Phí vận chuyển:</td>
+                                                    <td className="px-4 py-1 text-right text-slate-700 font-medium">{Number(selectedReceipt.shipping_fee || 0).toLocaleString('vi-VN')} đ</td>
+                                                </tr>
+                                            )}
+                                            <tr className="border-t border-blue-200">
+                                                <td colSpan={7} className="px-4 py-3 text-right text-blue-900 font-semibold">Tổng thanh toán:</td>
+                                                <td className="px-4 py-3 text-right text-lg text-red-500 font-bold">{Number(selectedReceipt.total_amount || 0).toLocaleString('vi-VN')} đ</td>
                                             </tr>
                                         </tfoot>
                                     </table>

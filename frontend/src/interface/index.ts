@@ -430,6 +430,10 @@ export interface StockTransfer {
     total_items: number;
     total_quantity: number;
     total_value: number;
+    subtotal?: number;
+    vat_percent?: number;
+    vat_amount?: number;
+    shipping_fee?: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
     reason?: string;
     order_id?: number;

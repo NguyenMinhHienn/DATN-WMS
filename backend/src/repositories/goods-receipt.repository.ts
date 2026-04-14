@@ -133,14 +133,20 @@ export class GoodsReceiptRepository {
                 subtotal += item.quantity_expected * item.unit_cost;
             }
 
+            // === Tính VAT và phí vận chuyển ===
+            const vatPercent = dto.vat_percent !== undefined ? dto.vat_percent : 0.1; // Mặc định 10%
+            const vatAmount = Math.round(subtotal * vatPercent); // Tiền VAT
+            const shippingFee = dto.shipping_fee !== undefined ? dto.shipping_fee : 0; // Phí ship nhập thủ công
+            const totalAmount = subtotal + vatAmount + shippingFee; // Tổng cuối cùng
+
             const [result] = await connection.query<ResultSetHeader>(`
         INSERT INTO goods_receipts (
           receipt_number, receipt_type, supplier_id, source_warehouse_id,
           purchase_order_number, warehouse_id, receipt_date, expected_date,
-          total_items, total_quantity, subtotal, total_amount, status,
+          total_items, total_quantity, subtotal, vat_percent, tax_amount, shipping_cost, total_amount, status,
           shipping_method, notes, delivery_person, storekeeper, reference_document,
           created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
       `, [
                 receiptNumber,
                 dto.receipt_type,
@@ -153,7 +159,10 @@ export class GoodsReceiptRepository {
                 totalItems,
                 totalQuantity,
                 subtotal,
-                subtotal,
+                vatPercent,
+                vatAmount,
+                shippingFee,
+                totalAmount,
                 dto.shipping_method || null,
                 dto.notes || null,
                 dto.delivery_person || null,

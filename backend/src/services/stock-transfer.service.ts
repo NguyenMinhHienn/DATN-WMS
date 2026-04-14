@@ -161,6 +161,10 @@ export class StockTransferService {
             order_id: dto.order_id || dto.orderId,
             reason: dto.reason,
             notes: dto.notes,
+            subtotal: dto.subtotal,
+            vat_percent: dto.vat_percent,
+            vat_amount: dto.vat_amount,
+            shipping_fee: dto.shipping_fee,
             items: normalizedItems,
         };
     }
