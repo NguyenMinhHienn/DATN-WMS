@@ -78,6 +78,11 @@ const CreateTransfer: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
 
+    // Verify Modal state
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmChecked, setConfirmChecked] = useState(false);
+    const [itemsToConfirm, setItemsToConfirm] = useState<any[]>([]);
+
     // Autocomplete state
     const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
     const [searchTerms, setSearchTerms] = useState<Record<number, string>>({});
@@ -384,6 +389,18 @@ const CreateTransfer: React.FC = () => {
             }
         }
 
+        // IF ALL GOOD, SHOW CONFIRM MODAL
+        setItemsToConfirm(validItems);
+        setConfirmChecked(false);
+        setShowConfirmModal(true);
+    };
+
+    const executeSubmit = async () => {
+        if (!confirmChecked) {
+            alert('Vui lòng đánh dấu xác nhận trước khi gửi.');
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -422,7 +439,7 @@ const CreateTransfer: React.FC = () => {
                 vat_percent: vatPercent,
                 vat_amount: calculations.grandTotal * vatPercent,
                 shipping_fee: shippingFee,
-                items: validItems.map(item => ({
+                items: itemsToConfirm.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
                     quantity: item.quantity,
@@ -442,6 +459,7 @@ const CreateTransfer: React.FC = () => {
             setError(message);
         } finally {
             setSubmitting(false);
+            setShowConfirmModal(false);
         }
     };
 
@@ -1106,6 +1124,81 @@ const CreateTransfer: React.FC = () => {
                     </div>
                 </div>
             </form>
+
+            {/* ==================== APPROVE VERIFICATION MODAL ==================== */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 m-4 border border-blue-100 shadow-2xl">
+                        <div className="flex justify-between items-start mb-4 shrink-0">
+                            <div>
+                                <h2 className="text-xl font-bold text-emerald-600 font-bold">✅ Xác nhận tạo phiếu</h2>
+                                <p className="text-slate-600 mt-1">
+                                    {transferType === 'IMPORT' ? 'Tạo phiếu Nhập Kho' : transferType === 'EXPORT' ? 'Tạo phiếu Xuất Kho' : 'Tạo phiếu Chuyển Kho'}
+                                </p>
+                            </div>
+                            <button onClick={() => setShowConfirmModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
+                        </div>
+
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4 shrink-0">
+                            <h3 className="font-medium text-amber-700 mb-2">
+                                {transferType === 'IMPORT' 
+                                  ? '⚠️ Yêu cầu đánh giá thực tế hàng hoá nhập kho' 
+                                  : '⚠️ Yêu cầu đánh giá thực tế hàng hoá xuất kho'
+                                }
+                            </h3>
+                            <p className="text-sm text-amber-600/80">
+                                {transferType === 'IMPORT'
+                                  ? 'Vui lòng kiểm tra thực tế trong kho xem các mặt hàng sau đã được nhập đủ số lượng chưa trước khi gửi phiếu cho Quản lý.'
+                                  : 'Vui lòng kiểm tra chắc chắn các mặt hàng sau đã được lấy đủ số lượng xuất ra trước khi gửi phiếu cho Quản lý.'
+                                }
+                            </p>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto mb-4 border border-blue-100 rounded-xl">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-100 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left font-medium text-slate-700">Mã (SKU)</th>
+                                        <th className="px-4 py-3 text-left font-medium text-slate-700">Tên SP</th>
+                                        <th className="px-4 py-3 text-right font-medium text-slate-700">SL Yêu Cầu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {itemsToConfirm.map((item, idx) => (
+                                        <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50">
+                                            <td className="px-4 py-3 font-mono text-slate-600">{item.variant_sku || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-blue-900 font-medium">{item.product_name}</td>
+                                            <td className="px-4 py-3 text-right text-emerald-600 font-bold text-lg">{item.quantity}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="shrink-0 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                                    checked={confirmChecked}
+                                    onChange={(e) => setConfirmChecked(e.target.checked)}
+                                />
+                                <span className="text-slate-800 font-medium select-none">
+                                    Tôi xác nhận đã kiểm tra và số lượng hàng hoá thực tế hoàn toàn khớp với danh sách trên.
+                                </span>
+                            </label>
+                        </div>
+
+                        <div className="flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setShowConfirmModal(false)} className="btn btn-secondary">Hủy bỏ</button>
+                            <button onClick={executeSubmit} disabled={!confirmChecked || submitting}
+                                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 disabled:grayscale">
+                                {submitting ? 'Đang gửi...' : 'Xác nhận tạo phiếu'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

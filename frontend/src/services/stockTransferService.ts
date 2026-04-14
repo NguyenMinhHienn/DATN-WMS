@@ -93,6 +93,10 @@ export interface CreateStockTransferData {
     order_id?: number;
     reason?: string;
     notes?: string;
+    subtotal?: number;
+    vat_percent?: number;
+    vat_amount?: number;
+    shipping_fee?: number;
     items: CreateStockTransferItemData[];
 }
 

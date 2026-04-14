@@ -133,8 +133,8 @@ export class StockTransferService {
             product_image_url: item.product_image_url,
 
             // Số lượng và giá
-            quantity_requested: item.quantity_requested ?? item.quantity ?? 0,
-            unit_cost: item.unit_cost ?? item.unit_price ?? 0,
+            quantity_requested: Number(item.quantity_requested ?? item.quantity ?? 0),
+            unit_cost: Number(item.unit_cost ?? item.unit_price ?? 0),
 
             // Thông tin bổ sung
             batch_number: item.batch_number,
@@ -142,8 +142,18 @@ export class StockTransferService {
             notes: item.notes,
         }));
 
-        // Console log normalized DTO including order_id
-        console.log('[StockTransferService] Normalized DTO order_id:', dto.order_id);
+        const subtotal = Number(dto.subtotal ?? 0);
+        const vat_percent = Number(dto.vat_percent ?? 0);
+        const vat_amount = Number(dto.vat_amount ?? (subtotal * vat_percent));
+        const shipping_fee = Number(dto.shipping_fee ?? 0);
+
+        console.log('[StockTransferService] Normalized payload:', {
+            transfer_type,
+            subtotal,
+            vat_percent,
+            vat_amount,
+            shipping_fee
+        });
         
         return {
             transfer_type,
@@ -161,10 +171,10 @@ export class StockTransferService {
             order_id: dto.order_id || dto.orderId,
             reason: dto.reason,
             notes: dto.notes,
-            subtotal: dto.subtotal,
-            vat_percent: dto.vat_percent,
-            vat_amount: dto.vat_amount,
-            shipping_fee: dto.shipping_fee,
+            subtotal,
+            vat_percent,
+            vat_amount,
+            shipping_fee,
             items: normalizedItems,
         };
     }

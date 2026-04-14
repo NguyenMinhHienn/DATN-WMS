@@ -33,10 +33,6 @@ const StockManagement: React.FC = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [actionLoading, setActionLoading] = useState('');
-    // ========== APPROVAL VERIFICATION STATE ==========
-    const [showApproveModal, setShowApproveModal] = useState(false);
-    const [transferToApprove, setTransferToApprove] = useState<StockTransfer | null>(null);
-    const [approveConfirmed, setApproveConfirmed] = useState(false);
 
     // ========== LOAD TRANSFERS ==========
     const loadTransfers = useCallback(async () => {
@@ -84,33 +80,13 @@ const StockManagement: React.FC = () => {
         window.open(`http://localhost:3000/api/print/transfer/${id}`, '_blank');
     };
 
-    const handlePromptApprove = async (id: number) => {
-        setActionLoading(`prompt-approve-${id}`);
+    const handleApprove = async (id: number) => {
+        if (!confirm('Xác nhận duyệt phiếu?\n\nSau khi duyệt, tồn kho sẽ được cập nhật tự động.')) return;
+        setActionLoading(`approve-${id}`);
         try {
-            const detail = await stockTransferService.getTransferById(id);
-            setTransferToApprove(detail);
-            setApproveConfirmed(false);
-            setShowApproveModal(true);
-        } catch {
-            alert('Không thể tải thông tin phiếu để xét duyệt');
-        } finally {
-            setActionLoading('');
-        }
-    };
-
-    const executeApprove = async () => {
-        if (!transferToApprove) return;
-        if (!approveConfirmed) {
-            alert('Vui lòng đánh dấu xác thực đã kiểm tra hàng hoá trước khi duyệt.');
-            return;
-        }
-        setActionLoading(`approve-${transferToApprove.id}`);
-        try {
-            await stockTransferService.approveTransfer(transferToApprove.id);
+            await stockTransferService.approveTransfer(id);
             alert('✅ Đã duyệt phiếu! Tồn kho đã được cập nhật.');
             loadTransfers();
-            setShowApproveModal(false);
-            setTransferToApprove(null);
             setShowDetailModal(false);
         } catch (error: any) {
             alert(error.response?.data?.message || 'Lỗi khi duyệt phiếu');
@@ -278,10 +254,10 @@ const StockManagement: React.FC = () => {
                                                     </button>
                                                     {t.status === 'pending' && (
                                                         <>
-                                                            <button onClick={() => handlePromptApprove(t.id)}
-                                                                disabled={actionLoading === `prompt-approve-${t.id}`}
+                                                            <button onClick={() => handleApprove(t.id)}
+                                                                disabled={actionLoading === `approve-${t.id}`}
                                                                 className="text-emerald-600 font-bold hover:text-emerald-300 text-sm font-medium disabled:opacity-50 transition-colors">
-                                                                {actionLoading === `prompt-approve-${t.id}` ? '...' : '✓ Duyệt'}
+                                                                {actionLoading === `approve-${t.id}` ? '...' : '✓ Duyệt'}
                                                             </button>
                                                             <button onClick={() => { setSelectedTransfer(t); setShowRejectModal(true); }}
                                                                 className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
@@ -377,18 +353,14 @@ const StockManagement: React.FC = () => {
                                             <span className="text-slate-600 font-medium">Tổng tiền hàng:</span>
                                             <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.subtotal || selectedTransfer.total_value).toLocaleString('vi-VN')} đ</div>
                                         </div>
-                                        {Number(selectedTransfer.vat_amount) > 0 && (
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-slate-600 font-medium">VAT ({Number(selectedTransfer.vat_percent || 0) * 100}%):</span>
-                                                <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.vat_amount).toLocaleString('vi-VN')} đ</div>
-                                            </div>
-                                        )}
-                                        {Number(selectedTransfer.shipping_fee) > 0 && (
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-slate-600 font-medium">Phí vận chuyển:</span>
-                                                <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.shipping_fee).toLocaleString('vi-VN')} đ</div>
-                                            </div>
-                                        )}
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-slate-600 font-medium">VAT ({Number(selectedTransfer.vat_percent || 0) * 100}%):</span>
+                                            <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.vat_amount || 0).toLocaleString('vi-VN')} đ</div>
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-slate-600 font-medium">Phí vận chuyển:</span>
+                                            <div className="text-right text-slate-700 font-medium">{Number(selectedTransfer.shipping_fee || 0).toLocaleString('vi-VN')} đ</div>
+                                        </div>
                                         <div className="flex justify-between items-start pt-2 border-t border-slate-200 mt-2">
                                             <span className="font-semibold text-slate-700 mt-1">Tổng thanh toán:</span>
                                             <div className="text-right">
@@ -490,10 +462,28 @@ const StockManagement: React.FC = () => {
                                         </tbody>
                                         <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Tổng cộng:</td>
+                                                <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Cộng tiền hàng:</td>
                                                 <td className="px-4 py-3 text-right text-blue-900">{selectedTransfer.total_quantity}</td>
                                                 <td className="px-4 py-3"></td>
-                                                <td className="px-4 py-3 text-right text-lg" style={{ color: config.textColor }}>{Number(selectedTransfer.total_value).toLocaleString('vi-VN')}</td>
+                                                <td className="px-4 py-3 text-right">{Number(selectedTransfer.subtotal || selectedTransfer.total_value).toLocaleString('vi-VN')}</td>
+                                            </tr>
+                                            {Number(selectedTransfer.vat_amount) > 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-4 py-2 text-right text-slate-600">Thuế VAT ({Number(selectedTransfer.vat_percent || 0) * 100}%):</td>
+                                                    <td className="px-4 py-2 text-right">{Number(selectedTransfer.vat_amount).toLocaleString('vi-VN')}</td>
+                                                </tr>
+                                            )}
+                                            {Number(selectedTransfer.shipping_fee) > 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-4 py-2 text-right text-slate-600">Phí vận chuyển:</td>
+                                                    <td className="px-4 py-2 text-right">{Number(selectedTransfer.shipping_fee).toLocaleString('vi-VN')}</td>
+                                                </tr>
+                                            )}
+                                            <tr className="bg-emerald-50 border-t-2 border-emerald-200 font-bold">
+                                                <td colSpan={4} className="px-4 py-3 text-right text-emerald-900 text-lg uppercase">Tổng cộng thanh toán:</td>
+                                                <td className="px-4 py-3 text-right text-2xl text-emerald-600">
+                                                    {Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ
+                                                </td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -506,8 +496,8 @@ const StockManagement: React.FC = () => {
                             {selectedTransfer.status === 'pending' && (
                                 <>
                                     <button onClick={() => setShowRejectModal(true)} className="btn btn-danger">❌ Từ chối</button>
-                                    <button onClick={() => handlePromptApprove(selectedTransfer.id)}
-                                        disabled={actionLoading === `prompt-approve-${selectedTransfer.id}`}
+                                    <button onClick={() => handleApprove(selectedTransfer.id)}
+                                        disabled={actionLoading === `approve-${selectedTransfer.id}`}
                                         className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-blue-900 rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50">
                                         ✅ Duyệt phiếu
                                     </button>
@@ -537,79 +527,6 @@ const StockManagement: React.FC = () => {
                             <button onClick={handleReject} disabled={!rejectReason.trim() || actionLoading.startsWith('reject')}
                                 className="btn btn-danger disabled:opacity-50">
                                 {actionLoading.startsWith('reject') ? 'Đang xử lý...' : 'Xác nhận từ chối'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ==================== APPROVE VERIFICATION MODAL ==================== */}
-            {showApproveModal && transferToApprove && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 m-4 border border-blue-100 shadow-2xl">
-                        <div className="flex justify-between items-start mb-4 shrink-0">
-                            <div>
-                                <h2 className="text-xl font-bold text-emerald-600 font-bold">✅ Xác thực duyệt phiếu</h2>
-                                <p className="text-slate-600 mt-1">Phiếu: <strong className="text-blue-900">{transferToApprove.transfer_number}</strong></p>
-                            </div>
-                            <button onClick={() => setShowApproveModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl">×</button>
-                        </div>
-
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4 shrink-0">
-                            <h3 className="font-medium text-amber-700 mb-2">
-                                {transferToApprove.transfer_type === 'IMPORT' 
-                                  ? '⚠️ Yêu cầu xác thực hàng hoá nhập kho' 
-                                  : '⚠️ Yêu cầu xác thực hàng hoá xuất kho'
-                                }
-                            </h3>
-                            <p className="text-sm text-amber-600/80">
-                                {transferToApprove.transfer_type === 'IMPORT'
-                                  ? 'Vui lòng kiểm tra thực tế trong kho xem các mặt hàng sau đã được nhập đủ số lượng chưa trước khi phê duyệt.'
-                                  : 'Vui lòng kiểm tra chắc chắn các mặt hàng sau đã được chuẩn bị xuất ra đúng số lượng trước khi phê duyệt.'
-                                }
-                            </p>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto mb-4 border border-blue-100 rounded-xl">
-                            <table className="w-full text-sm">
-                                <thead className="bg-slate-100 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left font-medium text-slate-700">Mã (SKU)</th>
-                                        <th className="px-4 py-3 text-left font-medium text-slate-700">Tên SP</th>
-                                        <th className="px-4 py-3 text-right font-medium text-slate-700">SL Yêu Cầu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(transferToApprove.items || []).map((item, idx) => (
-                                        <tr key={item.id || idx} className="border-t border-slate-100 hover:bg-slate-50">
-                                            <td className="px-4 py-3 font-mono text-slate-600">{item.sku}</td>
-                                            <td className="px-4 py-3 text-blue-900 font-medium">{item.product_name}</td>
-                                            <td className="px-4 py-3 text-right text-emerald-600 font-bold text-lg">{item.quantity_requested}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="shrink-0 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
-                                    checked={approveConfirmed}
-                                    onChange={(e) => setApproveConfirmed(e.target.checked)}
-                                />
-                                <span className="text-slate-800 font-medium select-none">
-                                    Tôi xác nhận đã kiểm tra và số lượng thực tế {transferToApprove.transfer_type === 'IMPORT' ? 'nhập vào' : 'xuất ra'} hoàn toàn khớp với danh sách trên.
-                                </span>
-                            </label>
-                        </div>
-
-                        <div className="flex justify-end gap-3 shrink-0">
-                            <button onClick={() => setShowApproveModal(false)} className="btn btn-secondary">Hủy</button>
-                            <button onClick={executeApprove} disabled={!approveConfirmed || actionLoading.startsWith('approve')}
-                                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 disabled:grayscale">
-                                {actionLoading.startsWith('approve') ? 'Đang duyệt...' : 'Tiến hành duyệt'}
                             </button>
                         </div>
                     </div>
