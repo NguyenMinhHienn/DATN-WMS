@@ -106,11 +106,13 @@ export class ReportRepository {
   ): Promise<MovementReport[]> {
     let query = `
       SELECT 
+        il.created_at,
         DATE(il.created_at) as date,
         il.movement_type,
         p.name as product_name,
         w.name as warehouse_name,
         il.quantity_change,
+        il.quantity_after,
         il.reference_number,
         u.full_name as performed_by
       FROM inventory_logs il

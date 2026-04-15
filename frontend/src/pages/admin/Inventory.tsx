@@ -312,7 +312,6 @@ const InventoryPage: React.FC = () => {
                                                 product_id: item.product_id,
                                                 product_name: item.product_name,
                                                 sku: item.sku,
-                                                warehouse_name: item.warehouse_name,
                                                 total_on_hand: 0,
                                                 total_reserved: 0,
                                                 total_available: 0,
@@ -334,6 +333,12 @@ const InventoryPage: React.FC = () => {
                                         return groups;
                                     }, {} as Record<number, any>)).map((group: any) => {
                                         const isExpanded = expandedProducts.includes(group.product_id);
+                                        
+                                        // Calculate distinct variants and warehouses
+                                        const distinctVariants = new Set(group.variants.map((v: any) => v.product_variant_id)).size;
+                                        const distinctWarehouses = new Set<string>(group.variants.map((v: any) => v.warehouse_name));
+                                        const warehouseDisplay = distinctWarehouses.size > 1 ? 'Nhiều kho' : Array.from(distinctWarehouses)[0] || '-';
+
                                         return (
                                             <React.Fragment key={`group-${group.product_id}`}>
                                                 {/* Summary Row for Product */}
@@ -349,10 +354,14 @@ const InventoryPage: React.FC = () => {
                                                         </span>
                                                         <div>
                                                             <p className="font-medium text-blue-900">{group.product_name}</p>
-                                                            <p className="text-xs text-blue-600 font-mono">{group.sku} <span className="text-slate-500">• {group.variants.length} biến thể</span></p>
+                                                            <p className="text-xs text-blue-600 font-mono flex gap-2 items-center">
+                                                                <span>{group.sku}</span>
+                                                                <span className="text-slate-500">• {distinctVariants || 1} biến thể</span>
+                                                                <span className="text-slate-500">• {group.variants.length} lô</span>
+                                                            </p>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm text-slate-700 font-medium">{group.warehouse_name}</td>
+                                                    <td className="py-4 px-6 text-sm text-slate-700 font-medium">{warehouseDisplay}</td>
                                                     <td className="py-4 px-6 text-sm text-right font-medium text-blue-900">{group.total_on_hand.toLocaleString()}</td>
                                                     <td className="py-4 px-6 text-sm text-right text-amber-400">{group.total_reserved > 0 ? group.total_reserved.toLocaleString() : '0'}</td>
                                                     <td className="py-4 px-6 text-sm text-right font-bold text-blue-600">{group.total_available.toLocaleString()}</td>
@@ -373,18 +382,21 @@ const InventoryPage: React.FC = () => {
                                                 {isExpanded && group.variants.map((variant: any) => (
                                                     <tr key={variant.id} className="border-b border-slate-200/10 bg-white/30 hover:bg-slate-100 transition-colors">
                                                         <td className="py-3 px-6 pl-12 flex items-center gap-3">
-                                                            <div>
-                                                                {variant.variant_label ? (
-                                                                    <p className="text-sm text-blue-600">
-                                                                        ↳ {variant.variant_label}
-                                                                        {variant.variant_sku && <span className="text-slate-500 ml-1">({variant.variant_sku})</span>}
-                                                                    </p>
-                                                                ) : (
-                                                                    <p className="text-sm text-blue-600">↳ Chi tiết</p>
+                                                            <div className="flex flex-col">
+                                                                <p className="text-sm font-medium text-blue-700">
+                                                                    ↳ {variant.variant_label ? variant.variant_label : 'Bản tiêu chuẩn'}
+                                                                </p>
+                                                                {variant.variant_sku && (
+                                                                    <p className="text-xs text-slate-500 font-mono mt-0.5">Mã: {variant.variant_sku}</p>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="py-3 px-6 text-xs text-slate-600">{variant.warehouse_name}</td>
+                                                        <td className="py-3 px-6 text-xs text-slate-600">
+                                                            <div className="font-medium text-indigo-700">{variant.warehouse_name}</div>
+                                                            {variant.location_code && (
+                                                                <div className="text-[10px] uppercase text-slate-500 mt-0.5 whitespace-nowrap">Vị trí: {variant.location_code}</div>
+                                                            )}
+                                                        </td>
                                                         <td className="py-3 px-6 text-sm text-right font-medium text-slate-700 font-medium">{variant.onHand.toLocaleString()}</td>
                                                         <td className="py-3 px-6 text-sm text-right text-amber-500/80">{variant.reserved > 0 ? variant.reserved.toLocaleString() : '0'}</td>
                                                         <td className="py-3 px-6 text-sm text-right font-bold text-blue-600">{variant.available.toLocaleString()}</td>

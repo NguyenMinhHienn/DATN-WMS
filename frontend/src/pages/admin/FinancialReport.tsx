@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { reportService } from '../../services/reportService';
 import { MonthlyReportItem } from '../../interface';
+import { useReactToPrint } from 'react-to-print';
+import * as XLSX from 'xlsx';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -249,19 +251,104 @@ const FinancialReport: React.FC = () => {
         }
     };
 
+    const componentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({
+        contentRef: componentRef,
+        documentTitle: `Bao_Cao_Tai_Chinh_Nam_${selectedYear}`,
+    });
+
+    const exportYearlyExcel = () => {
+        const wsData = monthlyData.map(m => ({
+            'Tháng': MONTH_LABELS[m.month - 1],
+            'Doanh thu': m.revenue,
+            'Giá vốn': m.cost,
+            'Lợi nhuận': m.profit,
+            'Biên lợi nhuận (%)': m.revenue > 0 ? ((m.profit / m.revenue) * 100).toFixed(1) : 0
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(XLSX.utils.book_new(), ws, 'Tổng kết Năm');
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Tổng kết Năm');
+        XLSX.writeFile(wb, `Bao_Cao_Tai_Chinh_${selectedYear}.xlsx`);
+    };
+
+    const exportMonthlyDetailExcel = () => {
+        if (!detailData) return;
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Sản phẩm
+        if (detailData.products?.length) {
+            const productData = detailData.products.map((p: any) => ({
+                'Sản phẩm': p.product_name,
+                'Số lượng bán': p.quantity_sold,
+                'Doanh thu': p.revenue,
+                'Giá vốn': p.cost,
+                'Lợi nhuận': p.profit
+            }));
+            const wsProducts = XLSX.utils.json_to_sheet(productData);
+            XLSX.utils.book_append_sheet(wb, wsProducts, 'Sản phẩm');
+        }
+
+        // Sheet 2: Đơn hàng
+        if (detailData.orders?.length) {
+            const orderData = detailData.orders.map((o: any) => ({
+                'Mã đơn': o.code,
+                'Ngày tạo': new Date(o.date).toLocaleDateString('vi-VN'),
+                'Loại đơn': o.order_type === 'online' ? 'Online' : 'Nội bộ',
+                'Khách hàng': o.customer_name || '',
+                'SĐT': o.customer_phone || '',
+                'Địa chỉ': o.shipping_address || '',
+                'Tổng tiền': o.total_amount,
+                'Trạng thái': o.status,
+                'Thanh toán': o.payment_method,
+                'TT Thanh toán': o.payment_status === 'paid' ? 'Đã thu' : 'Chưa thu',
+                'Số lượng SP': o.total_qty
+            }));
+            const wsOrders = XLSX.utils.json_to_sheet(orderData);
+            XLSX.utils.book_append_sheet(wb, wsOrders, 'Đơn hàng');
+        }
+
+        XLSX.writeFile(wb, `Chi_Tiet_Thang_${selectedMonth}_${selectedYear}.xlsx`);
+    };
+
     return (
-        <div className="animate-fadeIn min-h-screen">
+        <div className="animate-fadeIn min-h-screen pb-10" ref={componentRef}>
+            {/* Header Print Note - Only shows when printing */}
+            <div className="hidden print:block mb-8 text-center border-b-2 border-slate-800 pb-4">
+                <h1 className="text-2xl font-bold uppercase">Công Ty TNHH DATN WAREHOUSE</h1>
+                <p className="text-sm">Báo cáo tình hình tài chính nội bộ</p>
+                <p className="text-sm">Ngày lập: {new Date().toLocaleDateString('vi-VN')}</p>
+            </div>
+
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-8 print:mb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold">
+                        <h1 className="text-3xl font-bold print:hidden">
                             <span className="gradient-text">Báo cáo tài chính</span>
                         </h1>
-                        <p className="text-slate-600 mt-1">Chi tiết doanh thu, giá vốn & lợi nhuận theo từng tháng</p>
+                        <h1 className="text-2xl font-bold hidden print:block text-slate-800">
+                            Chi tiết tài chính năm {selectedYear}
+                        </h1>
+                        <p className="text-slate-600 mt-1 print:hidden">Chi tiết doanh thu, giá vốn & lợi nhuận theo từng tháng</p>
                     </div>
                     
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 print:hidden">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handlePrint}
+                                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium flex items-center gap-2 transition-all"
+                            >
+                                🖨️ In Báo Cáo
+                            </button>
+                            <button
+                                onClick={exportYearlyExcel}
+                                className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-medium flex items-center gap-2 transition-all"
+                            >
+                                📊 Tải Excel Năm
+                            </button>
+                        </div>
                         <div className="flex items-center gap-3">
                             <label className="text-slate-600 text-sm">Năm:</label>
                             <select
@@ -479,12 +566,21 @@ const FinancialReport: React.FC = () => {
                                 </h2>
                                 <p className="text-slate-600 mt-1">Danh sách các giao dịch phát sinh trong tháng</p>
                             </div>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-slate-600 hover:text-blue-900 hover:bg-slate-100 transition-all"
-                            >
-                                ✕
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={exportMonthlyDetailExcel}
+                                    className="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all font-medium flex items-center gap-2 text-sm shadow-sm"
+                                    title="Xuất chi tiết tháng này ra file Excel"
+                                >
+                                    📊 Xuất Excel
+                                </button>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-slate-600 hover:text-blue-900 hover:bg-slate-100 transition-all"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         </div>
 
                         {/* Modal Tabs - chỉ 2 tab */}

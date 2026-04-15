@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { reportService } from '../../services/reportService';
+import { useReactToPrint } from 'react-to-print';
+import * as XLSX from 'xlsx';
 import {
     Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title,
     Tooltip as ChartTooltip, Legend, ArcElement, PointElement, LineElement, Filler
@@ -48,6 +50,7 @@ const Reports: React.FC = () => {
     const [kpi, setKpi] = useState<any>(null);
     const [alerts, setAlerts] = useState<any>(null);
     const [movementData, setMovementData] = useState<any>(null);
+    const [detailedMovements, setDetailedMovements] = useState<any[]>([]);
     const [topSelling, setTopSelling] = useState<any[]>([]);
     const [inventoryData, setInventoryData] = useState<any[]>([]);
     const [stockByProduct, setStockByProduct] = useState<any[]>([]);
@@ -73,8 +76,12 @@ const Reports: React.FC = () => {
             // Load tab-specific data
             switch (activeTab) {
                 case 'movements': {
-                    const data = await reportService.getMovementSummary(startDate, endDate);
+                    const [data, detailedData] = await Promise.all([
+                        reportService.getMovementSummary(startDate, endDate),
+                        reportService.getMovementReport(startDate, endDate)
+                    ]);
                     setMovementData(data);
+                    setDetailedMovements(detailedData);
                     break;
                 }
                 case 'topSelling': {
@@ -128,6 +135,7 @@ const Reports: React.FC = () => {
         setStartDate(start);
         setEndDate(end);
     };
+
 
     // ==================== CHARTS ====================
     const movementChartData = useMemo(() => {
@@ -186,9 +194,109 @@ const Reports: React.FC = () => {
         };
     }, [stockByCategory]);
 
+    // ==================== PRINT & EXPORT ====================
+    const componentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({
+        contentRef: componentRef,
+        documentTitle: `Bao_Cao_Phan_Tich_${getToday()}`,
+    });
+
+    const exportCurrentTabExcel = () => {
+        const wb = XLSX.utils.book_new();
+        let ws: XLSX.WorkSheet | null = null;
+        let sheetName = 'Report';
+
+        if (activeTab === 'movements' && movementData?.daily) {
+            sheetName = 'Bien_Dong_Ton_Kho';
+            const data = movementData.daily.map((d: any) => ({
+                'Ngày': typeof d.date === 'string' && d.date.includes('T') ? d.date.split('T')[0] : d.date,
+                'Tổng Nhập': d.total_in,
+                'Tổng Xuất': d.total_out
+            }));
+            ws = XLSX.utils.json_to_sheet(data);
+
+            if(detailedMovements.length > 0) {
+                const detailedData = detailedMovements.map((m: any) => ({
+                    'Ngày giờ': new Date(m.date || m.created_at).toLocaleString('vi-VN'),
+                    'Loại phiếu': m.movement_type === 'import' ? 'Nhập kho' : m.movement_type === 'export' ? 'Xuất kho' : m.movement_type === 'transfer' ? 'Chuyển kho' : m.movement_type || (m.quantity_change > 0 ? 'Nhập' : 'Xuất'),
+                    'Mã phiếu': m.reference_number || m.code || '-',
+                    'Sản phẩm': m.product_name,
+                    'Kho': m.warehouse_name,
+                    'Biến động': m.quantity_change || m.quantity,
+                    'Tồn cuối': m.quantity_after !== undefined ? m.quantity_after : '-'
+                }));
+                const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
+                XLSX.utils.book_append_sheet(wb, wsDetailed, 'Chi_Tiet_Giao_Dich');
+            }
+        }
+        else if (activeTab === 'topSelling' && topSelling.length > 0) {
+            sheetName = 'Top_Ban_Chay';
+            const data = topSelling.map(p => ({
+                'Mã SP': p.sku,
+                'Tên sản phẩm': p.product_name,
+                'SL Bán': p.total_sold,
+                'Doanh thu': p.total_revenue
+            }));
+            ws = XLSX.utils.json_to_sheet(data);
+        }
+        else if (activeTab === 'inventory' && inventoryData.length > 0) {
+            sheetName = 'Bao_Cao_Ton_Kho';
+            const data = inventoryData.map(i => ({
+                'Mã SP': i.sku,
+                'Tên sản phẩm': i.product_name,
+                'Kho': i.warehouse_name,
+                'Tồn kho': i.quantity_on_hand,
+                'Khả dụng': i.quantity_available,
+                'Giá nhập TB': i.unit_cost,
+                'Tổng giá trị': i.total_value
+            }));
+            ws = XLSX.utils.json_to_sheet(data);
+        }
+        else if (activeTab === 'stockValue') {
+            sheetName = 'Gia_Tri_Kho';
+            // Export By Product
+            if (stockByProduct.length > 0) {
+                const pbData = stockByProduct.map(p => ({
+                    'Mã SP': p.sku,
+                    'Tên SP': p.product_name,
+                    'Danh mục': p.category_name,
+                    'Số lượng tồn': p.quantity,
+                    'Giá nhập TB': p.avg_cost,
+                    'Tổng giá trị': p.total_value
+                }));
+                const wsPb = XLSX.utils.json_to_sheet(pbData);
+                XLSX.utils.book_append_sheet(wb, wsPb, 'GiaTri_TheoSP');
+                ws = wsPb; // just to pass the check
+            }
+            // Add By Category to same workbook if exists
+            if (stockByCategory.length > 0) {
+                const catData = stockByCategory.map(c => ({
+                    'Danh mục': c.category_name,
+                    'Số SP Khác nhau': c.product_count,
+                    'Tổng SL tồn': c.total_quantity,
+                    'Tổng giá trị': c.total_value
+                }));
+                const wsCat = XLSX.utils.json_to_sheet(catData);
+                XLSX.utils.book_append_sheet(wb, wsCat, 'GiaTri_TheoDanhMuc');
+                ws = wsCat;
+            }
+        }
+
+        if (!ws) {
+            alert('Không có dữ liệu để xuất hoặc dữ liệu đang tải!');
+            return;
+        }
+
+        if (activeTab !== 'stockValue') {
+             XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        }
+        
+        XLSX.writeFile(wb, `${sheetName}_${getToday()}.xlsx`);
+    };
+
     // ==================== RENDER ====================
     return (
-        <div className="animate-fadeIn min-h-screen p-6">
+        <div className="animate-fadeIn min-h-screen p-6" ref={componentRef}>
             {/* ===== HEADER + QUICK FILTERS ===== */}
             <div className="mb-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -204,8 +312,24 @@ const Reports: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Quick date buttons + custom date */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-col items-end gap-3 print:hidden">
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handlePrint}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium flex items-center gap-2 transition-all text-sm h-10"
+                            >
+                                🖨️ In Báo Cáo Nhanh
+                            </button>
+                            <button
+                                onClick={exportCurrentTabExcel}
+                                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-medium flex items-center gap-2 transition-all text-sm h-10"
+                            >
+                                📊 Xuất Excel (Tab này)
+                            </button>
+                        </div>
+
+                        {/* Quick date buttons + custom date */}
+                        <div className="flex flex-wrap items-center gap-2">
                         {quickFilters.map(f => (
                             <button key={f.label} onClick={() => applyQuickFilter(f.start, f.end)}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${startDate === f.start && endDate === f.end
@@ -222,6 +346,7 @@ const Reports: React.FC = () => {
                             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                                 className="text-sm border-none outline-none bg-transparent w-32" />
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -323,7 +448,7 @@ const Reports: React.FC = () => {
             )}
 
             {/* ===== TAB NAVIGATION ===== */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-6 print:hidden">
                 {([
                     { key: 'movements' as TabKey, label: '📊 Biến động', desc: 'Nhập/Xuất theo ngày' },
                     { key: 'topSelling' as TabKey, label: '🏆 Bán chạy', desc: 'Top sản phẩm' },
@@ -388,15 +513,75 @@ const Reports: React.FC = () => {
 
                                 {/* Chart */}
                                 {movementChartData ? (
-                                    <div className="h-80">
-                                        <Bar data={movementChartData} options={{
-                                            maintainAspectRatio: false, responsive: true,
-                                            plugins: { legend: { labels: { color: '#334155', usePointStyle: true } } },
-                                            scales: {
-                                                x: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
-                                                y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
-                                            }
-                                        }} />
+                                    <div className="space-y-8">
+                                        <div className="h-80">
+                                            <Bar data={movementChartData} options={{
+                                                maintainAspectRatio: false, responsive: true,
+                                                plugins: { legend: { labels: { color: '#334155', usePointStyle: true } } },
+                                                scales: {
+                                                    x: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
+                                                    y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
+                                                }
+                                            }} />
+                                        </div>
+
+                                        {/* Detailed Table */}
+                                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                                    <span>📜</span> Lịch sử Giao dịch
+                                                </h3>
+                                                <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md">
+                                                    {detailedMovements.length} bản ghi
+                                                </span>
+                                            </div>
+                                            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                                                        <tr>
+                                                            <th className="py-3 px-4">Ngày giờ</th>
+                                                            <th className="py-3 px-4">Loại phiếu</th>
+                                                            <th className="py-3 px-4">Mã phiếu</th>
+                                                            <th className="py-3 px-4">Sản phẩm</th>
+                                                            <th className="py-3 px-4">Kho</th>
+                                                            <th className="py-3 px-4 text-right">Biến động</th>
+                                                            <th className="py-3 px-4 text-right">Tồn cuối</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {detailedMovements.length > 0 ? (
+                                                            detailedMovements.map((m: any, idx) => (
+                                                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                                    <td className="py-2.5 px-4 text-slate-600 whitespace-nowrap">
+                                                                        {new Date(m.date || m.created_at).toLocaleString('vi-VN')}
+                                                                    </td>
+                                                                    <td className="py-2.5 px-4">
+                                                                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${m.quantity > 0 || m.quantity_change > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                            {m.movement_type === 'import' ? 'Nhập kho' : m.movement_type === 'export' ? 'Xuất kho' : m.movement_type === 'transfer' ? 'Chuyển kho' : m.movement_type || (m.quantity_change > 0 ? 'Nhập' : 'Xuất')}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="py-2.5 px-4 font-mono text-xs text-blue-600 font-medium">{m.reference_number || m.code || '-'}</td>
+                                                                    <td className="py-2.5 px-4 font-medium text-slate-700">{m.product_name}</td>
+                                                                    <td className="py-2.5 px-4 text-slate-500 text-xs">{m.warehouse_name}</td>
+                                                                    <td className={`py-2.5 px-4 text-right font-bold ${m.quantity_change > 0 || m.quantity > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                                        {m.quantity_change > 0 || m.quantity > 0 ? '+' : ''}{m.quantity_change || m.quantity}
+                                                                    </td>
+                                                                    <td className="py-2.5 px-4 text-right text-slate-600 font-medium">
+                                                                        {m.quantity_after !== undefined ? m.quantity_after : '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan={7} className="py-6 text-center text-slate-400 italic">
+                                                                    Không có giao dịch nào trong thời gian này
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-slate-400">
