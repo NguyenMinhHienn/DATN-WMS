@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
 import { MonthlyReportItem } from '../../interface';
 import {
@@ -20,13 +19,10 @@ const MONTH_LABELS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5'
 
 interface MonthlyDetailData {
     orders: any[];
-    receipts: any[];
-    issues: any[];
     products: any[];
 }
 
 const FinancialReport: React.FC = () => {
-    const navigate = useNavigate();
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([]);
@@ -37,7 +33,12 @@ const FinancialReport: React.FC = () => {
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const [detailData, setDetailData] = useState<MonthlyDetailData | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'orders' | 'receipts' | 'issues' | 'products'>('products');
+    const [activeTab, setActiveTab] = useState<'orders' | 'products'>('products');
+
+    // Order detail expansion
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    const [orderItems, setOrderItems] = useState<Record<string, any[]>>({});
+    const [orderItemsLoading, setOrderItemsLoading] = useState<string | null>(null);
 
     // Generate year options (current year and 5 years back)
     const yearOptions: number[] = [];
@@ -68,13 +69,15 @@ const FinancialReport: React.FC = () => {
         setIsModalOpen(true);
         setDetailLoading(true);
         setActiveTab('products');
-        setDetailData(null); // Reset dữ liệu cũ
+        setDetailData(null);
+        setExpandedOrderId(null);
+        setOrderItems({});
         try {
             const data = await reportService.getMonthlyDetail(selectedYear, month);
             if (data) {
                 setDetailData(data);
             } else {
-                setDetailData({ orders: [], receipts: [], issues: [], products: [] });
+                setDetailData({ orders: [], products: [] });
             }
         } catch (error: any) {
             console.error('Failed to load monthly detail:', error);
@@ -83,6 +86,29 @@ const FinancialReport: React.FC = () => {
             setIsModalOpen(false);
         } finally {
             setDetailLoading(false);
+        }
+    };
+
+    const handleExpandOrder = async (order: any) => {
+        const key = `${order.order_type}-${order.id}`;
+        if (expandedOrderId === key) {
+            setExpandedOrderId(null);
+            return;
+        }
+        setExpandedOrderId(key);
+
+        // Load items if not cached
+        if (!orderItems[key]) {
+            setOrderItemsLoading(key);
+            try {
+                const items = await reportService.getOrderItems(order.id, order.order_type);
+                setOrderItems(prev => ({ ...prev, [key]: items }));
+            } catch (e) {
+                console.error('Failed to load order items:', e);
+                setOrderItems(prev => ({ ...prev, [key]: [] }));
+            } finally {
+                setOrderItemsLoading(null);
+            }
         }
     };
 
@@ -103,15 +129,37 @@ const FinancialReport: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const statusMap: Record<string, { label: string, class: string }> = {
-            'pending': { label: 'Chờ duyệt', class: 'bg-amber-500/20 text-amber-400' },
-            'approved': { label: 'Đã duyệt', class: 'bg-emerald-500/20 text-emerald-600 font-bold' },
-            'completed': { label: 'Hoàn thành', class: 'bg-blue-500/20 text-blue-400' },
-            'delivered': { label: 'Đã giao', class: 'bg-emerald-500/20 text-emerald-600 font-bold' },
-            'cancelled': { label: 'Đã hủy', class: 'bg-red-500/20 text-red-400' },
+            'pending': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-700' },
+            'confirmed': { label: 'Đã xác nhận', class: 'bg-blue-100 text-blue-700' },
+            'approved': { label: 'Đã duyệt', class: 'bg-emerald-100 text-emerald-700 font-bold' },
+            'completed': { label: 'Hoàn thành', class: 'bg-blue-100 text-blue-700' },
+            'shipping': { label: 'Đang giao', class: 'bg-sky-100 text-sky-700' },
+            'delivered': { label: 'Đã giao', class: 'bg-emerald-100 text-emerald-700 font-bold' },
+            'cancelled': { label: 'Đã hủy', class: 'bg-red-100 text-red-600' },
+            'failed': { label: 'Thất bại', class: 'bg-red-100 text-red-600' },
         };
         const s = status.toLowerCase();
         const config = statusMap[s] || { label: status, class: 'bg-slate-100 text-slate-600' };
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.class}`}>{config.label}</span>;
+        return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.class}`}>{config.label}</span>;
+    };
+
+    const getOrderTypeBadge = (type: string) => {
+        if (type === 'online') {
+            return <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700">🌐 Online</span>;
+        }
+        return <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-orange-100 text-orange-700">🏢 Nội bộ</span>;
+    };
+
+    const getPaymentBadge = (method: string, paymentStatus: string) => {
+        const isPaid = paymentStatus === 'paid';
+        if (method === 'BANKING') {
+            return <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                🏦 {isPaid ? 'Đã thanh toán' : 'Chờ thanh toán'}
+            </span>;
+        }
+        return <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${isPaid ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+            💵 COD {isPaid ? '(Đã thu)' : ''}
+        </span>;
     };
 
     // Totals
@@ -162,7 +210,7 @@ const FinancialReport: React.FC = () => {
         plugins: {
             legend: {
                 position: 'top' as const,
-                labels: { color: '#e2e8f0', usePointStyle: true, padding: 20 },
+                labels: { color: '#475569', usePointStyle: true, padding: 20 },
             },
             tooltip: {
                 backgroundColor: 'rgba(15, 23, 42, 0.95)',
@@ -181,12 +229,12 @@ const FinancialReport: React.FC = () => {
         scales: {
             x: {
                 grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                ticks: { color: '#94a3b8' },
+                ticks: { color: '#64748b' },
             },
             y: {
                 grid: { color: 'rgba(148, 163, 184, 0.1)' },
                 ticks: {
-                    color: '#94a3b8',
+                    color: '#64748b',
                     callback: function (value: any) {
                         return new Intl.NumberFormat('vi-VN', { notation: 'compact', compactDisplay: 'short' }).format(value);
                     }
@@ -201,35 +249,12 @@ const FinancialReport: React.FC = () => {
         }
     };
 
-    const handleNavigateToOrder = (orderId: string) => {
-        // Extract number if it's ORD-X
-        const id = orderId.replace('ORD-', '');
-        navigate(`/admin/orders?search=${id}`);
-        setIsModalOpen(false);
-    };
-
-    const handleNavigateToReceipt = (code: string) => {
-        navigate(`/admin/stock-management?search=${code}`);
-        setIsModalOpen(false);
-    };
-
-    const handleNavigateToIssue = (code: string) => {
-        navigate(`/admin/stock-management?search=${code}`);
-        setIsModalOpen(false);
-    };
-
     return (
         <div className="animate-fadeIn min-h-screen">
             {/* Header */}
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <button
-                            onClick={() => navigate('/admin/dashboard')}
-                            className="text-slate-600 hover:text-blue-900 text-sm flex items-center gap-1 mb-2 transition-colors"
-                        >
-                            ← Quay lại Dashboard
-                        </button>
                         <h1 className="text-3xl font-bold">
                             <span className="gradient-text">Báo cáo tài chính</span>
                         </h1>
@@ -373,21 +398,21 @@ const FinancialReport: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="py-4 px-4 text-right">
-                                                <span className={`font-medium ${hasData ? 'text-blue-400' : 'text-slate-600'}`}>
+                                                <span className={`font-medium ${hasData ? 'text-blue-600' : 'text-slate-400'}`}>
                                                     {formatCurrency(item.revenue)}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-4 text-right">
-                                                <span className={`font-medium ${hasData ? 'text-amber-400' : 'text-slate-600'}`}>
+                                                <span className={`font-medium ${hasData ? 'text-amber-600' : 'text-slate-400'}`}>
                                                     {formatCurrency(item.cost)}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-4 text-right">
                                                 <span className={`font-bold ${isNegative
-                                                        ? 'text-red-400'
+                                                        ? 'text-red-500'
                                                         : hasData
-                                                            ? 'text-emerald-600 font-bold'
-                                                            : 'text-slate-600'
+                                                            ? 'text-emerald-600'
+                                                            : 'text-slate-400'
                                                     }`}>
                                                     {isNegative && '⚠️ '}
                                                     {formatCurrency(profit)}
@@ -395,10 +420,10 @@ const FinancialReport: React.FC = () => {
                                             </td>
                                             <td className="py-4 px-4 text-right">
                                                 <span className={`text-sm px-2 py-1 rounded-lg ${isNegative
-                                                        ? 'bg-red-500/20 text-red-300'
+                                                        ? 'bg-red-100 text-red-600'
                                                         : hasData
-                                                            ? 'bg-emerald-500/20 text-emerald-300'
-                                                            : 'hover:bg-blue-50 text-slate-500'
+                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                            : 'text-slate-400'
                                                     }`}>
                                                     {margin}%
                                                 </span>
@@ -413,21 +438,21 @@ const FinancialReport: React.FC = () => {
                                         <span className="text-blue-900 font-bold text-base">📊 TỔNG CỘNG</span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
-                                        <span className="text-blue-300 font-bold text-base">{formatCurrency(totalRevenue)}</span>
+                                        <span className="text-blue-600 font-bold text-base">{formatCurrency(totalRevenue)}</span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
-                                        <span className="text-amber-300 font-bold text-base">{formatCurrency(totalCost)}</span>
+                                        <span className="text-amber-600 font-bold text-base">{formatCurrency(totalCost)}</span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
-                                        <span className={`font-bold text-base ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-600 font-bold'}`}>
+                                        <span className={`font-bold text-base ${totalProfit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                                             {totalProfit < 0 && '⚠️ '}
                                             {formatCurrency(totalProfit)}
                                         </span>
                                     </td>
                                     <td className="py-4 px-4 text-right">
                                         <span className={`font-bold text-sm px-3 py-1.5 rounded-lg ${totalProfit < 0
-                                                ? 'bg-red-500/30 text-red-300'
-                                                : 'bg-emerald-500/30 text-emerald-300'
+                                                ? 'bg-red-100 text-red-600'
+                                                : 'bg-emerald-100 text-emerald-700'
                                             }`}>
                                             {profitMargin}%
                                         </span>
@@ -462,7 +487,7 @@ const FinancialReport: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Modal Tabs */}
+                        {/* Modal Tabs - chỉ 2 tab */}
                         <div className="flex px-6 pt-2 bg-blue-50/50 overflow-x-auto border-b border-blue-100">
                             <button
                                 onClick={() => setActiveTab('products')}
@@ -476,18 +501,6 @@ const FinancialReport: React.FC = () => {
                             >
                                 📦 Đơn hàng ({detailData?.orders?.length || 0})
                             </button>
-                            <button
-                                onClick={() => setActiveTab('receipts')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'receipts' ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
-                            >
-                                📥 Phiếu nhập ({detailData?.receipts?.length || 0})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('issues')}
-                                className={`px-6 py-3 font-medium text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'issues' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-600 hover:text-slate-700'}`}
-                            >
-                                📤 Phiếu xuất ({detailData?.issues?.length || 0})
-                            </button>
                         </div>
 
                         {/* Modal Content */}
@@ -499,6 +512,7 @@ const FinancialReport: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="animate-fadeIn">
+                                    {/* TAB: Theo sản phẩm */}
                                     {activeTab === 'products' && (
                                         <div>
                                             <h3 className="text-lg font-semibold text-blue-900 mb-4">Bảng chi tiết theo sản phẩm trong tháng</h3>
@@ -520,9 +534,9 @@ const FinancialReport: React.FC = () => {
                                                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                                                                 <td className="py-4 px-4 text-slate-700 font-medium">{p.product_name}</td>
                                                                 <td className="py-4 px-4 text-right text-slate-700 font-medium">{p.quantity_sold}</td>
-                                                                <td className="py-4 px-4 text-right text-blue-400 font-medium">{formatCurrency(p.revenue)}</td>
-                                                                <td className="py-4 px-4 text-right text-amber-400">{formatCurrency(p.cost)}</td>
-                                                                <td className={`py-4 px-4 text-right font-bold ${p.profit >= 0 ? 'text-emerald-600 font-bold' : 'text-red-400'}`}>
+                                                                <td className="py-4 px-4 text-right text-blue-600 font-medium">{formatCurrency(p.revenue)}</td>
+                                                                <td className="py-4 px-4 text-right text-amber-600">{formatCurrency(p.cost)}</td>
+                                                                <td className={`py-4 px-4 text-right font-bold ${p.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                                                                     {formatCurrency(p.profit)}
                                                                 </td>
                                                             </tr>
@@ -533,106 +547,149 @@ const FinancialReport: React.FC = () => {
                                         </div>
                                     )}
 
+                                    {/* TAB: Đơn hàng */}
                                     {activeTab === 'orders' && (
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-blue-100">
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã đơn</th>
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày tạo</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng tiền</th>
-                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-blue-50">
-                                                {!detailData || !detailData.orders || detailData.orders.length === 0 ? (
-                                                    <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có đơn hàng nào trong tháng này</td></tr>
-                                                ) : detailData.orders.map((o: any) => (
-                                                    <tr key={o.id} className="hover:bg-blue-50/30 transition-colors">
-                                                        <td className="py-4 px-4 font-mono text-blue-600 font-medium">{o.code}</td>
-                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(o.date)}</td>
-                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(o.total_amount)}</td>
-                                                        <td className="py-4 px-4 text-center">{getStatusBadge(o.status)}</td>
-                                                        <td className="py-4 px-4 text-right">
-                                                            <button 
-                                                                onClick={() => handleNavigateToOrder(o.code)}
-                                                                className="text-xs text-blue-600 hover:text-blue-600 underline"
-                                                            >
-                                                                Chi tiết
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                                                Danh sách đơn hàng trong tháng
+                                                <span className="text-sm font-normal text-slate-500 ml-2">(Bấm vào đơn để xem chi tiết sản phẩm)</span>
+                                            </h3>
+                                            {!detailData || !detailData.orders || detailData.orders.length === 0 ? (
+                                                <div className="py-16 text-center text-slate-500">
+                                                    <span className="text-4xl block mb-3">📭</span>
+                                                    <p className="italic">Không có đơn hàng nào trong tháng này</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {detailData.orders.map((o: any) => {
+                                                        const key = `${o.order_type}-${o.id}`;
+                                                        const isExpanded = expandedOrderId === key;
+                                                        const items = orderItems[key];
+                                                        const isLoadingItems = orderItemsLoading === key;
 
-                                    {activeTab === 'receipts' && (
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-blue-100">
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày nhập</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị nhập</th>
-                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-blue-50">
-                                                {!detailData || !detailData.receipts || detailData.receipts.length === 0 ? (
-                                                    <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có phiếu nhập kho nào trong tháng này</td></tr>
-                                                ) : detailData.receipts.map((r: any) => (
-                                                    <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
-                                                        <td className="py-4 px-4 font-mono text-amber-400 font-medium">{r.receipt_number || 'N/A'}</td>
-                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(r.receipt_date)}</td>
-                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(r.total_amount)}</td>
-                                                        <td className="py-4 px-4 text-center">{getStatusBadge(r.status)}</td>
-                                                        <td className="py-4 px-4 text-right">
-                                                            <button 
-                                                                onClick={() => handleNavigateToReceipt(r.receipt_number)}
-                                                                className="text-xs text-amber-400 hover:text-amber-300 underline"
-                                                            >
-                                                                Chi tiết
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
+                                                        return (
+                                                            <div key={key} className={`rounded-xl border transition-all ${isExpanded ? 'border-indigo-300 shadow-md shadow-indigo-100' : 'border-blue-100 hover:border-blue-200 hover:shadow-sm'}`}>
+                                                                {/* Order Header Row */}
+                                                                <div
+                                                                    onClick={() => handleExpandOrder(o)}
+                                                                    className={`p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-indigo-50/50' : 'bg-white hover:bg-blue-50/30'} rounded-t-xl`}
+                                                                >
+                                                                    <div className="flex items-center justify-between gap-4">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-transform ${isExpanded ? 'rotate-90 bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                                ▶
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <span className="font-mono font-bold text-blue-700 text-sm">{o.code}</span>
+                                                                                    {getOrderTypeBadge(o.order_type)}
+                                                                                    {getStatusBadge(o.status)}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                                                                    <span>📅 {formatDate(o.date)}</span>
+                                                                                    {o.customer_name && <span>👤 {o.customer_name}</span>}
+                                                                                    <span>📦 {o.item_count} SP • {o.total_qty} SL</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-right shrink-0">
+                                                                            <p className="text-lg font-bold text-blue-900">{formatCurrency(o.total_amount)}</p>
+                                                                            <div className="mt-0.5">
+                                                                                {getPaymentBadge(o.payment_method, o.payment_status)}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
 
-                                    {activeTab === 'issues' && (
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-blue-100">
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã phiếu</th>
-                                                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày xuất</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Giá trị xuất</th>
-                                                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng thái</th>
-                                                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao tác</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-blue-50">
-                                                {!detailData || !detailData.issues || detailData.issues.length === 0 ? (
-                                                    <tr><td colSpan={5} className="py-10 text-center text-slate-500 italic">Không có phiếu xuất kho nào trong tháng này</td></tr>
-                                                ) : detailData.issues.map((i: any) => (
-                                                    <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
-                                                        <td className="py-4 px-4 font-mono text-red-400 font-medium">{i.issue_number || 'N/A'}</td>
-                                                        <td className="py-4 px-4 text-slate-700 font-medium">{formatDate(i.issue_date)}</td>
-                                                        <td className="py-4 px-4 text-right text-blue-900 font-medium">{formatCurrency(i.total_amount)}</td>
-                                                        <td className="py-4 px-4 text-center">{getStatusBadge(i.status)}</td>
-                                                        <td className="py-4 px-4 text-right">
-                                                            <button 
-                                                                onClick={() => handleNavigateToIssue(i.issue_number)}
-                                                                className="text-xs text-red-400 hover:text-red-300 underline"
-                                                            >
-                                                                Chi tiết
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                                {/* Expanded Detail */}
+                                                                {isExpanded && (
+                                                                    <div className="border-t border-blue-100 bg-white rounded-b-xl animate-fadeIn">
+                                                                        {/* Customer Info */}
+                                                                        {(o.customer_phone || o.shipping_address || o.user_email) && (
+                                                                            <div className="px-4 py-3 bg-slate-50/50 border-b border-blue-50">
+                                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                                                                                    {o.customer_name && (
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-slate-400">👤</span>
+                                                                                            <span className="text-slate-700 font-medium">{o.customer_name}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {o.customer_phone && (
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-slate-400">📞</span>
+                                                                                            <span className="text-slate-700">{o.customer_phone}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {o.user_email && (
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-slate-400">✉️</span>
+                                                                                            <span className="text-slate-700">{o.user_email}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {o.shipping_address && (
+                                                                                        <div className="flex items-center gap-2 sm:col-span-3">
+                                                                                            <span className="text-slate-400">📍</span>
+                                                                                            <span className="text-slate-600 text-xs">{o.shipping_address}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Items Table */}
+                                                                        <div className="p-4">
+                                                                            {isLoadingItems ? (
+                                                                                <div className="flex items-center justify-center py-6 gap-3">
+                                                                                    <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                                    <span className="text-slate-500 text-sm">Đang tải sản phẩm...</span>
+                                                                                </div>
+                                                                            ) : items && items.length > 0 ? (
+                                                                                <table className="w-full text-sm">
+                                                                                    <thead>
+                                                                                        <tr className="border-b border-blue-100">
+                                                                                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-400 uppercase">Sản phẩm</th>
+                                                                                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-400 uppercase">Biến thể</th>
+                                                                                            <th className="text-right py-2 px-3 text-xs font-semibold text-slate-400 uppercase">SL</th>
+                                                                                            <th className="text-right py-2 px-3 text-xs font-semibold text-slate-400 uppercase">Đơn giá</th>
+                                                                                            <th className="text-right py-2 px-3 text-xs font-semibold text-slate-400 uppercase">Thành tiền</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody className="divide-y divide-blue-50">
+                                                                                        {items.map((item: any, idx: number) => (
+                                                                                            <tr key={idx} className="hover:bg-blue-50/20">
+                                                                                                <td className="py-2.5 px-3 text-slate-700 font-medium">{item.product_name}</td>
+                                                                                                <td className="py-2.5 px-3 text-slate-500 text-xs">
+                                                                                                    {item.variant_label && item.variant_label.replace(/\s*\/\s*$/g, '').trim()
+                                                                                                        ? item.variant_label.replace(/\s*\/\s*$/g, '').trim()
+                                                                                                        : <span className="text-slate-300">Mặc định</span>}
+                                                                                                </td>
+                                                                                                <td className="py-2.5 px-3 text-right font-medium text-slate-700">{item.quantity}</td>
+                                                                                                <td className="py-2.5 px-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                                                                                <td className="py-2.5 px-3 text-right font-bold text-blue-700">{formatCurrency(item.line_total)}</td>
+                                                                                            </tr>
+                                                                                        ))}
+                                                                                    </tbody>
+                                                                                    <tfoot>
+                                                                                        <tr className="border-t-2 border-blue-200">
+                                                                                            <td colSpan={4} className="py-2.5 px-3 text-right font-bold text-slate-600 text-xs uppercase">Tổng cộng:</td>
+                                                                                            <td className="py-2.5 px-3 text-right font-bold text-blue-800 text-base">
+                                                                                                {formatCurrency(items.reduce((s: number, i: any) => s + Number(i.line_total || 0), 0))}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </tfoot>
+                                                                                </table>
+                                                                            ) : (
+                                                                                <p className="py-4 text-center text-slate-400 italic text-sm">Không có chi tiết sản phẩm</p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}

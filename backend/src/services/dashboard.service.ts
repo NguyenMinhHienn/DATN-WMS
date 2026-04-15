@@ -44,10 +44,17 @@ class DashboardService {
     }
 
     /**
-     * Lấy chi tiết đơn hàng, phiếu nhập, phiếu xuất trong tháng
+     * Lấy chi tiết đơn hàng trong tháng (bao gồm online + nội bộ)
      */
     async getMonthlyDetail(year: number, month: number): Promise<any> {
         return dashboardRepository.getMonthlyDetail(year, month);
+    }
+
+    /**
+     * Lấy chi tiết items của 1 đơn hàng
+     */
+    async getOrderItems(orderId: number, orderType: string): Promise<any[]> {
+        return dashboardRepository.getOrderItems(orderId, orderType);
     }
 }
 

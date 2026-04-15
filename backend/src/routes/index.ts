@@ -146,6 +146,7 @@ router.use('/print', printRoutes);
 router.get('/dashboard/summary', authenticate, isAdmin, dashboardController.getSummary);
 router.get('/dashboard/monthly-report', authenticate, isAdmin, dashboardController.getMonthlyReport);
 router.get('/dashboard/monthly-detail/:year/:month', authenticate, isAdmin, dashboardController.getMonthlyDetail);
+router.get('/dashboard/order-items/:orderId', authenticate, isAdmin, dashboardController.getOrderItems);
 
 // ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
 // Public: Get all attributes (for product forms)

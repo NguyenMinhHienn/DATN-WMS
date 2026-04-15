@@ -68,3 +68,27 @@ export const getMonthlyDetail = asyncHandler(async (req: AuthRequest, res: Respo
         } as ApiResponse);
     }
 });
+
+/**
+ * GET /dashboard/order-items/:orderId?type=online|internal
+ * Trả về danh sách sản phẩm của 1 đơn hàng
+ */
+export const getOrderItems = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const orderId = parseInt(req.params.orderId);
+    const orderType = (req.query.type as string) || 'online';
+
+    if (isNaN(orderId)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Order ID không hợp lệ',
+        } as ApiResponse);
+    }
+
+    const items = await dashboardService.getOrderItems(orderId, orderType);
+
+    return res.json({
+        success: true,
+        message: 'Order items retrieved successfully',
+        data: items,
+    } as ApiResponse);
+});

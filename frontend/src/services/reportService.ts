@@ -33,6 +33,13 @@ export const reportService = {
         return response.data.data;
     },
 
+    async getOrderItems(orderId: number, orderType: string): Promise<any[]> {
+        const response = await api.get<ApiResponse<any[]>>(`/dashboard/order-items/${orderId}`, {
+            params: { type: orderType }
+        });
+        return response.data.data || [];
+    },
+
     async getInventoryReport(warehouseId?: number): Promise<any[]> {
         const params = warehouseId ? `?warehouse_id=${warehouseId}` : '';
         const response = await api.get<ApiResponse<any[]>>(`/reports/inventory${params}`);

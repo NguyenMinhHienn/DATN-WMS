@@ -120,64 +120,49 @@ class DashboardRepository {
     }
 
     async getOrdersByMonth(year: number, month: number): Promise<any[]> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT id, CONCAT('ORD-', id) as code, created_at as date, total_amount, status
-            FROM orders
-            WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
-            ORDER BY created_at DESC
+        // 1. Đơn hàng online (Web Orders)
+        const [webOrders] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                o.id,
+                CONCAT('ORD-', o.id) as code,
+                'online' as order_type,
+                o.created_at as date,
+                o.total_amount,
+                o.status,
+                o.payment_method,
+                o.payment_status,
+                o.shipping_name as customer_name,
+                o.shipping_phone as customer_phone,
+                o.shipping_address,
+                u.full_name as user_name,
+                u.email as user_email,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as item_count,
+                (SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.order_id = o.id) as total_qty
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE YEAR(o.created_at) = ? AND MONTH(o.created_at) = ?
+            ORDER BY o.created_at DESC
         `, [year, month]);
-        return rows;
-    }
 
-    async getReceiptsByMonth(year: number, month: number): Promise<any[]> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
+        // 2. Phiếu xuất kho nội bộ (Internal Export)
+        const [internalOrders] = await pool.query<RowDataPacket[]>(`
             SELECT 
                 st.id,
-                st.transfer_number as receipt_number,
-                'purchase' as receipt_type,
-                DATE_FORMAT(st.transfer_date, '%Y-%m-%d') as receipt_date,
-                DATE_FORMAT(st.expected_arrival_date, '%Y-%m-%d') as expected_date,
-                st.total_items,
-                st.total_quantity,
+                st.transfer_number as code,
+                'internal' as order_type,
+                st.created_at as date,
                 st.total_value as total_amount,
                 st.status,
-                s.name as supplier_name,
-                w.name as warehouse_name,
-                u.full_name as created_by_name,
-                st.created_at
+                'COD' as payment_method,
+                'paid' as payment_status,
+                COALESCE(st.receiver_name, st.reason, 'Xuất kho nội bộ') as customer_name,
+                st.receiver_phone as customer_phone,
+                st.receiver_address as shipping_address,
+                u.full_name as user_name,
+                u.email as user_email,
+                st.total_items as item_count,
+                st.total_quantity as total_qty
             FROM stock_transfers st
-            LEFT JOIN suppliers s ON st.supplier_id = s.id
-            LEFT JOIN warehouses w ON st.destination_warehouse_id = w.id
-            LEFT JOIN users u ON st.created_by = u.id
-            WHERE st.transfer_type = 'IMPORT'
-                AND st.status IN ('approved', 'completed')
-                AND st.deleted_at IS NULL
-                AND YEAR(st.created_at) = ? AND MONTH(st.created_at) = ?
-            ORDER BY st.created_at DESC
-        `, [year, month]);
-        return rows;
-    }
-
-    async getIssuesByMonth(year: number, month: number): Promise<any[]> {
-        // Query mới sử dụng stock_transfers cho EXPORT
-        const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT 
-                st.id,
-                st.transfer_number as issue_number,
-                'sales' as issue_type,
-                DATE_FORMAT(st.transfer_date, '%Y-%m-%d') as issue_date,
-                DATE_FORMAT(st.expected_arrival_date, '%Y-%m-%d') as required_date,
-                st.total_items,
-                st.total_quantity,
-                st.total_value as total_amount,
-                st.status,
-                'normal' as priority,
-                st.reason as customer_name,
-                w.name as warehouse_name,
-                u.full_name as created_by_name,
-                st.created_at
-            FROM stock_transfers st
-            LEFT JOIN warehouses w ON st.source_warehouse_id = w.id
             LEFT JOIN users u ON st.created_by = u.id
             WHERE st.transfer_type = 'EXPORT'
                 AND st.status IN ('approved', 'completed')
@@ -185,7 +170,52 @@ class DashboardRepository {
                 AND YEAR(st.created_at) = ? AND MONTH(st.created_at) = ?
             ORDER BY st.created_at DESC
         `, [year, month]);
-        return rows;
+
+        // Gộp và sắp xếp theo ngày giảm dần
+        const allOrders = [...webOrders, ...internalOrders];
+        allOrders.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return allOrders;
+    }
+
+    /**
+     * Lấy chi tiết items của 1 đơn hàng (cho drill-down trong báo cáo tài chính)
+     */
+    async getOrderItems(orderId: number, orderType: string): Promise<any[]> {
+        if (orderType === 'online') {
+            const [rows] = await pool.query<RowDataPacket[]>(`
+                SELECT 
+                    oi.id,
+                    p.name as product_name,
+                    p.sku,
+                    pv.sku as variant_sku,
+                    CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material) as variant_label,
+                    oi.quantity,
+                    oi.unit_price,
+                    (oi.quantity * oi.unit_price) as line_total
+                FROM order_items oi
+                JOIN products p ON oi.product_id = p.id
+                LEFT JOIN product_variants pv ON oi.variant_id = pv.id
+                WHERE oi.order_id = ?
+            `, [orderId]);
+            return rows;
+        } else {
+            const [rows] = await pool.query<RowDataPacket[]>(`
+                SELECT 
+                    sti.id,
+                    p.name as product_name,
+                    p.sku,
+                    pv.sku as variant_sku,
+                    CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material) as variant_label,
+                    sti.quantity_requested as quantity,
+                    sti.unit_cost as unit_price,
+                    sti.line_total
+                FROM stock_transfer_items sti
+                JOIN products p ON sti.product_id = p.id
+                LEFT JOIN product_variants pv ON sti.product_variant_id = pv.id
+                WHERE sti.stock_transfer_id = ?
+            `, [orderId]);
+            return rows;
+        }
     }
 
     async getProductPerformanceByMonth(year: number, month: number): Promise<any[]> {
@@ -240,17 +270,13 @@ class DashboardRepository {
     }
 
     async getMonthlyDetail(year: number, month: number): Promise<any> {
-        const [orders, receipts, issues, products] = await Promise.all([
+        const [orders, products] = await Promise.all([
             this.getOrdersByMonth(year, month),
-            this.getReceiptsByMonth(year, month),
-            this.getIssuesByMonth(year, month),
             this.getProductPerformanceByMonth(year, month)
         ]);
 
         return {
             orders: orders || [],
-            receipts: receipts || [],
-            issues: issues || [],
             products: products || []
         };
     }
