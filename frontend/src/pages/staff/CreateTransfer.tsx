@@ -5,45 +5,37 @@ import { productService } from '../../services/productService';
 import { supplierService, Supplier } from '../../services/supplierService';
 import { useAuth } from '../../context/AuthContext';
 import { Product } from '../../interface';
-
-
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
-interface VariantInfo {
+
+
+
+interface VariantFormInfo {
     id: number;
     sku: string;
-    price: number;
-    stock: number;
-    average_cost: number;
     label: string;
+    stock: number;
+    price: number;
+    average_cost: number;
     image_url?: string;
+    // Input attributes
+    quantity: number;
+    unit_price: number;
+    notes: string;
 }
 
 interface FormItem {
     product_id?: number;
     product_name: string;
-    product_variant_id?: number;
-    variant_sku: string;
-    quantity: number;
-    unit_price: number;
-    notes: string;
-    // Loaded data
-    variants: VariantInfo[];
     loadingVariants: boolean;
-    selectedVariant?: VariantInfo;
+    variants: VariantFormInfo[];
 }
 
 const emptyItem: FormItem = {
     product_id: undefined,
     product_name: '',
-    product_variant_id: undefined,
-    variant_sku: '',
-    quantity: 1,
-    unit_price: 0,
-    notes: '',
-    variants: [],
     loadingVariants: false,
-    selectedVariant: undefined,
+    variants: [],
 };
 
 const CreateTransfer: React.FC = () => {
@@ -135,37 +127,46 @@ const CreateTransfer: React.FC = () => {
 
                 const orderItems = location.state.orderItems || [];
                 if (orderItems.length > 0) {
+                    // Group orderItems by product_id
+                    const groupedByProduct: Record<number, any[]> = {};
+                    orderItems.forEach((item: any) => {
+                        if (!groupedByProduct[item.product_id]) groupedByProduct[item.product_id] = [];
+                        groupedByProduct[item.product_id].push(item);
+                    });
+
+                    const productIds = Object.keys(groupedByProduct).map(Number);
+                    
                     // Pre-fetch all variants for the given products concurrently
-                    const variantPromises = orderItems.map((item: any) =>
-                        productService.getProductVariants(item.product_id).catch(() => [])
+                    const variantPromises = productIds.map((pid: number) =>
+                        productService.getProductVariants(pid).catch(() => [])
                     );
                     const allVariants = await Promise.all(variantPromises);
 
-                    const newFormItems: FormItem[] = orderItems.map((item: any, index: number) => {
+                    const newFormItems: FormItem[] = productIds.map((pid: number, index: number) => {
+                        const itemsForProduct = groupedByProduct[pid];
                         const variants = allVariants[index] || [];
-                        const mapped: VariantInfo[] = variants.map((v: any) => ({
-                            id: v.id,
-                            sku: v.sku || '',
-                            price: Number(v.price) || 0,
-                            stock: Number(v.stock) || 0,
-                            average_cost: Number(v.average_cost) || 0,
-                            label: buildVariantLabel(v),
-                            image_url: v.image_url,
-                        }));
-
-                        const targetVariant = mapped.find(v => v.id === item.variant_id);
+                        const mappedVariants: VariantFormInfo[] = variants.map((v: any) => {
+                            const orderItem = itemsForProduct.find(i => i.variant_id === v.id);
+                            return {
+                                id: v.id,
+                                sku: v.sku || '',
+                                price: Number(v.price) || 0,
+                                stock: Number(v.stock) || 0,
+                                average_cost: Number(v.average_cost) || 0,
+                                label: buildVariantLabel(v),
+                                image_url: v.image_url,
+                                quantity: orderItem ? orderItem.quantity : 0,
+                                unit_price: orderItem ? orderItem.unit_price : 0,
+                                notes: ''
+                            };
+                        });
 
                         return {
                             ...emptyItem,
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            product_variant_id: targetVariant?.id,
-                            variant_sku: targetVariant?.sku || item.variant_sku,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            variants: mapped,
+                            product_id: pid,
+                            product_name: itemsForProduct[0].product_name,
+                            variants: mappedVariants,
                             loadingVariants: false,
-                            selectedVariant: targetVariant,
                         };
                     });
 
@@ -173,7 +174,7 @@ const CreateTransfer: React.FC = () => {
 
                     // Also populate searchTerms for the autocomplete inputs
                     const newSearchTerms: Record<number, string> = {};
-                    orderItems.forEach((item: any, i: number) => {
+                    newFormItems.forEach((item: any, i: number) => {
                         newSearchTerms[i] = item.product_name;
                     });
                     setSearchTerms(newSearchTerms);
@@ -203,23 +204,16 @@ const CreateTransfer: React.FC = () => {
     };
 
     // Load variants for a product
-    const loadVariants = async (index: number, productId: number, autoSelectVariantId?: number) => {
+    const loadVariants = async (index: number, productId: number) => {
         const updated = [...formItems];
-        // Only reset variant if we are not auto-selecting (e.g., from order)
-        if (!autoSelectVariantId) {
-            updated[index].loadingVariants = true;
-            updated[index].variants = [];
-            updated[index].product_variant_id = undefined;
-            updated[index].selectedVariant = undefined;
-            updated[index].variant_sku = '';
-        } else {
-            updated[index].loadingVariants = true;
-        }
+        updated[index].loadingVariants = true;
         setFormItems(updated);
 
         try {
+            const product = products.find(p => p.id === productId);
             const variants = await productService.getProductVariants(productId);
-            const mapped: VariantInfo[] = variants.map((v: any) => ({
+            
+            const mappedVariants: VariantFormInfo[] = variants.map((v: any) => ({
                 id: v.id,
                 sku: v.sku || '',
                 price: Number(v.price) || 0,
@@ -227,29 +221,15 @@ const CreateTransfer: React.FC = () => {
                 average_cost: Number(v.average_cost) || 0,
                 label: buildVariantLabel(v),
                 image_url: v.image_url,
+                // Initialize user inputs
+                quantity: 0,
+                unit_price: transferType === 'EXPORT' ? (v.price || 0) : (product?.cost_price || v.average_cost || 0),
+                notes: ''
             }));
 
             const final = [...formItems];
-            final[index].variants = mapped;
+            final[index].variants = mappedVariants;
             final[index].loadingVariants = false;
-
-            // Auto-select logic
-            if (autoSelectVariantId) {
-                const target = mapped.find(v => v.id === autoSelectVariantId);
-                if (target) {
-                    final[index].product_variant_id = target.id;
-                    final[index].selectedVariant = target;
-                    final[index].variant_sku = target.sku;
-                    // Don't overwrite unit_price if coming from order (it's the selling price)
-                }
-            } else if (mapped.length === 1) {
-                const product = products.find(p => p.id === productId);
-                final[index].product_variant_id = mapped[0].id;
-                final[index].selectedVariant = mapped[0];
-                final[index].variant_sku = mapped[0].sku;
-                final[index].unit_price = transferType === 'EXPORT' ? mapped[0].price : (product?.cost_price || mapped[0].average_cost || 0);
-            }
-
             setFormItems(final);
         } catch (err) {
             console.error('Failed to load variants:', err);
@@ -271,10 +251,17 @@ const CreateTransfer: React.FC = () => {
 
     // Tính thành tiền
     const calculations = useMemo(() => {
-        const itemTotals = formItems.map(item => item.quantity * item.unit_price);
-        const grandTotal = itemTotals.reduce((sum, t) => sum + t, 0);
-        const totalQty = formItems.reduce((sum, i) => sum + i.quantity, 0);
-        return { itemTotals, grandTotal, totalQty };
+        let grandTotal = 0;
+        let totalQty = 0;
+        formItems.forEach(block => {
+            block.variants.forEach(v => {
+                if(v.quantity > 0) {
+                    grandTotal += v.quantity * v.unit_price;
+                    totalQty += v.quantity;
+                }
+            });
+        });
+        return { grandTotal, totalQty };
     }, [formItems]);
 
     // Check if supplier is selected for IMPORT
@@ -359,22 +346,37 @@ const CreateTransfer: React.FC = () => {
         }
 
         // ===== VALIDATE SẢN PHẨM =====
-        // Validate items - must have product + variant
-        const validItems = formItems.filter(i =>
-            i.product_id && i.product_id > 0 &&
-            i.product_variant_id && i.product_variant_id > 0 &&
-            i.quantity > 0
-        );
+        type ValidItemT = { product_id: number; product_name: string; product_variant_id: number; variant_sku: string; quantity: number; unit_price: number; notes: string; stock: number };
+        const validItems: ValidItemT[] = [];
+
+        formItems.forEach(block => {
+            if (block.product_id) {
+                block.variants.forEach(variant => {
+                    if (variant.quantity > 0) {
+                        validItems.push({
+                            product_id: block.product_id!,
+                            product_name: block.product_name,
+                            product_variant_id: variant.id,
+                            variant_sku: variant.sku,
+                            quantity: variant.quantity,
+                            unit_price: variant.unit_price,
+                            notes: variant.notes,
+                            stock: variant.stock
+                        });
+                    }
+                });
+            }
+        });
 
         if (validItems.length === 0) {
-            setError('Vui lòng thêm ít nhất một sản phẩm với biến thể hợp lệ');
+            setError('Vui lòng nhập số lượng cho ít nhất một biến thể sản phẩm');
             return;
         }
 
-        // Validate đơn giá > 0 cho từng sản phẩm
+        // Validate đơn giá > 0 cho từng biến thể
         for (let i = 0; i < validItems.length; i++) {
             if (validItems[i].unit_price <= 0) {
-                setError(`Sản phẩm "${validItems[i].product_name}" chưa có đơn giá. Vui lòng nhập đơn giá > 0`);
+                setError(`Sản phẩm "${validItems[i].product_name}" (Biến thể: ${validItems[i].variant_sku}) chưa có đơn giá hợp lệ.`);
                 return;
             }
         }
@@ -382,8 +384,8 @@ const CreateTransfer: React.FC = () => {
         // Check export stock
         if (transferType === 'EXPORT') {
             for (const item of validItems) {
-                if (item.selectedVariant && item.quantity > item.selectedVariant.stock) {
-                    setError(`Sản phẩm "${item.product_name}" - SL yêu cầu (${item.quantity}) vượt quá tồn kho (${item.selectedVariant.stock})`);
+                if (item.quantity > item.stock) {
+                    setError(`Sản phẩm "${item.product_name}" (Biến thể: ${item.variant_sku}) - SL yêu cầu (${item.quantity}) vượt quá tồn kho (${item.stock})`);
                     return;
                 }
             }
@@ -482,11 +484,6 @@ const CreateTransfer: React.FC = () => {
         const updated = [...formItems];
         updated[index].product_id = product.id;
         updated[index].product_name = product.name;
-        updated[index].unit_price = transferType === 'EXPORT' ? (product.selling_price || 0) : (product.cost_price || 0);
-        // Reset variant
-        updated[index].product_variant_id = undefined;
-        updated[index].selectedVariant = undefined;
-        updated[index].variant_sku = '';
         updated[index].variants = [];
         setFormItems(updated);
         setActiveSearchIndex(null);
@@ -496,29 +493,18 @@ const CreateTransfer: React.FC = () => {
         loadVariants(index, product.id);
     };
 
-    const selectVariant = (index: number, variantId: number) => {
+    const updateVariantField = (blockIndex: number, variantId: number, field: 'quantity' | 'unit_price' | 'notes', value: any) => {
         const updated = [...formItems];
-        const variant = updated[index].variants.find(v => v.id === variantId);
-        const product = products.find(p => p.id === updated[index].product_id);
-        
-        if (variant && product) {
-            updated[index].product_variant_id = variant.id;
-            updated[index].selectedVariant = variant;
-            updated[index].variant_sku = variant.sku;
-            updated[index].unit_price = transferType === 'EXPORT' ? variant.price : (product.cost_price || variant.average_cost || 0);
+        const vUpdate = updated[blockIndex].variants.find(v => v.id === variantId);
+        if (vUpdate) {
+            (vUpdate as any)[field] = value;
+            setFormItems(updated);
         }
-        setFormItems(updated);
-    };
-
-    const updateItemField = (index: number, field: 'quantity' | 'unit_price' | 'notes', value: any) => {
-        const updated = [...formItems];
-        (updated[index] as any)[field] = value;
-        setFormItems(updated);
     };
 
     // Check if form can submit
-    const canSubmit = formItems.some(i =>
-        i.product_id && i.product_variant_id && i.quantity > 0
+    const canSubmit = formItems.some(block =>
+        block.product_id && block.variants.some(v => v.quantity > 0)
     );
 
     if (loading) {
@@ -851,11 +837,10 @@ const CreateTransfer: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Row 1: Product Search + Variant + SKU */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                    {/* Product Autocomplete */}
+                                {/* Product Autocomplete */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                     <div className="relative" ref={(el) => { searchRefs.current[index] = el; }}>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">Sản phẩm *</label>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">🔍 Chọn Sản phẩm gốc *</label>
                                         <input
                                             type="text"
                                             value={activeSearchIndex === index ? (searchTerms[index] ?? '') : (item.product_name || '')}
@@ -869,8 +854,8 @@ const CreateTransfer: React.FC = () => {
                                                     setSearchTerms({ ...searchTerms, [index]: item.product_name });
                                                 }
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                            placeholder="🔍 Tìm theo tên hoặc SKU..."
+                                            className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                                            placeholder="Tìm theo tên hoặc SKU..."
                                             autoComplete="off"
                                         />
                                         {/* Autocomplete dropdown */}
@@ -902,143 +887,103 @@ const CreateTransfer: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Variant Selection */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">
-                                            Biến thể *
-                                            {item.loadingVariants && <span className="ml-1 text-indigo-500">⏳</span>}
-                                        </label>
-                                        {!item.product_id ? (
-                                            <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-sm">
-                                                Chọn sản phẩm trước
-                                            </div>
-                                        ) : item.loadingVariants ? (
-                                            <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-sm">
-                                                Đang tải biến thể...
-                                            </div>
-                                        ) : item.variants.length === 0 ? (
-                                            <div className="w-full px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
-                                                Sản phẩm chưa có biến thể
-                                            </div>
-                                        ) : item.variants.length === 1 ? (
-                                            <div className="w-full px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-                                                ✓ {item.variants[0].label} ({item.variants[0].sku})
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
-                                                {item.variants.map(v => {
-                                                    const isSelected = item.product_variant_id === v.id;
-                                                    return (
-                                                        <button
-                                                            key={v.id}
-                                                            type="button"
-                                                            onClick={() => selectVariant(index, v.id)}
-                                                            className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all text-sm flex items-center justify-between gap-2 ${
-                                                                isSelected
-                                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                                                    : 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 text-slate-700'
-                                                            }`}
-                                                        >
-                                                            <span className="font-medium truncate">{isSelected ? '✓ ' : ''}{v.label}</span>
-                                                            <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded ${v.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                                Tồn: {v.stock}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* SKU (readonly) */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">Mã SKU</label>
-                                        <input
-                                            type="text"
-                                            value={item.variant_sku}
-                                            readOnly
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 font-mono text-sm cursor-not-allowed"
-                                            placeholder="Tự động từ biến thể"
-                                        />
-                                    </div>
                                 </div>
 
-                                {/* Row 2: Stock Info + Quantity + Price */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {/* Stock info (readonly) */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">📊 Tồn kho hiện tại</label>
-                                        <div className={`w-full px-3 py-2 rounded-lg text-sm font-semibold border ${item.selectedVariant
-                                            ? item.selectedVariant.stock > 0
-                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                : 'bg-red-50 border-red-200 text-red-600'
-                                            : 'bg-slate-50 border-slate-200 text-slate-400'
-                                            }`}>
-                                            {item.selectedVariant ? `${item.selectedVariant.stock.toLocaleString()} SP` : '—'}
+                                {/* Matrix Input for Variants */}
+                                {item.loadingVariants ? (
+                                    <div className="flex justify-center items-center py-8">
+                                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="ml-3 text-slate-500 font-medium">Đang tải danh sách biến thể...</span>
+                                    </div>
+                                ) : item.product_id && item.variants.length > 0 ? (
+                                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mt-4">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-indigo-50/50 border-b border-slate-200 text-xs font-semibold text-slate-500">
+                                                        <th className="py-3 px-4 w-1/3">Biến thể</th>
+                                                        <th className="py-3 px-4 text-center">Tồn kho / Giá vốn</th>
+                                                        <th className="py-3 px-4 text-center w-32">
+                                                            {transferType === 'EXPORT' ? 'Đơn giá xuất (đ)' : 'Đơn giá nhập (đ)'}
+                                                        </th>
+                                                        <th className="py-3 px-4 text-center w-32">SL Nhập/Xuất *</th>
+                                                        <th className="py-3 px-4 text-right">Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {item.variants.map((v) => {
+                                                        const isSelected = v.quantity > 0;
+                                                        const rowTotal = v.quantity * v.unit_price;
+                                                        return (
+                                                            <tr key={v.id} className={`border-b border-slate-100 transition-colors ${isSelected ? 'bg-indigo-50/30' : 'hover:bg-slate-50'}`}>
+                                                                <td className="py-2 px-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-indigo-500' : 'bg-slate-200'}`}></div>
+                                                                        <div>
+                                                                            <p className={`text-sm font-medium ${isSelected ? 'text-indigo-800' : 'text-slate-700'}`}>
+                                                                                {v.label}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-400 font-mono mt-0.5">{v.sku}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-4 text-center">
+                                                                    <div className="text-xs font-semibold text-blue-600">{v.stock.toLocaleString()} SP</div>
+                                                                    <div className="text-[10px] text-slate-400">{v.average_cost?.toLocaleString()} đ</div>
+                                                                </td>
+                                                                <td className="py-2 px-4">
+                                                                    <input 
+                                                                        type="text"
+                                                                        value={v.unit_price ? Number(v.unit_price).toLocaleString('vi-VN') : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                            updateVariantField(index, v.id, 'unit_price', val ? Number(val) : 0);
+                                                                        }}
+                                                                        className="w-full px-2 py-1.5 text-sm bg-white border border-slate-200 rounded focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-center font-mono"
+                                                                    />
+                                                                </td>
+                                                                <td className="py-2 px-4">
+                                                                    <input 
+                                                                        type="text"
+                                                                        value={v.quantity ? Number(v.quantity).toLocaleString('vi-VN') : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                            updateVariantField(index, v.id, 'quantity', val ? Number(val) : 0);
+                                                                        }}
+                                                                        placeholder="0"
+                                                                        className={`w-full px-2 py-1.5 text-sm bg-white border rounded text-center font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 ${
+                                                                            isSelected ? 'border-indigo-300 text-indigo-700 shadow-sm' : 'border-slate-200 text-slate-700'
+                                                                        }`}
+                                                                    />
+                                                                </td>
+                                                                <td className="py-2 px-4 text-right">
+                                                                    <span className={`text-sm font-semibold ${rowTotal > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                                        {rowTotal > 0 ? rowTotal.toLocaleString('vi-VN') : '-'}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-sm text-slate-600">
+                                            <span>Mẹo: Bạn có thể bỏ trống Số lượng đối với những biến thể không muốn thêm vào phiếu.</span>
+                                            <div className="flex gap-4">
+                                                <span>Tổng SP chọn: <strong className="text-indigo-600">{item.variants.reduce((s, v) => s + (v.quantity > 0 ? 1 : 0), 0)}/{item.variants.length}</strong></span>
+                                                <span>Tổng Tiền hàng: <strong className="text-emerald-600">{item.variants.reduce((s, v) => s + (v.quantity * v.unit_price), 0).toLocaleString()} đ</strong></span>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Average cost (readonly) */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">💰 Giá vốn BQ</label>
-                                        <div className={`w-full px-3 py-2 rounded-lg text-sm font-semibold border ${item.selectedVariant
-                                            ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                            : 'bg-slate-50 border-slate-200 text-slate-400'
-                                            }`}>
-                                            {item.selectedVariant ? `${item.selectedVariant.average_cost.toLocaleString()} đ` : '—'}
-                                        </div>
+                                ) : item.product_id ? (
+                                    <div className="text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        <p className="text-slate-500 text-sm">Sản phẩm này không có biến thể nào.</p>
                                     </div>
-
-                                    {/* Quantity */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">
-                                            Số lượng {item.product_id ? `(${products.find(p => p.id === item.product_id)?.unit_name || 'SP'})` : ''} *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={item.quantity ? Number(item.quantity).toLocaleString('vi-VN') : ''}
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                                updateItemField(index, 'quantity', val ? Number(val) : 0);
-                                            }}
-                                            disabled={!item.product_variant_id}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                            required
-                                        />
-                                        {/* Stock warning for EXPORT */}
-                                        {(transferType === 'EXPORT' || transferType === 'TRANSFER') &&
-                                            item.selectedVariant && item.quantity > item.selectedVariant.stock && (
-                                                <p className="text-xs text-red-500 mt-1">⚠️ Vượt quá tồn kho!</p>
-                                            )}
+                                ) : (
+                                    <div className="text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        <p className="text-slate-400 text-sm">Vui lòng chọn một sản phẩm để hiển thị danh sách biến thể tương ứng.</p>
                                     </div>
-
-                                    {/* Unit price */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">
-                                            {transferType === 'EXPORT' ? 'Đơn giá xuất / bán' : 'Đơn giá nhập'}
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={item.unit_price ? Number(item.unit_price).toLocaleString('vi-VN') : ''}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9]/g, '');
-                                                    updateItemField(index, 'unit_price', val ? Number(val) : 0);
-                                                }}
-                                                disabled={!item.product_variant_id}
-                                                className="w-full px-3 py-2 pr-8 bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">đ</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Thành tiền */}
-                                <div className="mt-4 text-right">
-                                    <span className="text-sm text-slate-500">Thành tiền: </span>
-                                    <span className="font-bold text-green-600 text-lg">{calculations.itemTotals[index]?.toLocaleString('vi-VN') || 0} đ</span>
-                                </div>
+                                )}
                             </div>
                         ))}
                     </div>
