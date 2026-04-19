@@ -155,9 +155,9 @@ export class ExportReceiptRepository {
           receiver_address, receiver_phone,
           export_reason, warehouse_id, notes, reference_document,
           delivery_person, storekeeper, total_items, total_quantity,
-          subtotal, vat_percent, vat_amount, shipping_fee, delivery_method, total_amount,
+          subtotal, vat_percent, vat_amount, shipping_fee, delivery_method, total_amount, payment_terms,
           created_by, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
       `, [
                 receiptNumber,
                 dto.receipt_date,
@@ -179,7 +179,8 @@ export class ExportReceiptRepository {
                 shippingFee,
                 deliveryMethod,
                 totalAmount,
-                userId || null,
+                dto.payment_terms || 0,
+                userId
             ]);
 
             const receiptId = result.insertId;

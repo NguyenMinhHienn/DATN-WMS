@@ -274,6 +274,7 @@ export class StockTransferRepository {
                 dto.receiver_department || null,
                 dto.receiver_address || null,
                 dto.receiver_phone || null,
+                dto.payment_terms || 0,
                 userId,
                 userId,
             ];
@@ -290,9 +291,9 @@ export class StockTransferRepository {
                     subtotal, vat_percent, vat_amount, shipping_fee,
                     status, reason, order_id, notes,
                     delivery_person, storekeeper, receiver_name, receiver_department,
-                    receiver_address, receiver_phone,
+                    receiver_address, receiver_phone, payment_terms,
                     requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, params);
 
             const transferId = result.insertId;

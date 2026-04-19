@@ -654,6 +654,7 @@ export interface ExportReceipt {
     shipping_fee: number;       // Phí vận chuyển
     delivery_method?: string;   // 'delivery' | 'pickup'
     total_amount: number;       // = subtotal + vat_amount + shipping_fee
+    payment_terms?: number;     // 15, 30, 45 (ngày)
     created_by?: number;
     approved_by?: number;
     approved_at?: Date;
@@ -696,6 +697,7 @@ export interface CreateExportReceiptDto {
     vat_percent?: number;       // % VAT (0 nếu tắt, 0.1 nếu bật 10%)
     shipping_fee?: number;      // Phí vận chuyển
     delivery_method?: string;   // 'delivery' | 'pickup'
+    payment_terms?: number;     // Hạn thanh toán công nợ (ngày)
     notes?: string;
     reference_document?: string;
     delivery_person?: string;
@@ -797,6 +799,7 @@ export interface StockTransfer {
     vat_percent: number;
     vat_amount: number;
     shipping_fee: number;
+    payment_terms?: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'partial_received' | 'completed' | 'cancelled';
     shipping_method?: string;
     tracking_number?: string;
@@ -804,6 +807,12 @@ export interface StockTransfer {
     reason?: string;
     order_id?: number;
     notes?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    receiver_name?: string;
+    receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     rejection_reason?: string;
     requested_by?: number;
     approved_by?: number;
@@ -869,6 +878,7 @@ export interface CreateStockTransferDto {
     vat_percent?: number;
     vat_amount?: number;
     shipping_fee?: number;
+    payment_terms?: number;
     items: CreateStockTransferItemDto[];
 }
 

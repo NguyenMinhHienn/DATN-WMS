@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { reportService } from '../../services/reportService';
+import { receivableService, ReceivableSummary } from '../../services/receivableService';
 import { MonthlyReportItem } from '../../interface';
 import { useReactToPrint } from 'react-to-print';
 import * as XLSX from 'xlsx';
@@ -28,6 +29,7 @@ const FinancialReport: React.FC = () => {
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([]);
+    const [receivableStats, setReceivableStats] = useState<ReceivableSummary | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Detail Modal States
@@ -51,13 +53,25 @@ const FinancialReport: React.FC = () => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const data = await reportService.getMonthlyReport(selectedYear);
-                if (isMounted && data && Array.isArray(data)) {
-                    setMonthlyData(data);
+                const [monthly, receivables] = await Promise.all([
+                    reportService.getMonthlyReport(selectedYear),
+                    receivableService.getSummary()
+                ]);
+                
+                if (isMounted) {
+                    if (monthly && Array.isArray(monthly)) {
+                        setMonthlyData(monthly);
+                    }
+                    if (receivables) {
+                        setReceivableStats(receivables);
+                    }
                 }
             } catch (error) {
-                console.error('Failed to load monthly report:', error);
-                if (isMounted) setMonthlyData([]);
+                console.error('Failed to load financial data:', error);
+                if (isMounted) {
+                    setMonthlyData([]);
+                    setReceivableStats(null);
+                }
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -364,6 +378,35 @@ const FinancialReport: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Receivables Overview */}
+            {receivableStats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print:hidden">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-500 mb-1 font-medium">Tổng công nợ (Tất cả)</p>
+                            <p className="text-2xl font-bold text-slate-800">{formatCurrency(receivableStats.total_amount)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-xl">🧾</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-emerald-600 mb-1 font-medium">Thực Thu (Tiền mặt/CK)</p>
+                            <p className="text-2xl font-bold text-emerald-700">{formatCurrency(receivableStats.total_paid)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-xl">💰</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden group cursor-pointer transition-all hover:shadow-md" onClick={() => window.location.href='/admin/receivables'}>
+                        <div className="relative z-10">
+                            <p className="text-sm text-red-600 mb-1 font-medium">Còn Nợ đọng</p>
+                            <p className="text-2xl font-bold text-red-700">{formatCurrency(receivableStats.total_remaining)}</p>
+                            <p className="text-xs text-red-500 mt-1">Bao gồm {receivableStats.total_overdue} khoản quá hạn</p>
+                        </div>
+                        <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-xl relative z-10">⚠️</div>
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rounded-bl-full opacity-50 -z-0 transition-transform group-hover:scale-110"></div>
+                    </div>
+                </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

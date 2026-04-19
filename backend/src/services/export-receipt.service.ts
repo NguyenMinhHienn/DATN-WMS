@@ -1,6 +1,7 @@
 import { exportReceiptRepository } from '../repositories/export-receipt.repository';
 import { CreateExportReceiptDto, ExportReceipt, ExportReceiptItem, PaginatedResult } from '../types';
 import { AppError } from '../middlewares/error.middleware';
+import { receivableService } from './receivable.service';
 
 export class ExportReceiptService {
     async getAllReceipts(
@@ -65,7 +66,28 @@ export class ExportReceiptService {
         }
 
         try {
-            return await exportReceiptRepository.approveReceipt(id, userId);
+            const approved = await exportReceiptRepository.approveReceipt(id, userId);
+
+            // Tự động tạo công nợ sau khi duyệt phiếu xuất thành công
+            if (approved) {
+                try {
+                    await receivableService.createFromExportReceipt({
+                        id: receipt.id,
+                        receipt_number: receipt.receipt_number,
+                        total_amount: Number(receipt.total_amount),
+                        receipt_date: receipt.receipt_date instanceof Date ? receipt.receipt_date.toISOString() : String(receipt.receipt_date),
+                        receiver_name: receipt.receiver_name,
+                        receiver_phone: receipt.receiver_phone,
+                        receiver_address: receipt.receiver_address,
+                        payment_terms: receipt.payment_terms || 0,
+                    }, userId);
+                } catch (recErr) {
+                    // Log lỗi nhưng KHÔNG throw - đảm bảo phiếu xuất vẫn được duyệt
+                    console.error('⚠️ Lỗi tạo công nợ từ phiếu xuất:', recErr);
+                }
+            }
+
+            return approved;
         } catch (error: any) {
             // Re-throw stock errors as AppError with 400 status
             if (error.message && error.message.includes('Tồn kho không đủ')) {

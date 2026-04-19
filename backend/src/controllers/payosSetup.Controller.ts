@@ -4,11 +4,13 @@ import payos from "../config/payos";
 export const confirmWebhook = async (req: Request, res: Response) => {
   try {
 
-    const webhookUrl = "https://b0e1-42-116-163-76.ngrok-free.app/api/webhook";;
+    const webhookUrl = "https://unthrowable-latasha-preseptal.ngrok-free.dev/api/webhook";
 
     const response = await (payos as any).confirmWebhook(webhookUrl);
-
+     
+    console.log("Webhook confirmed:", response);
     return res.json(response);
+    
 
   } catch (error) {
     console.error(error);

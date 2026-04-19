@@ -23,6 +23,7 @@ import ProductConfig from './pages/admin/ProductConfig';
 import AdminOrders from './pages/admin/AdminOrders';
 import FinancialReport from './pages/admin/FinancialReport';
 import ExportReceipt from './pages/admin/ExportReceipt';
+import Receivables from './pages/admin/Receivables';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
@@ -43,6 +44,7 @@ import ProductList from './pages/client/ProductList';
 import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
 import AccessDenied from './pages/client/AccessDenied';
+import ClientReceivables from './pages/client/ClientReceivables';
 
 // Shared Pages
 import Profile from './pages/Profile';
@@ -92,7 +94,7 @@ const App: React.FC = () => {
                         <Route path="/orders/:id" element={<OrdersPage />} />
                         <Route path="/support" element={<SupportPage />} />
                         <Route path="/payment-cancel" element={<PaymentCancel />} />
-                        {/* <Route path="/payment/success" element={<PaymentSuccess />} /> */}
+                        <Route path="/my-receivables" element={<ClientReceivables />} />
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
@@ -116,6 +118,7 @@ const App: React.FC = () => {
                             <Route path="orders" element={<AdminOrders />} />
                             <Route path="export-receipts" element={<ExportReceipt />} />
                             <Route path="financial-report" element={<FinancialReport />} />
+                            <Route path="receivables" element={<Receivables />} />
                         </Route>
 
                         {/* ==================== STAFF ROUTES ==================== */}

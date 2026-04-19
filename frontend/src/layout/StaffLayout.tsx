@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { NotificationBell } from '../components/NotificationBell';
 
 /**
  * StaffLayout - Layout riêng cho STAFF
@@ -91,6 +92,10 @@ export const StaffLayout: React.FC = () => {
 
                     {/* User section with dropdown */}
                     <div className="border-t border-blue-100 p-4 relative bg-blue-50/30" ref={dropdownRef}>
+                        <div className="flex justify-between items-center mb-3 px-1">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tài khoản</span>
+                            <NotificationBell />
+                        </div>
                         {/* Dropdown Menu */}
                         {dropdownOpen && (
                             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-blue-100 overflow-hidden z-50">
@@ -150,7 +155,9 @@ export const StaffLayout: React.FC = () => {
                         </svg>
                     </button>
                     <span className="font-bold text-blue-900">StockFlow Staff</span>
-                    <div className="w-10" />
+                    <div className="flex items-center gap-2">
+                        <NotificationBell />
+                    </div>
                 </header>
 
                 {/* Page content */}

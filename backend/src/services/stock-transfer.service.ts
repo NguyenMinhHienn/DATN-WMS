@@ -1,4 +1,5 @@
 import { stockTransferRepository } from '../repositories/stock-transfer.repository';
+import { receivableService } from './receivable.service';
 import {
     CreateStockTransferDto,
     CreateStockTransferItemDto,
@@ -175,6 +176,7 @@ export class StockTransferService {
             vat_percent,
             vat_amount,
             shipping_fee,
+            payment_terms: Number(dto.payment_terms ?? 0),
             items: normalizedItems,
         };
     }
@@ -301,7 +303,26 @@ export class StockTransferService {
             );
         }
 
-        return stockTransferRepository.approve(id, adminUserId);
+        const approved = await stockTransferRepository.approve(id, adminUserId);
+
+        if (approved && transfer.transfer_type === 'EXPORT') {
+            try {
+                await receivableService.createFromExportReceipt({
+                    id: transfer.id,
+                    receipt_number: transfer.transfer_number,
+                    total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
+                    receipt_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                    receiver_name: (transfer as any).receiver_name,
+                    receiver_phone: (transfer as any).receiver_phone,
+                    receiver_address: (transfer as any).receiver_address,
+                    payment_terms: (transfer as any).payment_terms || 0,
+                }, adminUserId);
+            } catch (recErr) {
+                console.error('⚠️ Lỗi tạo công nợ từ phiếu xuất (Stock Transfer):', recErr);
+            }
+        }
+
+        return approved;
     }
 
     async rejectTransfer(id: number, adminUserId: number, reason?: string): Promise<boolean> {

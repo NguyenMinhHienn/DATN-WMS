@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { NotificationBell } from './NotificationBell';
 
 export interface SidebarBadges {
     lowStock?: number;
@@ -27,6 +28,7 @@ const menuItems = [
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
     { path: '/admin/orders', label: 'Yêu cầu nhập', icon: '📋', badgeKey: 'pendingOrders' as const },
+    { path: '/admin/receivables', label: 'Công nợ', icon: '🧾', badgeKey: null },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];
@@ -137,6 +139,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, badges }) => 
 
                     {/* User section with dropdown */}
                     <div className="border-t border-blue-100 p-4 relative bg-blue-50/30" ref={dropdownRef}>
+                        <div className="flex justify-between items-center mb-3 px-1">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tài khoản</span>
+                            <NotificationBell />
+                        </div>
+
                         {/* Dropdown Menu - positioned above the user card */}
                         {dropdownOpen && (
                             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-blue-100 overflow-hidden z-50">

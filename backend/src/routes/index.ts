@@ -27,6 +27,8 @@ import printRoutes from './print.routes';
 import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 import { getTransferByOrder } from '../controllers/transfer.controller';
+import * as receivableController from '../controllers/receivable.controller';
+import * as notificationController from '../controllers/notification.controller';
 
 
 const router = Router();
@@ -239,8 +241,33 @@ router.post("/webhook", payosWebhook);
 router.post("/confirm-webhook", confirmWebhook);
 router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
 
+// ==================== RECEIVABLE (CÔNG NỢ) ROUTES ====================
+// Admin routes
+router.get('/receivables/summary', authenticate, isAdmin, receivableController.getReceivableSummary);
+router.get('/receivables/overdue', authenticate, isAdmin, receivableController.getOverdueReceivables);
+router.get('/receivables/monthly-stats', authenticate, isAdmin, receivableController.getMonthlyStats);
+router.post('/receivables/check-overdue', authenticate, isAdmin, receivableController.checkOverdue);
+router.get('/receivables', authenticate, isStaff, receivableController.getAllReceivables);
+router.get('/receivables/:id', authenticate, isStaff, receivableController.getReceivableById);
+router.put('/receivables/:id/cancel', authenticate, isAdmin, receivableController.cancelReceivable);
+router.post('/receivables/:id/remind', authenticate, isAdmin, receivableController.sendReminder);
+router.put('/receivables/:id/bad-debt', authenticate, isAdmin, receivableController.markBadDebt);
 
+// Client routes - user xem công nợ của mình
+router.get('/client/receivables', authenticate, receivableController.getClientReceivables);
+
+// ==================== PAYMENT RECEIPT (PHIẾU THU) ROUTES ====================
+router.post('/payment-receipts', authenticate, isStaff, receivableController.createPaymentReceipt);
+router.get('/payment-receipts', authenticate, isStaff, receivableController.getAllPaymentReceipts);
+router.get('/payment-receipts/:id', authenticate, isStaff, receivableController.getPaymentReceiptById);
+router.put('/payment-receipts/:id/approve', authenticate, isAdmin, receivableController.approvePaymentReceipt);
+router.put('/payment-receipts/:id/reject', authenticate, isAdmin, receivableController.rejectPaymentReceipt);
+
+// ==================== NOTIFICATION ROUTES ====================
+router.get('/notifications', authenticate, notificationController.getNotifications);
+router.get('/notifications/unread-count', authenticate, notificationController.getUnreadCount);
+router.put('/notifications/:id/read', authenticate, notificationController.markAsRead);
+router.put('/notifications/read-all', authenticate, notificationController.markAllAsRead);
 
 
 export default router;
-// Last updated: Tue Mar 17 20:26:32 +07 2026

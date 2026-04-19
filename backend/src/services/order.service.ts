@@ -193,6 +193,30 @@ class OrderService {
         if (order.payment_method === 'COD') {
             await orderRepository.updatePaymentStatus(orderId, 'paid');
         }
+
+        // Tạo công nợ cho đơn COD (nếu chưa thanh toán online)
+        // Note: COD đã được mark paid ở trên, nhưng vẫn tạo receivable + auto-close
+        // để có record cho báo cáo tài chính
+        if (order.payment_method === 'COD') {
+            try {
+                const { receivableService } = require('./receivable.service');
+                const receivableId = await receivableService.createFromOrder({
+                    id: orderId,
+                    total_amount: Number(order.total_amount),
+                    shipping_name: order.shipping_name,
+                    shipping_phone: order.shipping_phone,
+                    shipping_address: order.shipping_address,
+                    user_id: order.user_id,
+                    created_at: order.created_at,
+                });
+                // Auto-close receivable vì COD đã thu tiền khi giao
+                const { receivableRepository } = require('../repositories/receivable.repository');
+                await receivableRepository.updatePaidAmount(receivableId, Number(order.total_amount));
+            } catch (recErr) {
+                // Log lỗi nhưng KHÔNG throw - đảm bảo đơn hàng vẫn delivered
+                console.error('⚠️ Lỗi tạo công nợ từ đơn COD:', recErr);
+            }
+        }
     }
 
     /**

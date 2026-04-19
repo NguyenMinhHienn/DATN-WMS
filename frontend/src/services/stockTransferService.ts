@@ -97,6 +97,7 @@ export interface CreateStockTransferData {
     vat_percent?: number;
     vat_amount?: number;
     shipping_fee?: number;
+    payment_terms?: number;
     items: CreateStockTransferItemData[];
 }
 

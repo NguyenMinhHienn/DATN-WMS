@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar, SidebarBadges } from '../components/Sidebar';
 import { reportService } from '../services/reportService';
+import { NotificationBell } from '../components/NotificationBell';
 
 export const AdminLayout: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,7 +52,9 @@ export const AdminLayout: React.FC = () => {
                         </div>
                         <span className="font-bold text-blue-900">StockFlow</span>
                     </div>
-                    <div className="w-10" /> {/* Spacer */}
+                    <div className="flex items-center gap-2"> {/* Replace space with bell */}
+                        <NotificationBell />
+                    </div>
                 </header>
 
                 {/* Main content */}

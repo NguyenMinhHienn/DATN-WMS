@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { cartService } from '../services/cartService';
+import { NotificationBell } from './NotificationBell';
 
 export const Header: React.FC = () => {
     const { isAuthenticated, user, logout, hasAnyRole } = useAuth();
@@ -89,6 +90,10 @@ export const Header: React.FC = () => {
                                         )}
                                     </div>
                                 </button>
+                                
+                                {/* Notification Bell */}
+                                <NotificationBell />
+
                                 <div className="relative" ref={dropdownRef}>
                                     {/* Clickable User Info */}
                                     <button
@@ -129,6 +134,24 @@ export const Header: React.FC = () => {
                                                         {cartItemCount}
                                                     </span>
                                                 )}
+                                            </button>
+
+                                            <button
+                                                onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span>📦</span> Đơn hàng của tôi
+                                                </span>
+                                            </button>
+                                            
+                                            <button
+                                                onClick={() => { navigate('/my-receivables'); setDropdownOpen(false); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-sm"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span>🧾</span> Công nợ của tôi
+                                                </span>
                                             </button>
 
                                             <div className="border-t border-slate-200"></div>
