@@ -305,6 +305,13 @@ const StockTransfers: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                            {selectedTransfer.payment_terms && selectedTransfer.payment_terms > 0 && (
+                                <div className="col-span-2 p-3 bg-red-50 border border-red-200 rounded-xl mb-2">
+                                    <p className="text-red-600 font-bold text-center">
+                                        ⚠️ CẢNH BÁO: PHIẾU CÓ CÔNG NỢ ({selectedTransfer.payment_terms} NGÀY)
+                                    </p>
+                                </div>
+                            )}
                             {selectedTransfer.source_warehouse_name && (
                                 <div>
                                     <span className="text-slate-500">Kho nguồn:</span>

@@ -81,6 +81,11 @@
                 <span class="info-label">Thanh toán:</span> <strong><%= receipt.payment_method %></strong>
             </div>
             <% } %>
+            <% if (receipt.payment_terms > 0) { %>
+            <div class="info-block-full" style="color: #d90000; font-weight: bold; border: 1px dashed #d90000; padding: 5px; text-align: center; margin-bottom: 20px;">
+                CẢNH BÁO: PHIẾU CÓ CÔNG NỢ (<%= receipt.payment_terms %> NGÀY)
+            </div>
+            <% } %>
             <div class="info-block-full">
                 <span class="info-label">Địa Chỉ/SĐT Nhận:</span> 
                 <%= receipt.receiver_address || '' %> <%= receipt.receiver_phone ? ' (Tel: ' + receipt.receiver_phone + ')' : '' %>

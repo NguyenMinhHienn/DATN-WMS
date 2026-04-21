@@ -438,6 +438,7 @@ export interface StockTransfer {
     shipping_fee?: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
     reason?: string;
+    payment_terms?: number;
     order_id?: number;
     notes?: string;
     supplier_id?: number;

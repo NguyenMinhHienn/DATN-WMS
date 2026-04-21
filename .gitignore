@@ -36,3 +36,8 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/items_schema.txt
 backend/schema_check.txt
+
+# ===== Database Backups & Temp Scripts =====
+database/*.sql
+database/*.bat
+backend/check_tables.js

@@ -759,23 +759,31 @@ const CreateTransfer: React.FC = () => {
                                         placeholder="Ghi chú thêm..."
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Thanh toán</label>
-                                    <select
-                                        value={paymentMethod}
-                                        onChange={(e) => setPaymentMethod(e.target.value)}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                    >
-                                        <option value="">-- Chọn thanh toán --</option>
-                                        <option value="cod">Tiền mặt (COD)</option>
-                                        <option value="online">Chuyển khoản (Online)</option>
-                                    </select>
-                                </div>
+                                {paymentTerms === 0 && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Thanh toán</label>
+                                        <select
+                                            value={paymentMethod}
+                                            onChange={(e) => setPaymentMethod(e.target.value)}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        >
+                                            <option value="">-- Chọn thanh toán --</option>
+                                            <option value="cod">Tiền mặt (COD)</option>
+                                            <option value="online">Chuyển khoản (Online)</option>
+                                        </select>
+                                    </div>
+                                )}
                                 <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs font-medium text-indigo-600 mb-1 font-semibold">Tạo công nợ B2B (Ngày)</label>
                                     <select
                                         value={paymentTerms}
-                                        onChange={(e) => setPaymentTerms(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            const terms = Number(e.target.value);
+                                            setPaymentTerms(terms);
+                                            if (terms > 0) {
+                                                setPaymentMethod(''); // Clear payment method if using debt
+                                            }
+                                        }}
                                         className="w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
                                     >
                                         <option value={0}>Thanh toán ngay (0 ngày)</option>

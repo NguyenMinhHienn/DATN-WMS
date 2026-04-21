@@ -302,6 +302,13 @@ const StockManagement: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            {selectedTransfer.payment_terms && selectedTransfer.payment_terms > 0 && (
+                                <div className="md:col-span-2 p-3 bg-red-50 border border-red-200 rounded-xl mb-2">
+                                    <p className="text-red-600 font-bold text-center">
+                                        ⚠️ CẢNH BÁO: PHIẾU CÓ CÔNG NỢ ({selectedTransfer.payment_terms} NGÀY)
+                                    </p>
+                                </div>
+                            )}
                             {/* Thông tin chung */}
                             <div className="hover:bg-blue-50 border border-slate-300/50 rounded-xl p-4">
                                 <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2"><span>📄</span> Thông tin chung</h3>

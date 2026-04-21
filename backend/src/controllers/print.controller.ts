@@ -184,7 +184,8 @@ export const printController = {
                     total_amount: receipt.total_value,
                     created_by_name: receipt.created_by_name,
                     storekeeper: receipt.storekeeper,
-                    approved_by_name: receipt.approved_by_name
+                    approved_by_name: receipt.approved_by_name,
+                    payment_terms: receipt.payment_terms || 0
                 };
 
                 // transform items for export.ejs
