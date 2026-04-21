@@ -10,6 +10,8 @@ export interface User {
     created_at: string;
     updated_at: string;
     roles: Role[];
+    total_orders?: number;
+    total_spent?: number;
 }
 
 export interface Role {

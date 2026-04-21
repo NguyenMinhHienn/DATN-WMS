@@ -78,5 +78,10 @@ export const inventoryService = {
     async getMetrics(id: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
         const response = await api.get<ApiResponse<any>>(`/inventory/${id}/metrics`);
         return response.data.data;
+    },
+
+    async getReport(id: number, fromDate: string, toDate: string): Promise<{ ton_dau: number, nhap_trong_ky: number, xuat_trong_ky: number, ton_cuoi: number }> {
+        const response = await api.get<ApiResponse<any>>(`/inventory/${id}/report?from_date=${fromDate}&to_date=${toDate}`);
+        return response.data.data;
     }
 };

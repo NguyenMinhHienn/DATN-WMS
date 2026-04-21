@@ -49,6 +49,10 @@ export class InventoryService {
         return inventoryRepository.getMovementLogs(page, limit, inventoryId, productId, warehouseId, startDate, endDate);
     }
 
+    async getInventoryReport(inventoryId: number, fromDate: string, toDate: string) {
+        return inventoryRepository.getInventoryReport(inventoryId, fromDate, toDate);
+    }
+
     async getPerformanceMetrics(inventoryId: number) {
         return inventoryRepository.getProductPerformanceMetrics(inventoryId);
     }

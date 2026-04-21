@@ -81,12 +81,26 @@ const Users: React.FC = () => {
     };
 
     const handleDelete = async (user: User) => {
-        if (!confirm(`Delete user "${user.full_name}"?`)) return;
+        const isStaff = user.roles.some(r => r.name === 'staff');
+        
+        if (isStaff) {
+            const reason = window.prompt(`CẢNH BÁO: Bạn đang chuẩn bị xóa nhân viên (Staff) "${user.full_name}".\nVui lòng nhập lý do xóa để tiếp tục:`);
+            if (reason === null) return; // User clicked Cancel
+            if (reason.trim() === '') {
+                alert('Lỗi: Bắt buộc phải nhập lý do khi xóa nhân viên.');
+                return;
+            }
+            // In a real app, reason might be sent to backend. We just enforce input locally here.
+        } else {
+            const confirmDelete = window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${user.full_name}" không?`);
+            if (!confirmDelete) return;
+        }
+
         try {
             await userService.delete(user.id);
             loadUsers();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Failed to delete user');
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng');
         }
     };
 
@@ -131,7 +145,8 @@ const Users: React.FC = () => {
                             <thead className="bg-blue-50/30 border-b border-blue-100">
                                 <tr>
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Người dùng</th>
-                                    <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Email</th>
+                                    <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Liên hệ</th>
+                                    <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thống kê mua hàng</th>
                                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Vai trò</th>
                                     <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
                                     <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
@@ -142,23 +157,51 @@ const Users: React.FC = () => {
                                     <tr key={user.id} className="border-b border-slate-100 hover:bg-blue-50 transition-colors">
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-blue-900 font-medium shadow-lg shadow-indigo-500/20">
-                                                    {user.full_name.charAt(0)}
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-md ${
+                                                    user.roles.some(r => r.name === 'admin') ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-red-500/30' :
+                                                    user.roles.some(r => r.name === 'staff') ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-purple-500/30' :
+                                                    'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-700 shadow-slate-500/20'
+                                                }`}>
+                                                    {user.full_name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-blue-900">{user.full_name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-medium text-blue-900">{user.full_name}</p>
+                                                        {(user.total_spent || 0) >= 100000000 && (
+                                                            <span className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm shadow-yellow-500/20 border border-yellow-300">⭐ VIP</span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-xs text-slate-600">@{user.username}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-sm text-slate-700 font-medium">{user.email}</td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex flex-col gap-1 text-sm">
+                                                <span className="font-medium text-slate-700">{user.email}</span>
+                                                {user.phone && <span className="text-xs text-slate-500">{user.phone}</span>}
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex flex-col gap-1 bg-blue-50/50 p-2 rounded-lg border border-blue-100 w-max">
+                                                <span className="text-sm font-medium text-blue-800">📦 {user.total_orders || 0} đơn</span>
+                                                <span className="text-xs font-bold text-emerald-600">💰 {(user.total_spent || 0).toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        </td>
                                         <td className="py-4 px-6">
                                             <div className="flex flex-wrap gap-1">
-                                                {user.roles.map(role => (
-                                                    <span key={role.id} className="badge badge-info">
-                                                        {role.name}
-                                                    </span>
-                                                ))}
+                                                {user.roles.map(role => {
+                                                    const roleColor = role.name === 'admin' 
+                                                        ? 'bg-red-100 text-red-800 border-red-200' 
+                                                        : role.name === 'staff'
+                                                        ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                                        : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                    
+                                                    return (
+                                                        <span key={role.id} className={`px-2.5 py-0.5 rounded-md text-xs font-bold border shadow-sm ${roleColor}`}>
+                                                            {role.name.toUpperCase()}
+                                                        </span>
+                                                    )
+                                                })}
                                             </div>
                                         </td>
                                         <td className="py-4 px-6 text-center">
@@ -195,7 +238,7 @@ const Users: React.FC = () => {
                                 ))}
                                 {users.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="py-12 text-center">
+                                        <td colSpan={6} className="py-12 text-center">
                                             <div className="flex flex-col items-center gap-3">
                                                 <span className="text-4xl opacity-50">👥</span>
                                                 <p className="text-slate-500">Chưa có người dùng nào</p>

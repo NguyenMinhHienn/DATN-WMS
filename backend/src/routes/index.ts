@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
 import { isAdmin, isWarehouseManager, isStaff, isViewer } from '../middlewares/role.middleware';
 import { checkViewPermission } from '../middlewares/checkViewPermission';
+import { registerLimiter, orderLimiter } from '../middlewares/rateLimit.middleware';
 
 // Import controllers
 import * as authController from '../controllers/auth.controller';
@@ -34,7 +35,7 @@ import * as notificationController from '../controllers/notification.controller'
 const router = Router();
 
 // ==================== AUTH ROUTES ====================
-router.post('/auth/register', authController.register);
+router.post('/auth/register', registerLimiter, authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
@@ -94,6 +95,7 @@ router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inven
 router.get('/inventory/under-ten-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getUnderTenStockItems);
 router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
 router.get('/inventory/:id/metrics', authenticate, checkViewPermission('view_inventory'), inventoryController.getPerformanceMetrics);
+router.get('/inventory/:id/report', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryReport);
 router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);
 router.post('/inventory/adjust', authenticate, isStaff, inventoryController.adjustInventory);
 
@@ -185,7 +187,7 @@ router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadContr
 
 // ==================== ORDER ROUTES ====================
 // Client: Tạo và xem đơn hàng
-router.post('/orders', authenticate, orderController.createOrder);
+router.post('/orders', authenticate, orderLimiter, orderController.createOrder);
 router.get('/client/orders', authenticate, orderController.getClientOrders);
 router.get('/client/orders/:id', authenticate, orderController.getClientOrderById);
 router.put('/orders/:id/cancel', authenticate, orderController.cancelOrder);

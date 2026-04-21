@@ -303,6 +303,62 @@ export class InventoryRepository {
             },
         };
     }
+    /**
+     * Báo cáo Nhập – Xuất – Tồn theo khoảng thời gian cho 1 inventory record
+     * - ton_dau: tổng biến động trước from_date (mọi nghiệp vụ làm thay đổi tồn thực tế)
+     * - nhap_trong_ky: tổng biến động dương trong khoảng
+     * - xuat_trong_ky: tổng trị tuyệt đối biến động âm trong khoảng
+     * - ton_cuoi = ton_dau + nhap - xuat
+     */
+    async getInventoryReport(
+        inventoryId: number,
+        fromDate: string,
+        toDate: string
+    ): Promise<{ ton_dau: number; nhap_trong_ky: number; xuat_trong_ky: number; ton_cuoi: number }> {
+        // Lọc các movement thực sự thay đổi on_hand (quantity_after != quantity_before)
+        // Điều này giúp bao quát mọi loại nghiệp vụ thực tế trong DB và loại trừ RESERVE/RELEASE
+
+        // 1. Tồn đầu kỳ: tổng quantity_change trước from_date
+        const [tonDauRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(quantity_change), 0) AS ton_dau
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND created_at < ?`,
+            [inventoryId, fromDate]
+        );
+        const ton_dau = Number(tonDauRows[0].ton_dau) || 0;
+
+        // 2. Nhập trong kỳ: tổng quantity_change > 0 trong khoảng
+        const [nhapRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(quantity_change), 0) AS nhap
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND quantity_change > 0
+               AND created_at >= ? AND created_at <= ?`,
+            [inventoryId, fromDate, toDate]
+        );
+        const nhap_trong_ky = Number(nhapRows[0].nhap) || 0;
+
+        // 3. Xuất trong kỳ: tổng trị tuyệt đối quantity_change < 0 trong khoảng
+        const [xuatRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(ABS(quantity_change)), 0) AS xuat
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND quantity_change < 0
+               AND created_at >= ? AND created_at <= ?`,
+            [inventoryId, fromDate, toDate]
+        );
+        const xuat_trong_ky = Number(xuatRows[0].xuat) || 0;
+
+        // 4. Tồn cuối kỳ
+        const ton_cuoi = ton_dau + nhap_trong_ky - xuat_trong_ky;
+
+        return { ton_dau, nhap_trong_ky, xuat_trong_ky, ton_cuoi };
+    }
+
     async getProductPerformanceMetrics(inventoryId: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
         // Find the variant_id for this inventory item
         const [invRows] = await pool.query<RowDataPacket[]>(

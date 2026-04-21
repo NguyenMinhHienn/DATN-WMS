@@ -86,3 +86,24 @@ export const getPerformanceMetrics = asyncHandler(async (req: AuthRequest, res: 
         data: metrics,
     } as ApiResponse);
 });
+
+export const getInventoryReport = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const fromDate = req.query.from_date as string;
+    const toDate = req.query.to_date as string;
+
+    if (!fromDate || !toDate) {
+        res.status(400).json({
+            success: false,
+            message: 'from_date và to_date là bắt buộc',
+        } as ApiResponse);
+        return;
+    }
+
+    const report = await inventoryService.getInventoryReport(id, fromDate, toDate);
+
+    res.json({
+        success: true,
+        data: report,
+    } as ApiResponse);
+});
