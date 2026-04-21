@@ -92,6 +92,7 @@ router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inven
 router.get('/inventory/under-ten-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getUnderTenStockItems);
 router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
 router.get('/inventory/:id/metrics', authenticate, checkViewPermission('view_inventory'), inventoryController.getPerformanceMetrics);
+router.get('/inventory/:id/report', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryReport);
 router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);
 router.post('/inventory/adjust', authenticate, isStaff, inventoryController.adjustInventory);
 
