@@ -16,6 +16,8 @@ export interface User {
     created_at: Date;
     updated_at: Date;
     deleted_at?: Date;
+    total_orders?: number;
+    total_spent?: number;
 }
 
 export interface Role {
