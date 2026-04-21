@@ -71,6 +71,17 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
         } as ApiResponse);
     }
 
+    // Validate email domain
+    const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hust.edu.vn', 'fpt.com'];
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+
+    if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Chỉ chấp nhận đăng ký bằng các email: Gmail, Yahoo, Outlook, iCloud, HUST, FPT.',
+        } as ApiResponse);
+    }
+
     // Validate password length
     if (password.length < 6) {
         return res.status(400).json({

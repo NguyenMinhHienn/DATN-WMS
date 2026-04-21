@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
 import { isAdmin, isWarehouseManager, isStaff, isViewer } from '../middlewares/role.middleware';
 import { checkViewPermission } from '../middlewares/checkViewPermission';
+import { registerLimiter, orderLimiter } from '../middlewares/rateLimit.middleware';
 
 // Import controllers
 import * as authController from '../controllers/auth.controller';
@@ -32,7 +33,7 @@ import { getTransferByOrder } from '../controllers/transfer.controller';
 const router = Router();
 
 // ==================== AUTH ROUTES ====================
-router.post('/auth/register', authController.register);
+router.post('/auth/register', registerLimiter, authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
@@ -184,7 +185,7 @@ router.delete('/upload/:filename', authenticate, isWarehouseManager, uploadContr
 
 // ==================== ORDER ROUTES ====================
 // Client: Tạo và xem đơn hàng
-router.post('/orders', authenticate, orderController.createOrder);
+router.post('/orders', authenticate, orderLimiter, orderController.createOrder);
 router.get('/client/orders', authenticate, orderController.getClientOrders);
 router.get('/client/orders/:id', authenticate, orderController.getClientOrderById);
 router.put('/orders/:id/cancel', authenticate, orderController.cancelOrder);
