@@ -23,8 +23,19 @@ export interface Receivable {
     created_at: string;
     user_full_name?: string;
     created_by_name?: string;
+    notes?: string | null;
     user_email_account?: string;
     payment_history?: PaymentReceipt[];
+    items?: ReceivableItem[];
+}
+
+export interface ReceivableItem {
+    product_id: number;
+    product_name: string;
+    sku: string;
+    quantity: number;
+    unit_cost: number | string;
+    line_total: number | string;
 }
 
 export interface PaymentReceipt {
@@ -57,6 +68,19 @@ export interface ReceivableSummary {
     total_overdue: number;
     overdue_amount: number;
     count_by_status: Record<string, number>;
+}
+
+export interface ConsolidatedLedgerEntry {
+    debtor_phone: string;
+    debtor_name: string;
+    debtor_address: string;
+    total_slips: number;
+    unpaid_slips: number;
+    total_debt: number;
+    total_paid: number;
+    remaining_debt: number;
+    last_payment_at: string | null;
+    last_activity_at: string;
 }
 
 export const receivableService = {
@@ -103,6 +127,26 @@ export const receivableService = {
 
     async sendReminder(id: number, email?: string) {
         const response = await api.post(`/receivables/${id}/remind`, { email });
+        return response.data;
+    },
+
+    // ==================== CONSOLIDATED LEDGER (SỔ NỢ) ====================
+    async getConsolidatedLedger(params: { page?: number; limit?: number; search?: string } = {}) {
+        const response = await api.get('/receivables/ledger', { params });
+        return response.data;
+    },
+
+    async createConsolidatedPayment(data: {
+        debtor_phone: string;
+        amount: number;
+        payment_method: string;
+        payment_date: string;
+        bank_name?: string;
+        bank_account?: string;
+        bank_reference?: string;
+        notes?: string;
+    }) {
+        const response = await api.post('/payment-receipts/consolidated', data);
         return response.data;
     },
 

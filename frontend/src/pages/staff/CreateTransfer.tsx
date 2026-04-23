@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { productService } from '../../services/productService';
 import { supplierService, Supplier } from '../../services/supplierService';
 import { useAuth } from '../../context/AuthContext';
 import { Product } from '../../interface';
+const AddressMapPicker = lazy(() => import('../../components/AddressMapPicker'));
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
 
@@ -58,6 +59,8 @@ const CreateTransfer: React.FC = () => {
     const [receiverDepartment, setReceiverDepartment] = useState('');
     const [receiverAddress, setReceiverAddress] = useState('');
     const [receiverPhone, setReceiverPhone] = useState('');
+    const [receiverLat, setReceiverLat] = useState<number | undefined>();
+    const [receiverLng, setReceiverLng] = useState<number | undefined>();
     const [exportNote, setExportNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [vatPercent, setVatPercent] = useState<number>(0);
@@ -438,6 +441,8 @@ const CreateTransfer: React.FC = () => {
                 receiver_department: transferType === 'EXPORT' ? receiverDepartment || undefined : undefined,
                 receiver_address: transferType === 'EXPORT' ? receiverAddress || undefined : undefined,
                 receiver_phone: transferType === 'EXPORT' ? receiverPhone || undefined : undefined,
+                receiver_latitude: transferType === 'EXPORT' ? receiverLat : undefined,
+                receiver_longitude: transferType === 'EXPORT' ? receiverLng : undefined,
                 subtotal: calculations.grandTotal,
                 vat_percent: vatPercent,
                 vat_amount: calculations.grandTotal * vatPercent,
@@ -730,14 +735,19 @@ const CreateTransfer: React.FC = () => {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">🏠 Địa chỉ người nhận *</label>
-                                    <input
-                                        type="text"
-                                        value={receiverAddress}
-                                        onChange={(e) => setReceiverAddress(e.target.value)}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                        placeholder="Địa chỉ giao hàng"
-                                    />
+                                    <Suspense fallback={<div className="py-3 text-center text-slate-400 text-sm">Đang tải bản đồ...</div>}>
+                                        <AddressMapPicker
+                                            value={receiverAddress}
+                                            onChange={setReceiverAddress}
+                                            onCoordinatesChange={(lat, lng) => { setReceiverLat(lat); setReceiverLng(lng); }}
+                                            label="🏠 Địa chỉ người nhận"
+                                            placeholder="Tìm kiếm địa chỉ giao hàng..."
+                                            required
+                                            showDistance
+                                            warehouseCoords={{ lat: 21.0388, lng: 105.7478 }}
+                                            height="280px"
+                                        />
+                                    </Suspense>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">Bộ phận nhận</label>

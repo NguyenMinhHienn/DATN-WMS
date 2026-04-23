@@ -67,7 +67,9 @@ class OrderRepository {
         paymentMethod: 'COD' | 'BANKING',
         totalAmount: number,
         items: CreateOrderItemInput[],
-        notes?: string
+        notes?: string,
+        shippingLatitude?: number,
+        shippingLongitude?: number
     ): Promise<number> {
         const connection = await pool.getConnection();
         try {
@@ -75,9 +77,9 @@ class OrderRepository {
 
             // Insert order
             const [orderResult] = await connection.execute<ResultSetHeader>(
-                `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, notes)
-                 VALUES (?, ?, ?, 'unpaid', 'pending', ?, ?, ?, ?)`,
-                [userId, totalAmount, paymentMethod, shippingName, shippingPhone, shippingAddress, notes || null]
+                `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, shipping_latitude, shipping_longitude, notes)
+                 VALUES (?, ?, ?, 'unpaid', 'pending', ?, ?, ?, ?, ?, ?)`,
+                [userId, totalAmount, paymentMethod, shippingName, shippingPhone, shippingAddress, shippingLatitude || null, shippingLongitude || null, notes || null]
             );
             const orderId = orderResult.insertId;
 

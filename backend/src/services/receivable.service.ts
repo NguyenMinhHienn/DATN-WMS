@@ -129,6 +129,46 @@ class ReceivableService {
         return receivableRepository.getOverdueReceivables();
     }
 
+    /**
+     * Tạo công nợ tự động từ phiếu xuất kho nội bộ (Export Transfer) khi được duyệt
+     */
+    async createFromExportTransfer(transfer: {
+        id: number;
+        transfer_number: string;
+        total_amount: number;
+        transfer_date: string;
+        receiver_name?: string;
+        receiver_phone?: string;
+        receiver_address?: string;
+        payment_terms?: number;
+    }, createdBy?: number): Promise<number> {
+        // Kiểm tra đã tồn tại chưa
+        const existing = await receivableRepository.findBySource('export_transfer', transfer.id);
+        if (existing) {
+            return existing.id;
+        }
+
+        const paymentTerms = transfer.payment_terms || 0;
+        const issueDate = transfer.transfer_date || new Date().toISOString().split('T')[0];
+
+        const receivableId = await receivableRepository.create({
+            source_type: 'export_transfer',
+            source_id: transfer.id,
+            source_number: transfer.transfer_number,
+            debtor_type: 'external',
+            debtor_name: transfer.receiver_name || 'Khách hàng/Kho nhận',
+            debtor_phone: transfer.receiver_phone,
+            debtor_address: transfer.receiver_address,
+            total_amount: transfer.total_amount,
+            issue_date: issueDate,
+            payment_terms: paymentTerms,
+            notes: `Tự động tạo từ phiếu xuất/chuyển kho ${transfer.transfer_number}`,
+            created_by: createdBy,
+        });
+
+        return receivableId;
+    }
+
     /** Cập nhật trạng thái quá hạn */
     async checkAndMarkOverdue() {
         const count = await receivableRepository.markOverdue();
@@ -202,6 +242,16 @@ class ReceivableService {
     /** Thống kê theo tháng */
     async getMonthlyStats(year: number) {
         return receivableRepository.getMonthlyStats(year);
+    }
+
+    /** Lấy sổ nợ tổng hợp (Admin) */
+    async getConsolidatedLedger(filters: any) {
+        return receivableRepository.getConsolidatedLedger(filters);
+    }
+
+    /** Lấy danh sách phiếu chưa trả theo SĐT */
+    async getUnpaidByPhone(phone: string) {
+        return receivableRepository.getUnpaidByPhone(phone);
     }
 }
 

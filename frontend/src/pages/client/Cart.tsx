@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cartService, CartItem } from '../../services/cartService';
 import { uploadService } from '../../services/uploadService';
 import { orderService } from '../../services/orderService';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+const AddressMapPicker = lazy(() => import('../../components/AddressMapPicker'));
 
 
 /**
@@ -32,6 +33,8 @@ const Cart: React.FC = () => {
         payment_method: 'COD' as 'COD' | 'BANKING',
         notes: '',
     });
+    const [shippingLat, setShippingLat] = useState<number | undefined>();
+    const [shippingLng, setShippingLng] = useState<number | undefined>();
 
     // Load giỏ hàng
     const loadCart = useCallback(async () => {
@@ -209,6 +212,8 @@ const Cart: React.FC = () => {
                 shipping_address: shipping_address.trim(),
                 payment_method,
                 notes: notes.trim() || undefined,
+                shipping_latitude: shippingLat,
+                shipping_longitude: shippingLng,
             });
 
             // Nếu COD → về trang đơn hàng
@@ -391,9 +396,17 @@ const Cart: React.FC = () => {
                                         <input type="tel" placeholder="Số điện thoại *" value={checkoutForm.shipping_phone}
                                             onChange={e => setCheckoutForm(prev => ({ ...prev, shipping_phone: e.target.value }))}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
-                                        <textarea placeholder="Địa chỉ / Đơn vị nội bộ *" rows={2} value={checkoutForm.shipping_address}
-                                            onChange={e => setCheckoutForm(prev => ({ ...prev, shipping_address: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" />
+                                        <Suspense fallback={<div className="py-2 text-center text-slate-400 text-sm">Đang tải bản đồ...</div>}>
+                                            <AddressMapPicker
+                                                value={checkoutForm.shipping_address}
+                                                onChange={(addr) => setCheckoutForm(prev => ({ ...prev, shipping_address: addr }))}
+                                                onCoordinatesChange={(lat, lng) => { setShippingLat(lat); setShippingLng(lng); }}
+                                                label="📍 Địa chỉ nhận hàng"
+                                                placeholder="Tìm kiếm địa chỉ..."
+                                                required
+                                                height="250px"
+                                            />
+                                        </Suspense>
 
                                         <div>
                                             <label className="text-sm font-medium text-slate-600">Phương thức thanh toán</label>

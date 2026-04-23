@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { receivableService, Receivable, ReceivableSummary } from '../../services/receivableService';
+import { receivableService, Receivable, ReceivableSummary, ReceivableItem } from '../../services/receivableService';
 import { Modal } from '../../components/Modal';
 
 const Receivables: React.FC = () => {
@@ -16,6 +16,7 @@ const Receivables: React.FC = () => {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [detailData, setDetailData] = useState<Receivable | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('overview');
 
     // Modal Create Receipt
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -55,9 +56,11 @@ const Receivables: React.FC = () => {
         try {
             const data = await receivableService.getById(id);
             setDetailData(data);
+            setActiveTab('overview'); // Reset to first tab
             setIsDetailModalOpen(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            alert(error.response?.data?.message || 'Không thể tải chi tiết công nợ. Vui lòng kiểm tra lại kết nối hoặc dữ liệu nguồn.');
         }
     };
 
@@ -80,7 +83,7 @@ const Receivables: React.FC = () => {
             setIsReceiptModalOpen(false);
             setReceiptForm({ amount: '', payment_method: 'cash', bank_name: '', bank_account: '', bank_reference: '', notes: '', debtor_email: '' });
             loadData();
-            handleViewDetail(selectedId); // Refresh details
+            if (selectedId) handleViewDetail(selectedId); // Refresh details
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra');
         }
@@ -297,113 +300,257 @@ const Receivables: React.FC = () => {
             </div>
 
             {/* Detail Modal */}
-            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Chi tiết Công nợ">
+            {/* ==================== DETAIL MODAL ==================== */}
+            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="📋 Chi tiết Công nợ (Phát sinh)">
                 {detailData && (
-                    <div className="space-y-6">
-                        {/* Summary Box */}
-                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                            <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-3">
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800">{detailData.receivable_number}</h3>
-                                    <div className="text-sm text-slate-500 mt-1">Từ: {detailData.source_type === 'export_receipt' ? 'Phiếu xuất' : 'Đơn hàng'} {detailData.source_number}</div>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <span 
-                                        className="px-3 py-1 text-sm font-medium rounded-full"
-                                        style={{ 
-                                            color: receivableService.getStatusInfo(detailData.status).color, 
-                                            backgroundColor: receivableService.getStatusInfo(detailData.status).bg 
-                                        }}
-                                    >
-                                        {receivableService.getStatusInfo(detailData.status).label}
-                                    </span>
-                                    {['unpaid', 'partial', 'overdue'].includes(detailData.status) && (
-                                        <button 
-                                            onClick={() => handleSendReminder(detailData.id)}
-                                            className="text-xs text-orange-600 hover:text-orange-700 font-medium underline"
-                                        >
-                                            🔔 Gửi Nhắc Nợ
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-y-3 text-sm">
-                                <div>
-                                    <span className="text-slate-500">Khách hàng:</span>
-                                    <p className="font-medium text-slate-800">{detailData.debtor_name}</p>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500">Số điện thoại:</span>
-                                    <p className="font-medium text-slate-800">{detailData.debtor_phone || '---'}</p>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500">Tổng phát sinh:</span>
-                                    <p className="font-bold text-blue-600">{formatMoney(detailData.total_amount)} đ</p>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500">Còn nợ:</span>
-                                    <p className="font-bold text-red-500">{formatMoney(parseFloat(detailData.total_amount) - parseFloat(detailData.paid_amount))} đ</p>
-                                </div>
-                            </div>
+                    <div className="flex flex-col h-full max-h-[75vh]">
+                        {/* Tabs Header */}
+                        <div className="flex border-b border-slate-200 mb-4 bg-slate-50/50 rounded-t-xl sticky top-0 z-10 p-1 gap-1">
+                            {['overview', 'items', 'history'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                                        activeTab === tab 
+                                            ? 'bg-white text-blue-900 shadow-sm border border-blue-100' 
+                                            : 'text-slate-500 hover:text-blue-900 hover:bg-white/50'
+                                    }`}
+                                >
+                                    {tab === 'overview' ? '📑 Tổng quan' : tab === 'items' ? '📦 Sản phẩm' : '💰 Thanh toán'}
+                                </button>
+                            ))}
                         </div>
 
-                        {/* Payment History */}
-                        <div>
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="font-bold text-slate-800">Lịch sử thu tiền</h4>
-                                {['unpaid', 'partial', 'overdue'].includes(detailData.status) && (
-                                    <button 
-                                        onClick={() => setIsReceiptModalOpen(true)}
-                                        className="btn btn-primary !py-1.5 !text-xs"
-                                    >
-                                        + Lập phiếu thu
-                                    </button>
-                                )}
-                            </div>
-                            
-                            {detailData.payment_history?.length === 0 ? (
-                                <p className="text-sm text-slate-500 italic text-center py-4 bg-slate-50 rounded border border-slate-100">Chưa có phiếu thu nào</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {detailData.payment_history?.map(receipt => (
-                                        <div key={receipt.id} className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50 transition">
-                                            <div className="flex justify-between mb-2">
-                                                <div className="font-medium text-sm">{receipt.receipt_number}</div>
-                                                <span 
-                                                    className="px-2 py-0.5 text-[10px] font-bold uppercase rounded"
-                                                    style={{ 
-                                                        color: receivableService.getReceiptStatusInfo(receipt.status).color, 
-                                                        backgroundColor: receivableService.getReceiptStatusInfo(receipt.status).bg 
-                                                    }}
-                                                >
-                                                    {receivableService.getReceiptStatusInfo(receipt.status).label}
-                                                </span>
+                        <div className="overflow-y-auto pr-1">
+                            {/* OVERVIEW TAB */}
+                            {activeTab === 'overview' && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-4 shadow-sm">
+                                        <div className="flex justify-between items-center mb-4 pb-3 border-b border-blue-100">
+                                            <div>
+                                                <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Mã công nợ</div>
+                                                <h3 className="text-xl font-bold text-blue-900">{detailData.receivable_number}</h3>
                                             </div>
-                                            <div className="flex justify-between items-end">
-                                                <div className="text-xs text-slate-500 space-y-1">
-                                                    <div>Ngày TT: {new Date(receipt.payment_date).toLocaleDateString('vi-VN')}</div>
-                                                    <div>HT: {receivableService.getPaymentMethodLabel(receipt.payment_method)}</div>
-                                                    {receipt.status === 'pending' && <div className="text-orange-500 mt-1 italic">Vui lòng duyệt phiếu này để cập nhật công nợ</div>}
+                                            <span 
+                                                className="px-4 py-1.5 text-xs font-bold rounded-full border shadow-sm"
+                                                style={{ 
+                                                    color: receivableService.getStatusInfo(detailData.status).color, 
+                                                    backgroundColor: receivableService.getStatusInfo(detailData.status).bg,
+                                                    borderColor: receivableService.getStatusInfo(detailData.status).color + '40'
+                                                }}
+                                            >
+                                                {receivableService.getStatusInfo(detailData.status).label}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-6">
+                                            {/* Khách hàng */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Đối tượng nợ</label>
+                                                    <p className="font-bold text-slate-800 text-base">{detailData.debtor_name}</p>
+                                                    <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
+                                                        <span>📞</span> {detailData.debtor_phone || '---'}
+                                                    </p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="font-bold text-emerald-600 mb-2">+{formatMoney(receipt.amount)}đ</div>
-                                                    {receipt.status === 'pending' && (
-                                                        <div className="flex gap-2">
-                                                            <button 
-                                                                onClick={() => handleRejectReceipt(receipt.id)}
-                                                                className="btn btn-secondary border-red-200 text-red-500 hover:bg-red-50 !py-1 !text-xs"
-                                                            >Từ chối</button>
-                                                            <button 
-                                                                onClick={() => handleApproveReceipt(receipt.id)}
-                                                                className="btn btn-primary !py-1 !text-xs"
-                                                            >Duyệt</button>
-                                                        </div>
-                                                    )}
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Địa chỉ</label>
+                                                    <p className="text-sm text-slate-600 leading-relaxed">{detailData.debtor_address || '-- Chưa cập nhật --'}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Tài chính */}
+                                            <div className="bg-white rounded-lg p-3 border border-blue-50 space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-slate-500">Phát sinh:</span>
+                                                    <span className="font-bold text-blue-900">{formatMoney(detailData.total_amount)} đ</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-slate-500 font-medium">Đã trả:</span>
+                                                    <span className="font-bold text-emerald-600">{formatMoney(detailData.paid_amount)} đ</span>
+                                                </div>
+                                                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                    <span className="text-sm font-bold text-slate-700">CÒN NỢ:</span>
+                                                    <span className="text-lg font-bold text-red-500">{formatMoney(parseFloat(detailData.total_amount) - parseFloat(detailData.paid_amount))} đ</span>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">📜 Nguồn tham chiếu</h4>
+                                            <p className="text-sm font-medium text-slate-800">
+                                                {detailData.source_type === 'export_receipt' ? '📦 Phiếu xuất kho' : '🛒 Đơn hàng'}
+                                            </p>
+                                            <p className="text-sm font-bold text-blue-600 mt-1">{detailData.source_number}</p>
+                                            <p className="text-[10px] text-slate-400 mt-2 italic">Ngày phát sinh: {new Date(detailData.issue_date).toLocaleDateString('vi-VN')}</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">👤 Thông tin khởi tạo</h4>
+                                            <p className="text-sm font-medium text-slate-800">{detailData.created_by_name || 'Hệ thống'}</p>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                🕒 {new Date(detailData.created_at).toLocaleString('vi-VN')}
+                                            </p>
+                                            {detailData.due_date && (
+                                                <p className="text-[10px] text-red-500 font-bold mt-2 uppercase">
+                                                    Hạn thanh toán: {new Date(detailData.due_date).toLocaleDateString('vi-VN')}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {detailData.notes && (
+                                        <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3">
+                                            <label className="text-[10px] font-bold text-amber-600 uppercase">Ghi chú</label>
+                                            <p className="text-sm text-slate-700 mt-1 leading-relaxed italic">{detailData.notes}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        {['unpaid', 'partial', 'overdue'].includes(detailData.status) && (
+                                            <button 
+                                                onClick={() => handleSendReminder(detailData!.id)}
+                                                className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-xs font-bold transition-all border border-orange-200"
+                                            >
+                                                🔔 GỬI NHẮC NỢ (EMAIL)
+                                            </button>
+                                        )}
+                                        <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-xs font-bold transition-all border border-slate-200">
+                                            🖨️ IN PHIẾU NỢ
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ITEMS TAB */}
+                            {activeTab === 'items' && (
+                                <div className="animate-fadeIn">
+                                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-slate-50 text-slate-600">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-bold border-b border-slate-200">Sản phẩm</th>
+                                                    <th className="px-4 py-3 text-right font-bold border-b border-slate-200 w-24">SL</th>
+                                                    <th className="px-4 py-3 text-right font-bold border-b border-slate-200 w-32">Đơn giá</th>
+                                                    <th className="px-4 py-3 text-right font-bold border-b border-slate-200 w-32">Thành tiền</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {detailData.items && detailData.items.length > 0 ? (
+                                                    detailData.items.map((item: any, idx: number) => (
+                                                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-800 line-clamp-1">{item.product_name}</div>
+                                                                <div className="text-[10px] font-mono text-slate-400 mt-0.5">{item.sku}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right text-slate-700 font-bold">{item.quantity}</td>
+                                                            <td className="px-4 py-3 text-right text-slate-600">{formatMoney(item.unit_cost)}</td>
+                                                            <td className="px-4 py-3 text-right font-bold text-blue-900">{formatMoney(item.line_total)}</td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={4} className="py-12 text-center text-slate-400 italic">
+                                                            Không thể nạp thông tin chi tiết mặt hàng
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                            {detailData.items && detailData.items.length > 0 && (
+                                                <tfoot className="bg-blue-50/20 font-bold border-t border-blue-100 text-blue-900">
+                                                    <tr>
+                                                        <td colSpan={3} className="px-4 py-3 text-right uppercase text-xs tracking-wider">Cộng tiền hàng</td>
+                                                        <td className="px-4 py-3 text-right text-base">{formatMoney(detailData.total_amount)} đ</td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2 italic px-2">
+                                        * Thông tin được chiết xuất tự động từ chứng từ gốc: {detailData.source_number}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* HISTORY TAB */}
+                            {activeTab === 'history' && (
+                                <div className="space-y-4 animate-fadeIn px-1">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lịch sử giao dịch tiền</h4>
+                                        {['unpaid', 'partial', 'overdue'].includes(detailData.status) && (
+                                            <button 
+                                                onClick={() => setIsReceiptModalOpen(true)}
+                                                className="btn btn-primary !py-1.5 !px-3 !text-[10px] shadow-sm uppercase tracking-tighter"
+                                            >
+                                                + Lập phiếu thu
+                                            </button>
+                                        )}
+                                    </div>
+                                    
+                                    {detailData.payment_history?.length === 0 ? (
+                                        <div className="bg-slate-50 rounded-xl border border-slate-200 border-dashed py-12 flex flex-col items-center gap-3">
+                                            <span className="text-4xl opacity-20">💸</span>
+                                            <p className="text-sm text-slate-400 font-medium italic">Chưa phát sinh lượt thanh toán nào</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 pb-4">
+                                            {detailData.payment_history?.map(receipt => (
+                                                <div key={receipt.id} className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all group">
+                                                    <div className="flex justify-between mb-3 border-b border-slate-50 pb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">🏧</span>
+                                                            <div className="font-bold text-sm text-slate-800">{receipt.receipt_number}</div>
+                                                        </div>
+                                                        <span 
+                                                            className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg border shadow-sm"
+                                                            style={{ 
+                                                                color: receivableService.getReceiptStatusInfo(receipt.status).color, 
+                                                                backgroundColor: receivableService.getReceiptStatusInfo(receipt.status).bg,
+                                                                borderColor: receivableService.getReceiptStatusInfo(receipt.status).color + '30'
+                                                            }}
+                                                        >
+                                                            {receivableService.getReceiptStatusInfo(receipt.status).label}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-end">
+                                                        <div className="text-[11px] text-slate-500 space-y-1.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-slate-400 w-16">Ngày TT:</span> 
+                                                                <span className="font-bold text-slate-700">{new Date(receipt.payment_date).toLocaleDateString('vi-VN')}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-slate-400 w-16">Hình thức:</span> 
+                                                                <span className="font-medium px-2 py-0.5 bg-slate-100 rounded text-slate-600">{receivableService.getPaymentMethodLabel(receipt.payment_method)}</span>
+                                                            </div>
+                                                            {receipt.status === 'pending' && (
+                                                                <div className="text-orange-500 mt-2 font-bold flex items-center gap-1 animate-pulse">
+                                                                    ⚠️ CHỜ DUYỆT ĐỂ KHẤU TRỪ NỢ
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Số tiền thu</div>
+                                                            <div className="font-black text-xl text-emerald-600">+{formatMoney(receipt.amount)} đ</div>
+                                                            {receipt.status === 'pending' && (
+                                                                <div className="flex gap-2 justify-end mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button 
+                                                                        onClick={() => handleRejectReceipt(receipt.id)}
+                                                                        className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-100 transition-colors"
+                                                                        title="Từ chối"
+                                                                    >✕</button>
+                                                                    <button 
+                                                                        onClick={() => handleApproveReceipt(receipt.id)}
+                                                                        className="px-4 p-1.5 bg-emerald-600 text-blue-900 rounded-lg hover:bg-emerald-700 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
+                                                                    >DUYỆT NGAY</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

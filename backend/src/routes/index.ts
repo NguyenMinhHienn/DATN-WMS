@@ -249,6 +249,7 @@ router.get('/receivables/summary', authenticate, isAdmin, receivableController.g
 router.get('/receivables/overdue', authenticate, isAdmin, receivableController.getOverdueReceivables);
 router.get('/receivables/monthly-stats', authenticate, isAdmin, receivableController.getMonthlyStats);
 router.post('/receivables/check-overdue', authenticate, isAdmin, receivableController.checkOverdue);
+router.get('/receivables/ledger', authenticate, isAdmin, receivableController.getConsolidatedLedger);
 router.get('/receivables', authenticate, isStaff, receivableController.getAllReceivables);
 router.get('/receivables/:id', authenticate, isStaff, receivableController.getReceivableById);
 router.put('/receivables/:id/cancel', authenticate, isAdmin, receivableController.cancelReceivable);
@@ -262,6 +263,7 @@ router.get('/client/receivables', authenticate, receivableController.getClientRe
 router.post('/payment-receipts', authenticate, isStaff, receivableController.createPaymentReceipt);
 router.get('/payment-receipts', authenticate, isStaff, receivableController.getAllPaymentReceipts);
 router.get('/payment-receipts/:id', authenticate, isStaff, receivableController.getPaymentReceiptById);
+router.post('/payment-receipts/consolidated', authenticate, isAdmin, receivableController.createConsolidatedPayment);
 router.put('/payment-receipts/:id/approve', authenticate, isAdmin, receivableController.approvePaymentReceipt);
 router.put('/payment-receipts/:id/reject', authenticate, isAdmin, receivableController.rejectPaymentReceipt);
 

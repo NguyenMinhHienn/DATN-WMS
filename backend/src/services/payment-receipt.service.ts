@@ -55,6 +55,79 @@ class PaymentReceiptService {
         return id;
     }
 
+    /** 
+     * Tạo phiếu thu gộp cho nhiều công nợ (Sổ nợ)
+     * Ưu tiên thanh toán cho các phiếu cũ trước (FIFO)
+     */
+    async createConsolidatedPayment(data: {
+        debtor_phone: string;
+        amount: number;
+        payment_method: string;
+        payment_date: string;
+        bank_name?: string;
+        bank_account?: string;
+        bank_reference?: string;
+        notes?: string;
+    }, createdBy: number, isAdmin: boolean = false) {
+        if (data.amount <= 0) throw new AppError('Số tiền phải lớn hơn 0', 400);
+
+        // 1. Lấy danh sách phiếu nợ chưa trả của SĐT này (FIFO)
+        const unpaidReceivables = await receivableRepository.getUnpaidByPhone(data.debtor_phone);
+        if (unpaidReceivables.length === 0) {
+            throw new AppError(`Khách hàng số điện thoại ${data.debtor_phone} không còn nợ`, 400);
+        }
+
+        const totalRemaining = unpaidReceivables.reduce((sum, r) => 
+            sum + (parseFloat(r.total_amount) - parseFloat(r.paid_amount)), 0);
+        
+        if (data.amount > totalRemaining) {
+            throw new AppError(`Số tiền thanh toán (${data.amount}) vượt quá tổng dư nợ (${totalRemaining})`, 400);
+        }
+
+        let remainingToPay = data.amount;
+        const receiptIds: number[] = [];
+
+        // 2. Duyệt qua từng phiếu nợ và gạch nợ
+        for (const receivable of unpaidReceivables) {
+            if (remainingToPay <= 0) break;
+
+            const remainingOnSlip = parseFloat(receivable.total_amount) - parseFloat(receivable.paid_amount);
+            const amountForThisSlip = Math.min(remainingToPay, remainingOnSlip);
+
+            if (amountForThisSlip > 0) {
+                // Tạo phiếu thu lẻ cho phiếu nợ này
+                const receiptId = await paymentReceiptRepository.create({
+                    receivable_id: receivable.id,
+                    amount: amountForThisSlip,
+                    payment_method: data.payment_method,
+                    payment_date: data.payment_date,
+                    bank_name: data.bank_name,
+                    bank_account: data.bank_account,
+                    bank_reference: data.bank_reference,
+                    notes: data.notes || `Thanh toán gộp cho khách hàng ${data.debtor_phone}`,
+                    created_by: createdBy,
+                    status: isAdmin ? 'approved' : 'pending'
+                });
+
+                receiptIds.push(receiptId);
+
+                // Nếu là Admin thì auto-approve luôn
+                if (isAdmin) {
+                    await this.processApproval(receiptId, createdBy);
+                }
+
+                remainingToPay -= amountForThisSlip;
+            }
+        }
+
+        return {
+            success: true,
+            receipt_ids: receiptIds,
+            amount_paid: data.amount - remainingToPay,
+            remaining_unprocessed: remainingToPay
+        };
+    }
+
     /** Lấy chi tiết phiếu thu */
     async getById(id: number) {
         const receipt = await paymentReceiptRepository.findById(id);

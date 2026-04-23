@@ -169,6 +169,8 @@ export class StockTransferService {
             receiver_department: dto.receiver_department,
             receiver_address: dto.receiver_address,
             receiver_phone: dto.receiver_phone,
+            receiver_latitude: dto.receiver_latitude,
+            receiver_longitude: dto.receiver_longitude,
             order_id: dto.order_id || dto.orderId,
             reason: dto.reason,
             notes: dto.notes,
@@ -307,11 +309,11 @@ export class StockTransferService {
 
         if (approved && transfer.transfer_type === 'EXPORT') {
             try {
-                await receivableService.createFromExportReceipt({
+                await receivableService.createFromExportTransfer({
                     id: transfer.id,
-                    receipt_number: transfer.transfer_number,
+                    transfer_number: transfer.transfer_number,
                     total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
-                    receipt_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                    transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
                     receiver_name: (transfer as any).receiver_name,
                     receiver_phone: (transfer as any).receiver_phone,
                     receiver_address: (transfer as any).receiver_address,

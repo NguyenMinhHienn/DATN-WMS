@@ -28,7 +28,8 @@ const menuItems = [
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
     { path: '/admin/orders', label: 'Yêu cầu nhập', icon: '📋', badgeKey: 'pendingOrders' as const },
-    { path: '/admin/receivables', label: 'Công nợ', icon: '🧾', badgeKey: null },
+    { path: '/admin/receivables', label: 'Công nợ lẻ', icon: '🧾', badgeKey: null },
+    { path: '/admin/customer-ledger', label: 'Sổ nợ (Gộp)', icon: '📖', badgeKey: null },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];

@@ -19,7 +19,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         return res.status(401).json({ success: false, message: 'Unauthorized' } as ApiResponse);
     }
 
-    const { shipping_name, shipping_phone, shipping_address, payment_method, notes } = req.body;
+    const { shipping_name, shipping_phone, shipping_address, payment_method, notes, shipping_latitude, shipping_longitude } = req.body;
 
     const orderId = await orderService.createOrder(
         req.user.userId,
@@ -27,7 +27,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
         shipping_phone,
         shipping_address,
         payment_method || 'COD',
-        notes
+        notes,
+        shipping_latitude ? parseFloat(shipping_latitude) : undefined,
+        shipping_longitude ? parseFloat(shipping_longitude) : undefined
     );
 
     const order = await orderService.getOrderById(orderId);

@@ -31,7 +31,9 @@ class OrderService {
         shippingPhone: string,
         shippingAddress: string,
         paymentMethod: 'COD' | 'BANKING' = 'COD',
-        notes?: string
+        notes?: string,
+        shippingLatitude?: number,
+        shippingLongitude?: number
     ): Promise<number> {
         // Validate shipping info
         if (!shippingName || !shippingName.trim()) {
@@ -108,7 +110,9 @@ class OrderService {
             paymentMethod,
             totalAmount,
             orderItems,
-            notes
+            notes,
+            shippingLatitude,
+            shippingLongitude
         );
 
         // Xóa giỏ hàng sau khi tạo đơn thành công

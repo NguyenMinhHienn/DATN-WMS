@@ -47,6 +47,8 @@ export interface CreateOrderDto {
     shipping_address: string;
     payment_method: 'COD' | 'BANKING';
     notes?: string;
+    shipping_latitude?: number;
+    shipping_longitude?: number;
 }
 
 export interface Pagination {

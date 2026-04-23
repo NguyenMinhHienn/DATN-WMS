@@ -74,7 +74,74 @@ class ReceivableRepository {
             LEFT JOIN users cu ON r.created_by = cu.id
             WHERE r.id = ?
         `, [id]);
-        return rows.length > 0 ? rows[0] : null;
+
+        if (rows.length === 0) return null;
+        
+        const receivable = rows[0];
+        // Fetch items from source
+        receivable.items = await this.getSourceItems(receivable.source_type, receivable.source_id);
+        
+        return receivable;
+    }
+
+    /** 
+     * Lấy danh sách sản phẩm từ nguồn (Source) của công nợ
+     */
+    async getSourceItems(sourceType: string, sourceId: number): Promise<any[]> {
+        if (!sourceType || !sourceId) return [];
+        
+        let query = '';
+        let type = sourceType.toLowerCase();
+        
+        // Fallback: If it's TR-... (Transfer) but labeled as export_receipt, fix it locally
+        const [numCheck] = await pool.query<RowDataPacket[]>(
+            'SELECT source_number FROM receivables WHERE source_type = ? AND source_id = ?',
+            [sourceType, sourceId]
+        );
+        if (numCheck.length > 0 && numCheck[0].source_number?.startsWith('TR-') && type === 'export_receipt') {
+            type = 'export_transfer';
+        }
+
+        switch (type) {
+            case 'export_receipt':
+                query = `
+                    SELECT 
+                        eri.product_id, p.sku, eri.quantity_actual as quantity, 
+                        eri.unit_price as unit_cost, eri.line_total,
+                        p.name as product_name
+                    FROM export_receipt_items eri
+                    JOIN products p ON eri.product_id = p.id
+                    WHERE eri.export_receipt_id = ?
+                `;
+                break;
+            case 'order':
+                query = `
+                    SELECT 
+                        oi.product_id, 
+                        oi.variant_sku as sku, oi.quantity, oi.unit_price as unit_cost, 
+                        (oi.quantity * oi.unit_price) as line_total,
+                        oi.product_name
+                    FROM order_items oi
+                    WHERE oi.order_id = ?
+                `;
+                break;
+            case 'export_transfer':
+                query = `
+                    SELECT 
+                        sti.product_id, p.sku, sti.quantity_requested as quantity, 
+                        sti.unit_cost, (sti.quantity_requested * sti.unit_cost) as line_total,
+                        p.name as product_name
+                    FROM stock_transfer_items sti
+                    JOIN products p ON sti.product_id = p.id
+                    WHERE sti.stock_transfer_id = ?
+                `;
+                break;
+            default:
+                return [];
+        }
+
+        const [rows] = await pool.query<RowDataPacket[]>(query, [sourceId]);
+        return rows;
     }
 
     /** Lấy theo source */
@@ -114,6 +181,10 @@ class ReceivableRepository {
         if (filters.debtor_name) {
             where += ' AND r.debtor_name LIKE ?';
             params.push(`%${filters.debtor_name}%`);
+        }
+        if (filters.debtor_phone) {
+            where += ' AND r.debtor_phone = ?';
+            params.push(filters.debtor_phone);
         }
         if (filters.start_date) {
             where += ' AND r.issue_date >= ?';
@@ -302,6 +373,74 @@ class ReceivableRepository {
             GROUP BY MONTH(r.issue_date)
             ORDER BY month
         `, [year]);
+        return rows;
+    }
+
+    /** 
+     * Lấy sổ nợ tổng hợp theo khách hàng (SĐT) 
+     * Gộp tất cả các phiếu nợ theo số điện thoại
+     */
+    async getConsolidatedLedger(filters: {
+        page?: number;
+        limit?: number;
+        search?: string;
+    }): Promise<{ data: any[]; pagination: any }> {
+        const page = filters.page || 1;
+        const limit = filters.limit || 20;
+        const offset = (page - 1) * limit;
+
+        let where = '1=1 AND r.status != "cancelled"';
+        const params: any[] = [];
+
+        if (filters.search) {
+            where += ' AND (r.debtor_phone LIKE ? OR r.debtor_name LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        // Đếm tổng số khách hàng (SĐT) duy nhất
+        const [countRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(DISTINCT debtor_phone) as total FROM receivables r WHERE ${where}`, params
+        );
+        const total = countRows[0].total || 0;
+
+        // Lấy danh sách gộp
+        // Logic: Lấy tên mới nhất cho mỗi SĐT bằng cách sử dụng MAX(created_at)
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                r.debtor_phone,
+                (SELECT debtor_name FROM receivables r2 WHERE r2.debtor_phone = r.debtor_phone ORDER BY r2.created_at DESC LIMIT 1) as debtor_name,
+                (SELECT debtor_address FROM receivables r3 WHERE r3.debtor_phone = r.debtor_phone ORDER BY r3.created_at DESC LIMIT 1) as debtor_address,
+                COUNT(r.id) as total_slips,
+                SUM(CASE WHEN r.status IN ("unpaid", "partial", "overdue") THEN 1 ELSE 0 END) as unpaid_slips,
+                SUM(r.total_amount) as total_debt,
+                SUM(r.paid_amount) as total_paid,
+                SUM(r.total_amount - r.paid_amount) as remaining_debt,
+                MAX(r.last_payment_at) as last_payment_at,
+                MAX(r.created_at) as last_activity_at
+            FROM receivables r
+            WHERE ${where}
+            GROUP BY r.debtor_phone
+            ORDER BY remaining_debt DESC, last_activity_at DESC
+            LIMIT ? OFFSET ?
+        `, [...params, limit, offset]);
+
+        return {
+            data: rows,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
+    /** 
+     * Lấy danh sách các phiếu chưa trả hết của 1 SĐT khách hàng
+     * Phục vụ logic "Gạch nợ" FIFO
+     */
+    async getUnpaidByPhone(phone: string): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT * FROM receivables 
+            WHERE debtor_phone = ? 
+              AND status IN ('unpaid', 'partial', 'overdue')
+            ORDER BY issue_date ASC, created_at ASC
+        `, [phone]);
         return rows;
     }
 }

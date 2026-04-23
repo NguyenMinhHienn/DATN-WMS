@@ -277,7 +277,7 @@ const MyTransfers: React.FC = () => {
                         {/* Modal Content */}
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                {selectedTransfer.payment_terms && selectedTransfer.payment_terms > 0 && (
+                                {selectedTransfer && (selectedTransfer.payment_terms || 0) > 0 && (
                                     <div className="md:col-span-2 p-3 bg-red-50 border border-red-200 rounded-xl">
                                         <p className="text-red-600 font-bold text-center">
                                             ⚠️ CẢNH BÁO: PHIẾU CÓ CÔNG NỢ ({selectedTransfer.payment_terms} NGÀY)

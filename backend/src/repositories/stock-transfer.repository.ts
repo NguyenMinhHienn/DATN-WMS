@@ -274,13 +274,15 @@ export class StockTransferRepository {
                 dto.receiver_department || null,
                 dto.receiver_address || null,
                 dto.receiver_phone || null,
+                dto.receiver_latitude || null,
+                dto.receiver_longitude || null,
                 dto.payment_terms || 0,
                 userId,
                 userId,
             ];
 
             console.log('[StockTransferRepository] Executing INSERT with order_id:', dto.order_id);
-            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[16]);
+            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[17]);
 
             const [result] = await connection.query<ResultSetHeader>(`
                 INSERT INTO stock_transfers (
@@ -291,9 +293,10 @@ export class StockTransferRepository {
                     subtotal, vat_percent, vat_amount, shipping_fee,
                     status, reason, order_id, notes,
                     delivery_person, storekeeper, receiver_name, receiver_department,
-                    receiver_address, receiver_phone, payment_terms,
+                    receiver_address, receiver_phone, receiver_latitude, receiver_longitude,
+                    payment_terms,
                     requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, params);
 
             const transferId = result.insertId;

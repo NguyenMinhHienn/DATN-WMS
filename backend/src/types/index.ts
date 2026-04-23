@@ -872,6 +872,8 @@ export interface CreateStockTransferDto {
     receiver_department?: string;
     receiver_address?: string;
     receiver_phone?: string;
+    receiver_latitude?: number;
+    receiver_longitude?: number;
     order_id?: number;
     orderId?: number; // Alias for robustness
     reason?: string;

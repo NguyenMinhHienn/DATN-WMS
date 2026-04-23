@@ -14,6 +14,7 @@ export const getAllReceivables = asyncHandler(async (req: AuthRequest, res: Resp
         status: req.query.status as string,
         source_type: req.query.source_type as string,
         debtor_name: req.query.debtor_name as string,
+        debtor_phone: req.query.debtor_phone as string,
         start_date: req.query.start_date as string,
         end_date: req.query.end_date as string,
     });
@@ -136,4 +137,33 @@ export const rejectPaymentReceipt = asyncHandler(async (req: AuthRequest, res: R
     const { reason } = req.body;
     await paymentReceiptService.reject(id, req.user?.userId!, reason);
     res.json({ success: true, message: 'Đã từ chối phiếu thu' } as ApiResponse);
+});
+
+/** [GET] /receivables/ledger - Admin: sổ nợ tổng hợp theo khách hàng */
+export const getConsolidatedLedger = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await receivableService.getConsolidatedLedger({
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 20,
+        search: req.query.search as string,
+    });
+
+    res.json({ success: true, data: result.data, pagination: result.pagination } as ApiResponse);
+});
+
+/** [POST] /payment-receipts/consolidated - Admin: thu tiền gộp cho nhiều phiếu (FIFO) */
+export const createConsolidatedPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const isAdmin = req.user?.roles?.includes('admin') || false;
+    if (!isAdmin) throw new Error('Chỉ Admin mới có thể thực hiện thu tiền gộp');
+
+    const result = await paymentReceiptService.createConsolidatedPayment(
+        req.body, 
+        req.user?.userId!, 
+        true
+    );
+
+    res.status(201).json({
+        success: true,
+        message: 'Đã thực hiện thu tiền gộp và gạch nợ thành công',
+        data: result,
+    } as ApiResponse);
 });
