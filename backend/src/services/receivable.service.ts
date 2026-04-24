@@ -102,6 +102,64 @@ class ReceivableService {
         return receivableId;
     }
 
+    /**
+     * Tạo công nợ từ đơn hàng CREDIT (mua trả sau)
+     * Khác COD: KHÔNG auto-close, có payment_terms, có due_date
+     */
+    async createFromCreditOrder(order: {
+        id: number;
+        total_amount: number;
+        shipping_name: string;
+        shipping_phone: string;
+        shipping_address: string;
+        user_id: number;
+        created_at: string;
+        payment_terms: number;
+    }, createdBy?: number): Promise<number> {
+        // Kiểm tra đã tồn tại chưa
+        const existing = await receivableRepository.findBySource('order', order.id);
+        if (existing) {
+            return existing.id;
+        }
+
+        const paymentTerms = order.payment_terms || 30;
+
+        const receivableId = await receivableRepository.create({
+            source_type: 'order',
+            source_id: order.id,
+            source_number: `ORD-${order.id}`,
+            debtor_type: 'user',
+            user_id: order.user_id,
+            debtor_name: order.shipping_name,
+            debtor_phone: order.shipping_phone,
+            debtor_address: order.shipping_address,
+            total_amount: order.total_amount,
+            issue_date: order.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            payment_terms: paymentTerms,
+            notes: `Công nợ từ đơn hàng trả sau #${order.id} - Hạn ${paymentTerms} ngày`,
+            created_by: createdBy,
+        });
+
+        // Gửi notification cho user
+        try {
+            const receivable = await receivableRepository.findById(receivableId);
+            if (receivable && order.user_id) {
+                await notificationRepository.create({
+                    user_id: order.user_id,
+                    type: 'debt_created',
+                    title: 'Công nợ mới từ đơn hàng trả sau',
+                    message: `Đơn hàng #${order.id} đã giao thành công. Bạn cần thanh toán ${new Intl.NumberFormat('vi-VN').format(order.total_amount)} VNĐ trong vòng ${paymentTerms} ngày.`,
+                    reference_type: 'receivable',
+                    reference_id: receivableId,
+                });
+            }
+        } catch (err) {
+            console.error('Lỗi gửi notification công nợ CREDIT:', err);
+        }
+
+        return receivableId;
+    }
+
     /** Lấy chi tiết công nợ */
     async getById(id: number) {
         const receivable = await receivableRepository.findById(id);

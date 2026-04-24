@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { receivableService, Receivable, ReceivableSummary, ReceivableItem } from '../../services/receivableService';
+import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+import { receivableService, Receivable, ReceivableSummary } from '../../services/receivableService';
 import { Modal } from '../../components/Modal';
 
 const Receivables: React.FC = () => {
@@ -17,6 +18,12 @@ const Receivables: React.FC = () => {
     const [detailData, setDetailData] = useState<Receivable | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+
+    const printRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Phieu_No_${detailData?.receivable_number || ''}`,
+    });
 
     // Modal Create Receipt
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -303,9 +310,9 @@ const Receivables: React.FC = () => {
             {/* ==================== DETAIL MODAL ==================== */}
             <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="📋 Chi tiết Công nợ (Phát sinh)">
                 {detailData && (
-                    <div className="flex flex-col h-full max-h-[75vh]">
+                    <div className="flex flex-col h-full max-h-[75vh]" ref={printRef}>
                         {/* Tabs Header */}
-                        <div className="flex border-b border-slate-200 mb-4 bg-slate-50/50 rounded-t-xl sticky top-0 z-10 p-1 gap-1">
+                        <div className="flex border-b border-slate-200 mb-4 bg-slate-50/50 rounded-t-xl sticky top-0 z-10 p-1 gap-1 print:hidden">
                             {['overview', 'items', 'history'].map((tab) => (
                                 <button
                                     key={tab}
@@ -407,7 +414,7 @@ const Receivables: React.FC = () => {
                                         </div>
                                     )}
 
-                                    <div className="flex justify-end gap-3 pt-2">
+                                    <div className="flex justify-end gap-3 pt-2 print:hidden">
                                         {['unpaid', 'partial', 'overdue'].includes(detailData.status) && (
                                             <button 
                                                 onClick={() => handleSendReminder(detailData!.id)}
@@ -416,7 +423,7 @@ const Receivables: React.FC = () => {
                                                 🔔 GỬI NHẮC NỢ (EMAIL)
                                             </button>
                                         )}
-                                        <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-xs font-bold transition-all border border-slate-200">
+                                        <button onClick={handlePrint} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-xs font-bold transition-all border border-slate-200">
                                             🖨️ IN PHIẾU NỢ
                                         </button>
                                     </div>

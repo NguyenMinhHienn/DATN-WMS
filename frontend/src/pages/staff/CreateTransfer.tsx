@@ -125,8 +125,15 @@ const CreateTransfer: React.FC = () => {
                 if (location.state.shippingAddress) setReceiverAddress(location.state.shippingAddress);
                 if (location.state.shippingPhone) setReceiverPhone(location.state.shippingPhone);
                 if (location.state.paymentMethod) {
-                    const pm = location.state.paymentMethod.toLowerCase();
-                    setPaymentMethod(pm === 'cod' ? 'cod' : 'online');
+                    const pm = location.state.paymentMethod.toUpperCase();
+                    if (pm === 'CREDIT') {
+                        setPaymentMethod('');
+                        setPaymentTerms(15); // Auto-select 15 days for credit orders
+                    } else if (pm === 'COD') {
+                        setPaymentMethod('cod');
+                    } else {
+                        setPaymentMethod('online');
+                    }
                 }
 
                 const orderItems = location.state.orderItems || [];
@@ -422,9 +429,13 @@ const CreateTransfer: React.FC = () => {
             }
 
             let finalExportNote = exportNote;
-            if (transferType === 'EXPORT' && paymentMethod) {
-                const pmText = paymentMethod === 'cod' ? 'Thanh toán COD' : 'Thanh toán Online';
-                finalExportNote = exportNote ? `[${pmText}] ${exportNote}` : `[${pmText}]`;
+            if (transferType === 'EXPORT') {
+                if (paymentTerms > 0) {
+                    finalExportNote = exportNote ? `[ĐƠN HÀNG CÔNG NỢ] ${exportNote}` : `[ĐƠN HÀNG CÔNG NỢ]`;
+                } else if (paymentMethod) {
+                    const pmText = paymentMethod === 'cod' ? 'Thanh toán COD' : 'Thanh toán Online';
+                    finalExportNote = exportNote ? `[${pmText}] ${exportNote}` : `[${pmText}]`;
+                }
             }
 
             const payload = {
@@ -780,6 +791,7 @@ const CreateTransfer: React.FC = () => {
                                             <option value="">-- Chọn thanh toán --</option>
                                             <option value="cod">Tiền mặt (COD)</option>
                                             <option value="online">Chuyển khoản (Online)</option>
+                                            <option value="credit">Công nợ (Trả sau)</option>
                                         </select>
                                     </div>
                                 )}

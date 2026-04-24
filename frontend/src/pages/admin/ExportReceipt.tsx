@@ -126,13 +126,16 @@ const ExportReceipt: React.FC = () => {
 
     // Auto-fill from order
     const fillFromOrder = async (order: OrderSummary) => {
+        const isCredit = order.payment_method === 'CREDIT';
+        const creditNote = isCredit ? ' [ĐƠN HÀNG CÔNG NỢ]' : '';
+        
         setFormData(prev => ({
             ...prev,
             receiver_name: order.shipping_name || '',
             receiver_address: order.shipping_address || '',
             receiver_phone: order.shipping_phone || '',
-            notes: `Xuất theo đơn hàng #${order.id}`,
-            reference_document: `ĐH-${order.id}`,
+            notes: `Xuất theo đơn hàng #${order.id}${creditNote}`,
+            reference_document: `ĐH-${order.id}${isCredit ? '-CREDIT' : ''}`,
         }));
 
         // Load order items to auto-add to export
@@ -989,7 +992,12 @@ const ExportReceipt: React.FC = () => {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="font-bold text-blue-900">ĐH #{order.id}</span>
-                                                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">Đã duyệt</span>
+                                                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-600 rounded text-xs font-medium">Đã duyệt</span>
+                                                    {order.payment_method === 'CREDIT' && (
+                                                        <span className="px-2 py-0.5 bg-amber-100 border border-amber-300 text-amber-800 rounded text-xs font-bold shadow-sm">
+                                                            🏦 CÔNG NỢ
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-slate-700 font-medium text-sm">👤 {order.shipping_name}</p>
                                                 <p className="text-slate-600 text-sm">📞 {order.shipping_phone}</p>

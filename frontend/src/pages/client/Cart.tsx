@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { cartService, CartItem } from '../../services/cartService';
 import { uploadService } from '../../services/uploadService';
 import { orderService } from '../../services/orderService';
+import { creditService, CreditInfo } from '../../services/creditService';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 const AddressMapPicker = lazy(() => import('../../components/AddressMapPicker'));
@@ -30,11 +31,13 @@ const Cart: React.FC = () => {
         shipping_name: '',
         shipping_phone: '',
         shipping_address: '',
-        payment_method: 'COD' as 'COD' | 'BANKING',
+        payment_method: 'COD' as 'COD' | 'BANKING' | 'CREDIT',
         notes: '',
     });
     const [shippingLat, setShippingLat] = useState<number | undefined>();
     const [shippingLng, setShippingLng] = useState<number | undefined>();
+    const [creditInfo, setCreditInfo] = useState<CreditInfo | null>(null);
+    const [creditLoading, setCreditLoading] = useState(false);
 
     // Load giỏ hàng
     const loadCart = useCallback(async () => {
@@ -177,6 +180,17 @@ const Cart: React.FC = () => {
             return;
         }
         setShowCheckout(true);
+        // Load credit info
+        setCreditLoading(true);
+        try {
+            const info = await creditService.getCreditInfo();
+            setCreditInfo(info);
+        } catch (err) {
+            console.warn('Could not load credit info:', err);
+            setCreditInfo(null);
+        } finally {
+            setCreditLoading(false);
+        }
     };
 
     const handlePlaceOrder = async () => {
@@ -219,6 +233,13 @@ const Cart: React.FC = () => {
             // Nếu COD → về trang đơn hàng
             if (payment_method === "COD") {
                 alert('🎉 Gửi yêu cầu thành công!');
+                navigate('/orders');
+                return;
+            }
+
+            // Nếu CREDIT → về trang đơn hàng + thông báo
+            if (payment_method === "CREDIT") {
+                alert('🎉 Gửi yêu cầu thành công! Đơn hàng sẽ được xử lý theo hình thức công nợ.');
                 navigate('/orders');
                 return;
             }
@@ -410,17 +431,58 @@ const Cart: React.FC = () => {
 
                                         <div>
                                             <label className="text-sm font-medium text-slate-600">Phương thức thanh toán</label>
-                                            <div className="flex gap-3 mt-1 flex-col sm:flex-row">
-                                                <label className={`flex-1 flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${checkoutForm.payment_method === 'COD' ? 'border-primary-500 bg-primary-50' : 'border-slate-200'}`}>
+                                            <div className="flex gap-3 mt-1 flex-col">
+                                                <label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${checkoutForm.payment_method === 'COD' ? 'border-primary-500 bg-primary-50' : 'border-slate-200'}`}>
                                                     <input type="radio" name="payment" value="COD" checked={checkoutForm.payment_method === 'COD'}
                                                         onChange={() => setCheckoutForm(prev => ({ ...prev, payment_method: 'COD' }))} className="text-primary-600" />
-                                                    <span className="text-sm">Thanh toán khi nhận hàng (COD)</span>
+                                                    <span className="text-sm">💵 Thanh toán khi nhận hàng (COD)</span>
                                                 </label>
-                                                <label className={`flex-1 flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${checkoutForm.payment_method === 'BANKING' ? 'border-primary-500 bg-primary-50' : 'border-slate-200'}`}>
+                                                <label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${checkoutForm.payment_method === 'BANKING' ? 'border-primary-500 bg-primary-50' : 'border-slate-200'}`}>
                                                     <input type="radio" name="payment" value="BANKING" checked={checkoutForm.payment_method === 'BANKING'}
                                                         onChange={() => setCheckoutForm(prev => ({ ...prev, payment_method: 'BANKING' }))} className="text-primary-600" />
-                                                    <span className="text-sm">Chuyển khoản / Quét mã QR</span>
+                                                    <span className="text-sm">🏦 Chuyển khoản / Quét mã QR</span>
                                                 </label>
+                                                {/* CREDIT - Công nợ (Trả sau) */}
+                                                {creditLoading ? (
+                                                    <div className="p-3 border border-slate-200 rounded-lg text-sm text-slate-400 flex items-center gap-2">
+                                                        <span className="animate-spin">⏳</span> Đang kiểm tra tín dụng...
+                                                    </div>
+                                                ) : creditInfo?.is_registered ? (
+                                                    <label className={`flex items-start gap-2 p-3 border rounded-lg transition-all ${
+                                                        creditInfo.is_eligible && !creditInfo.has_active_debt
+                                                            ? (checkoutForm.payment_method === 'CREDIT' ? 'border-emerald-500 bg-emerald-50 cursor-pointer' : 'border-slate-200 cursor-pointer hover:border-emerald-300')
+                                                            : 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
+                                                    }`}>
+                                                        <input type="radio" name="payment" value="CREDIT"
+                                                            checked={checkoutForm.payment_method === 'CREDIT'}
+                                                            disabled={!creditInfo.is_eligible || creditInfo.has_active_debt}
+                                                            onChange={() => setCheckoutForm(prev => ({ ...prev, payment_method: 'CREDIT' }))}
+                                                            className="text-emerald-600 mt-0.5" />
+                                                        <div className="flex-1">
+                                                            <span className="text-sm font-medium">🏦 Công nợ (Trả sau)</span>
+                                                            {creditInfo.is_eligible && !creditInfo.has_active_debt ? (
+                                                                <div className="mt-1 space-y-0.5">
+                                                                    <p className="text-xs text-emerald-600">✅ Hạn mức: {creditService.formatMoney(creditInfo.credit_limit)} · Hạn {creditInfo.credit_payment_terms} ngày</p>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-xs text-red-500 mt-0.5">❌ {creditInfo.reason_not_eligible || 'Không đủ điều kiện'}</p>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                ) : (
+                                                    <div className="p-3 border border-dashed border-slate-300 rounded-lg bg-slate-50">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <span className="text-sm text-slate-500">🏦 Công nợ (Trả sau)</span>
+                                                                <p className="text-xs text-slate-400 mt-0.5">Đăng ký để mua hàng trả sau</p>
+                                                            </div>
+                                                            <button type="button" onClick={() => navigate('/my-credit')}
+                                                                className="text-xs px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                                                                Đăng ký
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

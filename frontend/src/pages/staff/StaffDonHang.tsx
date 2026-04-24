@@ -309,6 +309,11 @@ const StaffDonHang: React.FC = () => {
                                                     style={{ color: payInfo.color, backgroundColor: payInfo.bg }}>
                                                     {payInfo.text}
                                                 </span>
+                                                {order.payment_method === 'CREDIT' && (
+                                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-amber-200 to-amber-400 text-amber-900 shadow-sm shadow-amber-500/20 border border-amber-300">
+                                                        🏦 ĐƠN CÔNG NỢ
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="mt-2.5 flex items-center gap-4">
                                                 <div className="flex items-center gap-2">

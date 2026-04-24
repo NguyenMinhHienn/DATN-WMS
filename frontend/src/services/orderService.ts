@@ -11,7 +11,7 @@ export interface OrderSummary {
     id: number;
     user_id: number;
     total_amount: number;
-    payment_method: 'COD' | 'BANKING';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
     payment_status: 'unpaid' | 'paid';
     status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';
     shipping_name: string;
@@ -45,7 +45,7 @@ export interface CreateOrderDto {
     shipping_name: string;
     shipping_phone: string;
     shipping_address: string;
-    payment_method: 'COD' | 'BANKING';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
     notes?: string;
     shipping_latitude?: number;
     shipping_longitude?: number;
@@ -154,7 +154,9 @@ export const orderService = {
     },
 
     getPaymentMethodText(method: string): string {
-        return method === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản ngân hàng';
+        if (method === 'COD') return 'Thanh toán khi nhận hàng (COD)';
+        if (method === 'CREDIT') return 'Công nợ (Trả sau)';
+        return 'Chuyển khoản ngân hàng';
     },
 
     formatCurrency(amount: number): string {

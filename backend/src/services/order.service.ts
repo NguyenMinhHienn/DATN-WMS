@@ -4,6 +4,7 @@ import * as variantRepository from '../repositories/variant.repository';
 import { productRepository } from '../repositories/product.repository';
 import { AppError } from '../middlewares/error.middleware';
 import { inventoryCoreService } from './inventory-core.service';
+import { creditService } from './credit.service';
 
 /**
  * Order Service
@@ -30,7 +31,7 @@ class OrderService {
         shippingName: string,
         shippingPhone: string,
         shippingAddress: string,
-        paymentMethod: 'COD' | 'BANKING' = 'COD',
+        paymentMethod: 'COD' | 'BANKING' | 'CREDIT' = 'COD',
         notes?: string,
         shippingLatitude?: number,
         shippingLongitude?: number
@@ -46,10 +47,13 @@ class OrderService {
             throw new AppError('Vui lòng nhập địa chỉ giao hàng', 400);
         }
 
-        // Chỉ hỗ trợ COD
-        // if (paymentMethod !== 'COD') {
-        //     throw new AppError('Hiện tại chỉ hỗ trợ thanh toán COD', 400);
-        // }
+        // Validate CREDIT trước khi tạo đơn
+        if (paymentMethod === 'CREDIT') {
+            const creditValidation = await creditService.validateCreditOrder(userId, 0); // amount sẽ validate sau
+            if (!creditValidation.valid) {
+                throw new AppError(creditValidation.message || 'Tài khoản không đủ điều kiện mua công nợ', 400);
+            }
+        }
 
         // Lấy giỏ hàng
         const { cart, items: cartItems } = await cartRepository.getCartWithItems(userId);
@@ -99,6 +103,14 @@ class OrderService {
                 cost_price_snapshot: costPriceSnapshot,
                 variant_attributes: cartItem.variant_color ? JSON.stringify({ color: cartItem.variant_color }) : null,
             });
+        }
+
+        // Validate CREDIT amount sau khi tính tổng
+        if (paymentMethod === 'CREDIT') {
+            const creditValidation = await creditService.validateCreditOrder(userId, totalAmount);
+            if (!creditValidation.valid) {
+                throw new AppError(creditValidation.message || 'Tài khoản không đủ điều kiện mua công nợ', 400);
+            }
         }
 
         // Tạo đơn hàng
@@ -219,6 +231,37 @@ class OrderService {
             } catch (recErr) {
                 // Log lỗi nhưng KHÔNG throw - đảm bảo đơn hàng vẫn delivered
                 console.error('⚠️ Lỗi tạo công nợ từ đơn COD:', recErr);
+            }
+        }
+
+        // Tạo công nợ cho đơn CREDIT (trả sau) - KHÔNG auto-close
+        if (order.payment_method === 'CREDIT') {
+            try {
+                const { receivableService } = require('./receivable.service');
+                const creditInfo = await creditService.getCreditInfo(order.user_id);
+                await receivableService.createFromCreditOrder({
+                    id: orderId,
+                    total_amount: Number(order.total_amount),
+                    shipping_name: order.shipping_name,
+                    shipping_phone: order.shipping_phone,
+                    shipping_address: order.shipping_address,
+                    user_id: order.user_id,
+                    created_at: order.created_at,
+                    payment_terms: creditInfo.credit_payment_terms,
+                });
+                // Cập nhật credit_used
+                await creditService.syncCreditUsed(order.user_id);
+            } catch (recErr) {
+                console.error('⚠️ Lỗi tạo công nợ từ đơn CREDIT:', recErr);
+            }
+        }
+
+        // Auto-check credit eligibility sau khi giao hàng (COD/BANKING)
+        if (order.payment_method !== 'CREDIT') {
+            try {
+                await creditService.autoCheckAndEnable(order.user_id);
+            } catch (err) {
+                console.error('⚠️ Lỗi auto-check credit:', err);
             }
         }
     }

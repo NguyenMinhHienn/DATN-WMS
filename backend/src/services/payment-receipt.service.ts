@@ -220,6 +220,16 @@ class PaymentReceiptService {
                 console.error('Lỗi gửi email phiếu thu:', err);
             }
         }
+
+        // 5. Sync credit_used nếu debtor là user có tài khoản
+        if (receivable.user_id) {
+            try {
+                const { creditService } = require('./credit.service');
+                await creditService.syncCreditUsed(receivable.user_id);
+            } catch (err) {
+                console.error('Lỗi sync credit_used:', err);
+            }
+        }
     }
 
     /** Admin từ chối phiếu thu */

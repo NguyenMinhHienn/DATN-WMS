@@ -29,6 +29,7 @@ import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controll
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 import { getTransferByOrder } from '../controllers/transfer.controller';
 import * as receivableController from '../controllers/receivable.controller';
+import * as creditController from '../controllers/credit.controller';
 import * as notificationController from '../controllers/notification.controller';
 
 
@@ -258,6 +259,20 @@ router.put('/receivables/:id/bad-debt', authenticate, isAdmin, receivableControl
 
 // Client routes - user xem công nợ của mình
 router.get('/client/receivables', authenticate, receivableController.getClientReceivables);
+
+// ==================== CREDIT (CÔNG NỢ MUA HÀNG) ROUTES ====================
+// Client routes
+router.get('/client/credit-info', authenticate, creditController.getClientCreditInfo);
+router.post('/client/credit/register', authenticate, creditController.registerCredit);
+
+// Admin routes
+router.get('/admin/users/:id/credit', authenticate, isAdmin, creditController.getAdminUserCredit);
+router.put('/admin/users/:id/credit/enable', authenticate, isAdmin, creditController.enableUserCredit);
+router.put('/admin/users/:id/credit/disable', authenticate, isAdmin, creditController.disableUserCredit);
+router.put('/admin/users/:id/credit/limit', authenticate, isAdmin, creditController.updateUserCreditLimit);
+router.put('/admin/users/:id/credit/payment-terms', authenticate, isAdmin, creditController.updateUserPaymentTerms);
+router.get('/admin/credit/settings', authenticate, isAdmin, creditController.getCreditSettings);
+router.put('/admin/credit/settings', authenticate, isAdmin, creditController.updateCreditSettings);
 
 // ==================== PAYMENT RECEIPT (PHIẾU THU) ROUTES ====================
 router.post('/payment-receipts', authenticate, isStaff, receivableController.createPaymentReceipt);

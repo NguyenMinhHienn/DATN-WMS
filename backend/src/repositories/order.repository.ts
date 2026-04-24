@@ -13,8 +13,8 @@ export interface OrderRow {
     id: number;
     user_id: number;
     total_amount: number;
-    payment_method: 'COD' | 'BANKING';
-    payment_status: 'unpaid' | 'paid';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
+    payment_status: 'unpaid' | 'paid' | 'credit_pending';
     status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';
     shipping_name: string;
     shipping_phone: string;
@@ -64,7 +64,7 @@ class OrderRepository {
         shippingName: string,
         shippingPhone: string,
         shippingAddress: string,
-        paymentMethod: 'COD' | 'BANKING',
+        paymentMethod: 'COD' | 'BANKING' | 'CREDIT',
         totalAmount: number,
         items: CreateOrderItemInput[],
         notes?: string,
@@ -76,10 +76,11 @@ class OrderRepository {
             await connection.beginTransaction();
 
             // Insert order
+            const initialPaymentStatus = paymentMethod === 'CREDIT' ? 'credit_pending' : 'unpaid';
             const [orderResult] = await connection.execute<ResultSetHeader>(
                 `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, shipping_latitude, shipping_longitude, notes)
-                 VALUES (?, ?, ?, 'unpaid', 'pending', ?, ?, ?, ?, ?, ?)`,
-                [userId, totalAmount, paymentMethod, shippingName, shippingPhone, shippingAddress, shippingLatitude || null, shippingLongitude || null, notes || null]
+                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`,
+                [userId, totalAmount, paymentMethod, initialPaymentStatus, shippingName, shippingPhone, shippingAddress, shippingLatitude || null, shippingLongitude || null, notes || null]
             );
             const orderId = orderResult.insertId;
 

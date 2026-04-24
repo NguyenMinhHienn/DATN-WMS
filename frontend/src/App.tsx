@@ -46,6 +46,7 @@ import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
 import AccessDenied from './pages/client/AccessDenied';
 import ClientReceivables from './pages/client/ClientReceivables';
+import CreditDashboard from './pages/client/CreditDashboard';
 
 // Shared Pages
 import Profile from './pages/Profile';
@@ -96,6 +97,7 @@ const App: React.FC = () => {
                         <Route path="/support" element={<SupportPage />} />
                         <Route path="/payment-cancel" element={<PaymentCancel />} />
                         <Route path="/my-receivables" element={<ClientReceivables />} />
+                        <Route path="/my-credit" element={<CreditDashboard />} />
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
