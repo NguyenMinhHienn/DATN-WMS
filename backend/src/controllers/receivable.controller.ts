@@ -13,8 +13,7 @@ export const getAllReceivables = asyncHandler(async (req: AuthRequest, res: Resp
         limit: parseInt(req.query.limit as string) || 20,
         status: req.query.status as string,
         source_type: req.query.source_type as string,
-        debtor_name: req.query.debtor_name as string,
-        debtor_phone: req.query.debtor_phone as string,
+        search: req.query.search as string,
         start_date: req.query.start_date as string,
         end_date: req.query.end_date as string,
     });
@@ -24,7 +23,9 @@ export const getAllReceivables = asyncHandler(async (req: AuthRequest, res: Resp
 
 /** [GET] /receivables/summary - Admin: thống kê tổng */
 export const getReceivableSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const stats = await receivableService.getSummaryStats();
+    const startDate = req.query.start_date as string;
+    const endDate = req.query.end_date as string;
+    const stats = await receivableService.getSummaryStats(startDate, endDate);
     res.json({ success: true, data: stats } as ApiResponse);
 });
 

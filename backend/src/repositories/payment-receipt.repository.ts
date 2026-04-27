@@ -1,20 +1,41 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { PoolConnection } from 'mysql2/promise';
 
 /**
  * Payment Receipt Repository - CRUD cho bảng payment_receipts (Phiếu thu)
  */
 class PaymentReceiptRepository {
 
-    /** Tạo mã phiếu thu tự động: PT-2026-000001 */
-    async generateNumber(): Promise<string> {
+
+    async generateNumber(connection?: PoolConnection): Promise<string> {
         const year = new Date().getFullYear();
-        const [rows] = await pool.query<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM payment_receipts WHERE YEAR(created_at) = ?',
-            [year]
-        );
-        const count = rows[0].count + 1;
-        return `PT-${year}-${count.toString().padStart(6, '0')}`;
+        const conn = connection || await pool.getConnection();
+        const shouldRelease = !connection;
+        try {
+            const [seqRows] = await conn.query<RowDataPacket[]>(
+                `SELECT current_number FROM document_sequences 
+                 WHERE document_type = 'payment_receipt' FOR UPDATE`,
+            );
+
+            let nextNum: number;
+            if (seqRows.length > 0) {
+                nextNum = seqRows[0].current_number + 1;
+                await conn.query(
+                    `UPDATE document_sequences SET current_number = ? WHERE document_type = 'payment_receipt'`,
+                    [nextNum]
+                );
+            } else {
+                const [countRows] = await conn.query<RowDataPacket[]>(
+                    'SELECT COUNT(*) as count FROM payment_receipts WHERE YEAR(created_at) = ?',
+                    [year]
+                );
+                nextNum = countRows[0].count + 1;
+            }
+            return `PT-${year}-${nextNum.toString().padStart(6, '0')}`;
+        } finally {
+            if (shouldRelease) conn.release();
+        }
     }
 
     /** Tạo phiếu thu mới */

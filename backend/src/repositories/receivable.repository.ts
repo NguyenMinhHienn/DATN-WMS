@@ -1,20 +1,43 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { PoolConnection } from 'mysql2/promise';
 
 /**
  * Receivable Repository - CRUD cho bảng receivables (Công nợ phải thu)
  */
 class ReceivableRepository {
 
-    /** Tạo mã công nợ tự động: CN-2026-000001 */
-    async generateNumber(): Promise<string> {
+    /** Tạo mã công nợ tự động: CN-2026-000001 (concurrent-safe using document_sequences) */
+    async generateNumber(connection?: PoolConnection): Promise<string> {
         const year = new Date().getFullYear();
-        const [rows] = await pool.query<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM receivables WHERE YEAR(created_at) = ?',
-            [year]
-        );
-        const count = rows[0].count + 1;
-        return `CN-${year}-${count.toString().padStart(6, '0')}`;
+        const conn = connection || await pool.getConnection();
+        const shouldRelease = !connection;
+        try {
+            // Lock row in document_sequences to prevent concurrent duplicates
+            const [seqRows] = await conn.query<RowDataPacket[]>(
+                `SELECT current_number FROM document_sequences 
+                 WHERE document_type = 'receivable' FOR UPDATE`,
+            );
+
+            let nextNum: number;
+            if (seqRows.length > 0) {
+                nextNum = seqRows[0].current_number + 1;
+                await conn.query(
+                    `UPDATE document_sequences SET current_number = ? WHERE document_type = 'receivable'`,
+                    [nextNum]
+                );
+            } else {
+                // Fallback: nếu chưa có row trong document_sequences
+                const [countRows] = await conn.query<RowDataPacket[]>(
+                    'SELECT COUNT(*) as count FROM receivables WHERE YEAR(created_at) = ?',
+                    [year]
+                );
+                nextNum = countRows[0].count + 1;
+            }
+            return `CN-${year}-${nextNum.toString().padStart(6, '0')}`;
+        } finally {
+            if (shouldRelease) conn.release();
+        }
     }
 
     /** Tạo công nợ mới */
@@ -159,7 +182,7 @@ class ReceivableRepository {
         limit?: number;
         status?: string;
         source_type?: string;
-        debtor_name?: string;
+        search?: string;
         start_date?: string;
         end_date?: string;
     }): Promise<{ data: any[]; pagination: any }> {
@@ -178,13 +201,10 @@ class ReceivableRepository {
             where += ' AND r.source_type = ?';
             params.push(filters.source_type);
         }
-        if (filters.debtor_name) {
-            where += ' AND r.debtor_name LIKE ?';
-            params.push(`%${filters.debtor_name}%`);
-        }
-        if (filters.debtor_phone) {
-            where += ' AND r.debtor_phone = ?';
-            params.push(filters.debtor_phone);
+        if (filters.search) {
+            where += ' AND (r.debtor_name LIKE ? OR r.debtor_phone LIKE ? OR r.receivable_number LIKE ?)';
+            const searchTerm = `%${filters.search}%`;
+            params.push(searchTerm, searchTerm, searchTerm);
         }
         if (filters.start_date) {
             where += ' AND r.issue_date >= ?';
@@ -264,8 +284,8 @@ class ReceivableRepository {
         }
     }
 
-    /** Thống kê tổng cho dashboard */
-    async getSummaryStats(): Promise<{
+    /** Lấy thống kê tổng quan (Dashboard) */
+    async getSummaryStats(startDate?: string, endDate?: string): Promise<{
         total_receivables: number;
         total_amount: number;
         total_paid: number;
@@ -274,6 +294,18 @@ class ReceivableRepository {
         overdue_amount: number;
         count_by_status: Record<string, number>;
     }> {
+        let where = "status NOT IN ('cancelled')";
+        const params: any[] = [];
+        
+        if (startDate) {
+            where += " AND issue_date >= ?";
+            params.push(startDate);
+        }
+        if (endDate) {
+            where += " AND issue_date <= ?";
+            params.push(endDate);
+        }
+
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT 
                 COUNT(*) as total_receivables,
@@ -283,14 +315,14 @@ class ReceivableRepository {
                 SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as total_overdue,
                 COALESCE(SUM(CASE WHEN status = 'overdue' THEN (total_amount - paid_amount) ELSE 0 END), 0) as overdue_amount
             FROM receivables
-            WHERE status NOT IN ('cancelled')
-        `);
+            WHERE ${where}
+        `, params);
 
         const [statusRows] = await pool.query<RowDataPacket[]>(`
             SELECT status, COUNT(*) as count FROM receivables 
-            WHERE status NOT IN ('cancelled')
+            WHERE ${where}
             GROUP BY status
-        `);
+        `, params);
 
         const count_by_status: Record<string, number> = {};
         for (const row of statusRows) {

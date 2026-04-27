@@ -62,6 +62,7 @@ const Reports: React.FC = () => {
     const [receivableMonthly, setReceivableMonthly] = useState<any[]>([]);
     const [receivableLedger, setReceivableLedger] = useState<ConsolidatedLedgerEntry[]>([]);
     const [receivableYear, setReceivableYear] = useState(new Date().getFullYear());
+    const [receivableSearch, setReceivableSearch] = useState('');
 
     // Drill-down modal
     const [drillDown, setDrillDown] = useState<any>(null);
@@ -112,9 +113,9 @@ const Reports: React.FC = () => {
                 }
                 case 'receivables': {
                     const [summary, monthly, ledgerData] = await Promise.all([
-                        receivableService.getSummary(),
+                        receivableService.getSummary({ start_date: startDate, end_date: endDate }),
                         receivableService.getMonthlyStats(receivableYear),
-                        receivableService.getConsolidatedLedger({ limit: 10 })
+                        receivableService.getConsolidatedLedger({ limit: 10, search: receivableSearch })
                     ]);
                     setReceivableSummary(summary);
                     setReceivableMonthly(monthly);
@@ -129,7 +130,7 @@ const Reports: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, activeTab, receivableYear]);
+    }, [startDate, endDate, activeTab, receivableYear, receivableSearch]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -940,13 +941,29 @@ const Reports: React.FC = () => {
 
                         {/* Detailed Table */}
                         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center gap-4 flex-wrap">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
                                     <span>📓</span> Sổ nợ gộp (Top Khách hàng nợ)
                                 </h3>
-                                <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md">
-                                    Giới hạn Top 10
-                                </span>
+                                <div className="flex gap-3 items-center flex-1 justify-end">
+                                    <div className="relative max-w-[250px] w-full">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm KH, SĐT..."
+                                            value={receivableSearch}
+                                            onChange={(e) => setReceivableSearch(e.target.value)}
+                                            className="border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full"
+                                        />
+                                    </div>
+                                    <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md shrink-0">
+                                        Giới hạn Top 10
+                                    </span>
+                                </div>
                             </div>
                             <div className="overflow-x-auto max-h-96 overflow-y-auto">
                                 <table className="w-full text-sm text-left">

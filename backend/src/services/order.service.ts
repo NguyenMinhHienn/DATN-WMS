@@ -176,6 +176,18 @@ class OrderService {
 
         // Hủy đơn và restore stock
         await orderRepository.cancelOrderAndRestoreStock(orderId, order.items);
+
+        // [FIX 1.2] Hủy công nợ liên quan nếu tồn tại
+        try {
+            const { receivableRepository } = require('../repositories/receivable.repository');
+            const existing = await receivableRepository.findBySource('order', orderId);
+            if (existing && existing.status !== 'paid') {
+                await receivableRepository.cancel(existing.id);
+                console.log(`✅ Đã hủy công nợ ${existing.receivable_number} do hủy đơn hàng #${orderId}`);
+            }
+        } catch (recErr) {
+            console.error('⚠️ Lỗi hủy công nợ khi cancel đơn hàng:', recErr);
+        }
     }
 
     /**
@@ -278,6 +290,18 @@ class OrderService {
             throw new AppError(`Không thể đánh dấu "Giao thất bại" từ trạng thái "${order.status}". Chỉ áp dụng cho đơn đang giao.`, 400);
         }
         await orderRepository.updateOrderStatus(orderId, 'failed');
+
+        // [FIX 1.3] Hủy công nợ liên quan nếu tồn tại (đơn đã delivered → tạo receivable → giờ failed)
+        try {
+            const { receivableRepository } = require('../repositories/receivable.repository');
+            const existing = await receivableRepository.findBySource('order', orderId);
+            if (existing && existing.status !== 'paid') {
+                await receivableRepository.cancel(existing.id);
+                console.log(`✅ Đã hủy công nợ ${existing.receivable_number} do giao thất bại đơn #${orderId}`);
+            }
+        } catch (recErr) {
+            console.error('⚠️ Lỗi hủy công nợ khi mark failed:', recErr);
+        }
     }
 
     /**

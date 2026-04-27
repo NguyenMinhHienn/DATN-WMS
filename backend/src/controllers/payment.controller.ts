@@ -125,16 +125,56 @@ export const cancelPaymentOrder = async (req: Request, res: Response) => {
             [orderId]
         );
 
-        //  hoàn kho (CHỈ 1 LẦN)
+        // [FIX 1.5] Hoàn kho qua inventoryCoreService để ghi log đúng inventory_logs
+        const { inventoryCoreService } = require("../services/inventory-core.service");
         for (const item of items) {
             if (!item.variant_id) continue;
 
-            await pool.query(
-                `UPDATE product_variants
-                 SET stock = stock + ?
-                 WHERE id = ?`,
-                [item.quantity, item.variant_id]
-            );
+            try {
+                const [invRows]: any = await pool.query(
+                    `SELECT i.id, i.warehouse_id, i.product_id FROM inventories i 
+                     WHERE i.product_variant_id = ? 
+                     ORDER BY i.quantity_on_hand DESC LIMIT 1`,
+                    [item.variant_id]
+                );
+
+                if (invRows.length > 0) {
+                    // Hoàn qua inventoryCoreService → ghi inventory_logs
+                    const conn = await pool.getConnection();
+                    try {
+                        await conn.beginTransaction();
+                        await inventoryCoreService.importStock({
+                            connection: conn as any,
+                            productId: invRows[0].product_id,
+                            variantId: item.variant_id,
+                            warehouseId: invRows[0].warehouse_id,
+                            quantity: item.quantity,
+                            referenceType: 'order',
+                            referenceId: Number(orderId),
+                            reason: `Hoàn kho do hủy đơn PayOS #${orderId}`
+                        });
+                        await conn.commit();
+                    } catch(err) {
+                        await conn.rollback();
+                        throw err;
+                    } finally {
+                        conn.release();
+                    }
+                } else {
+                    // Fallback: cập nhật trực tiếp product_variants nếu chưa có inventories
+                    await pool.query(
+                        `UPDATE product_variants SET stock = stock + ? WHERE id = ?`,
+                        [item.quantity, item.variant_id]
+                    );
+                }
+            } catch (stockErr) {
+                console.error(`⚠️ Lỗi hoàn kho variant ${item.variant_id}:`, stockErr);
+                // Fallback an toàn
+                await pool.query(
+                    `UPDATE product_variants SET stock = stock + ? WHERE id = ?`,
+                    [item.quantity, item.variant_id]
+                );
+            }
         }
 
         //  chỉ update trạng thái (KHÔNG xóa)
@@ -144,6 +184,18 @@ export const cancelPaymentOrder = async (req: Request, res: Response) => {
              WHERE id = ?`,
             [orderId]
         );
+
+        // [FIX 1.2] Hủy công nợ liên quan nếu tồn tại
+        try {
+            const { receivableRepository } = require("../repositories/receivable.repository");
+            const existing = await receivableRepository.findBySource('order', Number(orderId));
+            if (existing && existing.status !== 'paid') {
+                await receivableRepository.cancel(existing.id);
+                console.log(`✅ Đã hủy công nợ ${existing.receivable_number} do cancel PayOS đơn #${orderId}`);
+            }
+        } catch (recErr) {
+            console.error('⚠️ Lỗi hủy công nợ khi cancel PayOS order:', recErr);
+        }
 
         return res.json({ message: "Order cancelled and stock restored correctly" });
 

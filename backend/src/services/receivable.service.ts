@@ -178,8 +178,8 @@ class ReceivableService {
     }
 
     /** Thống kê tổng cho dashboard */
-    async getSummaryStats() {
-        return receivableRepository.getSummaryStats();
+    async getSummaryStats(startDate?: string, endDate?: string) {
+        return receivableRepository.getSummaryStats(startDate, endDate);
     }
 
     /** Lấy danh sách quá hạn */

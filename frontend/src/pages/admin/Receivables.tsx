@@ -12,6 +12,9 @@ const Receivables: React.FC = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [filterStatus, setFilterStatus] = useState('');
+    const [search, setSearch] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     // Modal Details
     const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -39,14 +42,24 @@ const Receivables: React.FC = () => {
 
     useEffect(() => {
         loadData();
-    }, [page, filterStatus]);
+    }, [page, filterStatus, search, startDate, endDate]);
 
     const loadData = async () => {
         setLoading(true);
         try {
             const [statsData, listData] = await Promise.all([
-                receivableService.getSummary(),
-                receivableService.getAll({ page, limit: 10, status: filterStatus })
+                receivableService.getSummary({
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined
+                }),
+                receivableService.getAll({ 
+                    page, 
+                    limit: 10, 
+                    status: filterStatus,
+                    search: search || undefined,
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined
+                })
             ]);
             setSummary(statsData);
             setReceivables(listData.data);
@@ -182,7 +195,39 @@ const Receivables: React.FC = () => {
             {/* Main Content */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-3 flex-1">
+                        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Tìm theo tên KH, SĐT, Mã CN..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="input !py-1.5 !pl-9 !text-sm w-full"
+                            />
+                        </div>
+                        <div className="flex gap-2 items-center">
+                            <span className="text-sm text-slate-500">Từ:</span>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="input !py-1.5 !text-sm w-[130px]"
+                            />
+                        </div>
+                        <div className="flex gap-2 items-center">
+                            <span className="text-sm text-slate-500">Đến:</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="input !py-1.5 !text-sm w-[130px]"
+                            />
+                        </div>
                         <select 
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
@@ -195,6 +240,19 @@ const Receivables: React.FC = () => {
                             <option value="overdue">Quá hạn</option>
                             <option value="bad_debt">Nợ xấu</option>
                         </select>
+                        {(search || startDate || endDate || filterStatus) && (
+                            <button
+                                onClick={() => {
+                                    setSearch('');
+                                    setStartDate('');
+                                    setEndDate('');
+                                    setFilterStatus('');
+                                }}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1.5"
+                            >
+                                Bỏ lọc
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -388,7 +446,9 @@ const Receivables: React.FC = () => {
                                         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
                                             <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">📜 Nguồn tham chiếu</h4>
                                             <p className="text-sm font-medium text-slate-800">
-                                                {detailData.source_type === 'export_receipt' ? '📦 Phiếu xuất kho' : '🛒 Đơn hàng'}
+                                                {detailData.source_type === 'export_receipt' ? '📦 Phiếu xuất bán' : 
+                                                 detailData.source_type === 'export_transfer' ? '🚚 Phiếu xuất chuyển kho' : 
+                                                 '🛒 Đơn hàng'}
                                             </p>
                                             <p className="text-sm font-bold text-blue-600 mt-1">{detailData.source_number}</p>
                                             <p className="text-[10px] text-slate-400 mt-2 italic">Ngày phát sinh: {new Date(detailData.issue_date).toLocaleDateString('vi-VN')}</p>

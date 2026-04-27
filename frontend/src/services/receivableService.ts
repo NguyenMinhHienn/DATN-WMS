@@ -95,8 +95,8 @@ export const receivableService = {
         return response.data.data;
     },
 
-    async getSummary(): Promise<ReceivableSummary> {
-        const response = await api.get('/receivables/summary');
+    async getSummary(params: any = {}): Promise<ReceivableSummary> {
+        const response = await api.get('/receivables/summary', { params });
         return response.data.data;
     },
 
