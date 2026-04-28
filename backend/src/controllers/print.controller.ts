@@ -9,6 +9,263 @@ import { stockTransferRepository } from '../repositories/stock-transfer.reposito
 import pool from '../config/database';
 import { RowDataPacket } from 'mysql2';
 
+/**
+ * Helper: Tìm thông tin công nợ phải trả (Payable) liên kết với phiếu nhập
+ * Tra cứu theo source_type + source_id trong bảng payables
+ */
+async function findLinkedPayable(sourceType: string, sourceId: number): Promise<any | null> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT p.*, s.bank_name, s.bank_account, s.address as supplier_address
+            FROM payables p
+            LEFT JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.source_type = ? AND p.source_id = ?
+            LIMIT 1
+        `, [sourceType, sourceId]);
+        return rows.length > 0 ? rows[0] : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Helper: Tìm thông tin công nợ phải thu (Receivable) liên kết với phiếu xuất
+ * Tra cứu theo source_type + source_id trong bảng receivables
+ */
+async function findLinkedReceivable(sourceType: string, sourceId: number): Promise<any | null> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, u.full_name as user_full_name
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.source_type = ? AND r.source_id = ?
+            LIMIT 1
+        `, [sourceType, sourceId]);
+        return rows.length > 0 ? rows[0] : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Linked Document item for cross-reference display on printed receipts.
+ * Each item references a REAL record in the system.
+ */
+interface LinkedDocument {
+    /** Loại chứng từ (ví dụ: "Đơn đặt hàng", "Phiếu công nợ") */
+    type: string;
+    /** Mã chứng từ thực (ví dụ: "#ĐH-32", "NCC-2026-000002") */
+    code: string;
+    /** Ghi chú bổ sung (ví dụ: "Khách: Mai Ngọc Huyền") */
+    note?: string;
+    /** Icon cho loại chứng từ */
+    icon: string;
+}
+
+/**
+ * Helper: Tổng hợp tất cả chứng từ liên quan thực tế từ DB cho phiếu NHẬP
+ * Trả về danh sách các chứng từ có thể truy xuất ngược
+ */
+async function buildImportLinkedDocuments(receipt: any, payable: any | null): Promise<LinkedDocument[]> {
+    const docs: LinkedDocument[] = [];
+
+    // 1. Chứng từ do người dùng nhập tay (hóa đơn VAT, số hợp đồng, v.v.)
+    if (receipt.reference_document) {
+        docs.push({
+            type: 'Chứng từ gốc (nhập tay)',
+            code: receipt.reference_document,
+            icon: '📄',
+            note: 'Mã do kế toán/thủ kho nhập khi tạo phiếu'
+        });
+    }
+
+    // 2. Nhà cung cấp (luôn có cho phiếu nhập)
+    if (receipt.supplier_name) {
+        docs.push({
+            type: 'Nhà cung cấp',
+            code: receipt.supplier_name,
+            icon: '🏢',
+            note: receipt.supplier_id ? `Mã NCC: #${receipt.supplier_id}` : undefined
+        });
+    }
+
+    // 3. Công nợ phải trả (nếu có)
+    if (payable) {
+        docs.push({
+            type: 'Phiếu công nợ phải trả',
+            code: payable.payable_number || `PAY-${payable.id}`,
+            icon: '💳',
+            note: `Hạn: ${payable.payment_terms} ngày | Trạng thái: ${payable.status}`
+        });
+    }
+
+    return docs;
+}
+
+/**
+ * Helper: Tổng hợp tất cả chứng từ liên quan thực tế từ DB cho phiếu XUẤT
+ */
+async function buildExportLinkedDocuments(receipt: any, receivable: any | null): Promise<LinkedDocument[]> {
+    const docs: LinkedDocument[] = [];
+
+    // 1. Chứng từ do người dùng nhập tay
+    if (receipt.reference_document) {
+        docs.push({
+            type: 'Chứng từ gốc (nhập tay)',
+            code: receipt.reference_document,
+            icon: '📄',
+            note: 'Mã do kế toán/thủ kho nhập khi tạo phiếu'
+        });
+    }
+
+    // 2. Đơn đặt hàng (nếu xuất theo đơn)
+    if (receipt.order_id) {
+        // Truy vấn thêm thông tin đơn hàng
+        try {
+            const [orderRows] = await pool.query<RowDataPacket[]>(`
+                SELECT o.id, o.order_number, o.customer_name, o.payment_method, o.status
+                FROM orders o WHERE o.id = ?
+            `, [receipt.order_id]);
+            if (orderRows.length > 0) {
+                const order = orderRows[0];
+                docs.push({
+                    type: 'Đơn đặt hàng',
+                    code: order.order_number || `#ĐH-${order.id}`,
+                    icon: '🛒',
+                    note: `Khách: ${order.customer_name || 'N/A'} | TT: ${order.payment_method || 'N/A'}`
+                });
+            }
+        } catch {
+            // Nếu không query được, vẫn hiển thị mã đơn
+            docs.push({
+                type: 'Đơn đặt hàng',
+                code: `#ĐH-${receipt.order_id}`,
+                icon: '🛒'
+            });
+        }
+    }
+
+    // 3. Công nợ phải thu (nếu có)
+    if (receivable) {
+        docs.push({
+            type: 'Phiếu công nợ phải thu',
+            code: receivable.receivable_number || `RCV-${receivable.id}`,
+            icon: '💳',
+            note: `Người nợ: ${receivable.debtor_name || 'N/A'} | Trạng thái: ${receivable.status}`
+        });
+    }
+
+    return docs;
+}
+
+/**
+ * Helper: Tổng hợp chứng từ liên quan cho phiếu chuyển kho (IMPORT type)
+ */
+async function buildTransferImportLinkedDocuments(receipt: any, payable: any | null): Promise<LinkedDocument[]> {
+    const docs: LinkedDocument[] = [];
+
+    // 1. Mã phiếu chuyển kho gốc (chính là transfer_number)
+    if (receipt.transfer_number) {
+        docs.push({
+            type: 'Phiếu chuyển kho (Nguồn)',
+            code: receipt.transfer_number,
+            icon: '🔄',
+            note: `Loại: ${receipt.transfer_type} | Trạng thái: ${receipt.status}`
+        });
+    }
+
+    // 2. Nhà cung cấp
+    if (receipt.supplier_name) {
+        docs.push({
+            type: 'Nhà cung cấp',
+            code: receipt.supplier_name,
+            icon: '🏢',
+            note: receipt.supplier_id ? `Mã NCC: #${receipt.supplier_id}` : undefined
+        });
+    }
+
+    // 3. Đơn hàng liên kết
+    if (receipt.order_id) {
+        try {
+            const [orderRows] = await pool.query<RowDataPacket[]>(
+                `SELECT id, order_number, customer_name FROM orders WHERE id = ?`,
+                [receipt.order_id]
+            );
+            if (orderRows.length > 0) {
+                docs.push({
+                    type: 'Đơn đặt hàng liên kết',
+                    code: orderRows[0].order_number || `#ĐH-${orderRows[0].id}`,
+                    icon: '🛒',
+                    note: `Khách: ${orderRows[0].customer_name || 'N/A'}`
+                });
+            }
+        } catch {
+            docs.push({ type: 'Đơn đặt hàng', code: `#ĐH-${receipt.order_id}`, icon: '🛒' });
+        }
+    }
+
+    // 4. Công nợ phải trả
+    if (payable) {
+        docs.push({
+            type: 'Phiếu công nợ phải trả',
+            code: payable.payable_number || `PAY-${payable.id}`,
+            icon: '💳',
+            note: `Hạn: ${payable.payment_terms} ngày | Trạng thái: ${payable.status}`
+        });
+    }
+
+    return docs;
+}
+
+/**
+ * Helper: Tổng hợp chứng từ liên quan cho phiếu chuyển kho (EXPORT type)
+ */
+async function buildTransferExportLinkedDocuments(receipt: any, receivable: any | null): Promise<LinkedDocument[]> {
+    const docs: LinkedDocument[] = [];
+
+    // 1. Mã phiếu chuyển kho gốc
+    if (receipt.transfer_number) {
+        docs.push({
+            type: 'Phiếu chuyển kho (Nguồn)',
+            code: receipt.transfer_number,
+            icon: '🔄',
+            note: `Loại: ${receipt.transfer_type} | Trạng thái: ${receipt.status}`
+        });
+    }
+
+    // 2. Đơn hàng liên kết
+    if (receipt.order_id) {
+        try {
+            const [orderRows] = await pool.query<RowDataPacket[]>(
+                `SELECT id, order_number, customer_name, payment_method FROM orders WHERE id = ?`,
+                [receipt.order_id]
+            );
+            if (orderRows.length > 0) {
+                docs.push({
+                    type: 'Đơn đặt hàng',
+                    code: orderRows[0].order_number || `#ĐH-${orderRows[0].id}`,
+                    icon: '🛒',
+                    note: `Khách: ${orderRows[0].customer_name || 'N/A'} | TT: ${orderRows[0].payment_method || 'N/A'}`
+                });
+            }
+        } catch {
+            docs.push({ type: 'Đơn đặt hàng', code: `#ĐH-${receipt.order_id}`, icon: '🛒' });
+        }
+    }
+
+    // 3. Công nợ phải thu
+    if (receivable) {
+        docs.push({
+            type: 'Phiếu công nợ phải thu',
+            code: receivable.receivable_number || `RCV-${receivable.id}`,
+            icon: '💳',
+            note: `Người nợ: ${receivable.debtor_name || 'N/A'} | Trạng thái: ${receivable.status}`
+        });
+    }
+
+    return docs;
+}
+
 export const printController = {
     async printImport(req: Request, res: Response) {
         try {
@@ -19,6 +276,12 @@ export const printController = {
             if (!receipt) return res.status(404).send('Import slip not found');
 
             const items = await goodsReceiptRepository.getItems(id);
+
+            // Tìm công nợ phải trả (NCC) liên kết với phiếu nhập này
+            const payable = await findLinkedPayable('goods_receipt', id);
+
+            // Tổng hợp chứng từ liên quan thực tế
+            const linkedDocuments = await buildImportLinkedDocuments(receipt, payable);
 
             // Fetch company detail (could be static or from DB)
             const companyInfo = {
@@ -32,7 +295,9 @@ export const printController = {
                 company: companyInfo,
                 receipt,
                 items,
-                formatDate: (d: Date) => new Date(d).toLocaleDateString('vi-VN'),
+                payable,
+                linkedDocuments,
+                formatDate: (d: Date) => d ? new Date(d).toLocaleDateString('vi-VN') : 'N/A',
                 formatCurrency: (amount: number) => Number(amount || 0).toLocaleString('vi-VN') + ' đ'
             });
         } catch (error) {
@@ -70,6 +335,12 @@ export const printController = {
                 WHERE eri.export_receipt_id = ?
             `, [id]);
 
+            // Tìm công nợ phải thu liên kết với phiếu xuất này
+            const receivable = await findLinkedReceivable('export_receipt', id);
+
+            // Tổng hợp chứng từ liên quan thực tế
+            const linkedDocuments = await buildExportLinkedDocuments(receipt, receivable);
+
             const companyInfo = {
                 name: 'Hệ thống Quản lý Kho StockFlow',
                 address: 'Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội',
@@ -81,7 +352,9 @@ export const printController = {
                 company: companyInfo,
                 receipt,
                 items,
-                formatDate: (d: Date) => new Date(d).toLocaleDateString('vi-VN'),
+                receivable,
+                linkedDocuments,
+                formatDate: (d: Date) => d ? new Date(d).toLocaleDateString('vi-VN') : 'N/A',
                 formatCurrency: (amount: number) => Number(amount || 0).toLocaleString('vi-VN') + ' đ'
             });
         } catch (error) {
@@ -112,7 +385,7 @@ export const printController = {
             const ejsData: any = {
                 company: companyInfo,
                 items,
-                formatDate: (d: Date) => new Date(d).toLocaleDateString('vi-VN'),
+                formatDate: (d: Date) => d ? new Date(d).toLocaleDateString('vi-VN') : 'N/A',
                 formatCurrency: (amount: number) => Number(amount || 0).toLocaleString('vi-VN') + ' đ'
             };
 
@@ -148,6 +421,12 @@ export const printController = {
                     unit_cost: i.unit_cost,
                     line_total: i.line_total
                 }));
+
+                // Tìm công nợ phải trả (NCC) liên kết với phiếu nhập (stock_transfer)
+                ejsData.payable = await findLinkedPayable('import_transfer', id);
+
+                // Tổng hợp chứng từ liên quan thực tế
+                ejsData.linkedDocuments = await buildTransferImportLinkedDocuments(receipt, ejsData.payable);
                 
                 return res.render('print/import', ejsData);
             } else {
@@ -199,6 +478,12 @@ export const printController = {
                     unit_price: i.unit_cost,
                     line_total: i.line_total
                 }));
+
+                // Tìm công nợ phải thu liên kết với phiếu xuất (stock_transfer)
+                ejsData.receivable = await findLinkedReceivable('export_transfer', id);
+
+                // Tổng hợp chứng từ liên quan thực tế
+                ejsData.linkedDocuments = await buildTransferExportLinkedDocuments(receipt, ejsData.receivable);
 
                 return res.render('print/export', ejsData);
             }

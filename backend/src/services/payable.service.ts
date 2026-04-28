@@ -1,6 +1,7 @@
 import { payableRepository } from '../repositories/payable.repository';
 import { paymentVoucherRepository } from '../repositories/payment-voucher.repository';
 import { AppError } from '../middlewares/error.middleware';
+import { auditService } from './audit.service';
 
 /**
  * Payable Service - Business logic công nợ phải trả NCC
@@ -38,6 +39,18 @@ class PayableService {
             payment_terms: transfer.payment_terms,
             notes: `Tự động tạo từ phiếu nhập kho ${transfer.transfer_number}`,
             created_by: createdBy,
+        });
+
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'payable',
+            reference_id: payableId,
+            reference_number: transfer.transfer_number,
+            action: 'CREATE',
+            amount: transfer.total_amount,
+            actor_id: createdBy,
+            status_after: 'unpaid',
+            notes: `Tự động tạo từ phiếu nhập kho ${transfer.transfer_number}`
         });
 
         return payableId;
@@ -87,6 +100,19 @@ class PayableService {
 
         const ok = await payableRepository.cancel(id);
         if (!ok) throw new AppError('Hủy công nợ thất bại', 500);
+
+        // Ghi log CANCEL
+        await auditService.log({
+            reference_type: 'payable',
+            reference_id: id,
+            reference_number: payable.payable_number,
+            action: 'CANCEL',
+            amount: parseFloat(payable.total_amount),
+            actor_id: 0, // Cần pass actor_id từ controller nếu muốn định danh
+            status_before: payable.status,
+            status_after: 'cancelled'
+        });
+
         return true;
     }
 
@@ -121,6 +147,18 @@ class PayableService {
         // Tự động duyệt phiếu chi nếu được tạo bởi Admin (để trừ nợ ngay lập tức)
         await this.approveVoucher(voucherId, adminId);
 
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'payment_voucher',
+            reference_id: voucherId,
+            reference_number: `CHI-${voucherId}`,
+            action: 'CREATE',
+            amount: data.amount,
+            actor_id: adminId,
+            status_after: 'approved',
+            notes: data.notes
+        });
+
         return voucherId;
     }
 
@@ -137,7 +175,8 @@ class PayableService {
             throw new AppError('Công nợ gốc không tồn tại hoặc đã hủy', 400);
         }
 
-        const remaining = parseFloat(payable.total_amount) - parseFloat(payable.paid_amount);
+        const paidBefore = parseFloat(payable.paid_amount);
+        const remaining = parseFloat(payable.total_amount) - paidBefore;
         if (parseFloat(voucher.amount) > remaining) {
             throw new AppError('Số tiền trên phiếu chi vượt quá số nợ còn lại', 400);
         }
@@ -147,6 +186,22 @@ class PayableService {
 
         // 2. Cập nhật paid_amount của công nợ
         await payableRepository.updatePaidAmount(voucher.payable_id, parseFloat(voucher.amount));
+
+        // Ghi log APPROVE kèm balance snapshot
+        const paidAfter = paidBefore + parseFloat(voucher.amount);
+        const remainingAfter = parseFloat(payable.total_amount) - paidAfter;
+        await auditService.log({
+            reference_type: 'payment_voucher',
+            reference_id: id,
+            reference_number: voucher.voucher_number,
+            action: 'APPROVE',
+            amount: parseFloat(voucher.amount),
+            actor_id: adminId,
+            approver_id: adminId,
+            status_before: voucher.status,
+            status_after: 'approved',
+            notes: `[Balance] Đã trả: ${paidBefore} → ${paidAfter} | Còn nợ: ${remainingAfter} | Tổng nợ: ${payable.total_amount}`
+        });
 
         return true;
     }
@@ -160,6 +215,20 @@ class PayableService {
         }
 
         await paymentVoucherRepository.updateStatus(id, 'rejected', adminId, reason);
+
+        // Ghi log REJECT
+        await auditService.log({
+            reference_type: 'payment_voucher',
+            reference_id: id,
+            reference_number: voucher.voucher_number,
+            action: 'REJECT',
+            amount: parseFloat(voucher.amount),
+            actor_id: adminId,
+            status_before: voucher.status,
+            status_after: 'rejected',
+            notes: reason
+        });
+
         return true;
     }
 
@@ -167,6 +236,101 @@ class PayableService {
     async getVouchersByPayable(payableId: number) {
         return paymentVoucherRepository.findByPayableId(payableId);
     }
+
+    /** Lấy danh sách phiếu nợ chưa trả theo supplier_id (FIFO) */
+    async getUnpaidBySupplier(supplierId: number) {
+        return payableRepository.getUnpaidBySupplier(supplierId);
+    }
+
+    /**
+     * Tạo phiếu chi gộp cho nhiều công nợ của 1 NCC (FIFO)
+     * Ưu tiên thanh toán cho các phiếu cũ nhất trước
+     */
+    async createConsolidatedVoucher(data: {
+        supplier_id: number;
+        amount: number;
+        payment_method: 'cash' | 'bank_transfer' | 'other';
+        payment_date?: string;
+        bank_reference?: string;
+        notes?: string;
+    }, adminId: number) {
+        if (data.amount <= 0) throw new AppError('Số tiền phải lớn hơn 0', 400);
+
+        // 1. Lấy danh sách phiếu nợ chưa trả (FIFO)
+        const unpaidPayables = await payableRepository.getUnpaidBySupplier(data.supplier_id);
+        if (unpaidPayables.length === 0) {
+            throw new AppError('Nhà cung cấp này không còn nợ chưa thanh toán', 400);
+        }
+
+        const totalRemaining = unpaidPayables.reduce((sum: number, p: any) =>
+            sum + (parseFloat(p.total_amount) - parseFloat(p.paid_amount)), 0);
+
+        if (data.amount > totalRemaining) {
+            throw new AppError(`Số tiền thanh toán (${new Intl.NumberFormat('vi-VN').format(data.amount)}) vượt quá tổng dư nợ (${new Intl.NumberFormat('vi-VN').format(totalRemaining)})`, 400);
+        }
+
+        let remainingToPay = data.amount;
+        const voucherIds: number[] = [];
+
+        // 2. Duyệt qua từng phiếu nợ và gạch nợ (FIFO)
+        for (const payable of unpaidPayables) {
+            if (remainingToPay <= 0) break;
+
+            const remainingOnSlip = parseFloat(payable.total_amount) - parseFloat(payable.paid_amount);
+            const amountForThisSlip = Math.min(remainingToPay, remainingOnSlip);
+
+            if (amountForThisSlip > 0) {
+                // Tạo phiếu chi cho phiếu nợ này
+                const voucherId = await paymentVoucherRepository.create({
+                    payable_id: payable.id,
+                    amount: amountForThisSlip,
+                    payment_method: data.payment_method,
+                    payment_date: data.payment_date || new Date().toISOString().split('T')[0],
+                    bank_reference: data.bank_reference,
+                    notes: data.notes || `Thanh toán gộp cho NCC #${data.supplier_id}`,
+                    created_by: adminId,
+                });
+
+                voucherIds.push(voucherId);
+
+                // Auto-approve và cập nhật paid_amount
+                await paymentVoucherRepository.updateStatus(voucherId, 'approved', adminId);
+
+                // Ghi balance snapshot vào audit
+                const paidBefore = parseFloat(payable.paid_amount);
+                const paidAfter = paidBefore + amountForThisSlip;
+                await payableRepository.updatePaidAmount(payable.id, amountForThisSlip);
+
+                await auditService.log({
+                    reference_type: 'payment_voucher',
+                    reference_id: voucherId,
+                    reference_number: `CHI-BULK-${voucherId}`,
+                    action: 'APPROVE',
+                    amount: amountForThisSlip,
+                    actor_id: adminId,
+                    approver_id: adminId,
+                    status_before: payable.status,
+                    status_after: paidAfter >= parseFloat(payable.total_amount) ? 'paid' : 'partial',
+                    notes: `[Thanh toán gộp] Phiếu ${payable.payable_number} | Trước: ${paidBefore} → Sau: ${paidAfter} | Tổng nợ: ${payable.total_amount}`
+                });
+
+                remainingToPay -= amountForThisSlip;
+            }
+        }
+
+        return {
+            success: true,
+            voucher_ids: voucherIds,
+            amount_paid: data.amount - remainingToPay,
+            remaining_unprocessed: remainingToPay
+        };
+    }
+
+    /** Lấy danh sách công nợ NCC sắp tới hạn */
+    async getUpcomingDue(daysAhead: number = 3) {
+        return payableRepository.getUpcomingDue(daysAhead);
+    }
 }
 
 export const payableService = new PayableService();
+

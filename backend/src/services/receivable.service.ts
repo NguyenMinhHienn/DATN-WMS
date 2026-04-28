@@ -2,6 +2,7 @@ import { receivableRepository } from '../repositories/receivable.repository';
 import { notificationRepository } from '../repositories/notification.repository';
 import { emailService } from './email.service';
 import { AppError } from '../middlewares/error.middleware';
+import { auditService } from './audit.service';
 
 /**
  * Receivable Service - Business logic công nợ phải thu
@@ -43,6 +44,18 @@ class ReceivableService {
             payment_terms: paymentTerms,
             notes: `Tự động tạo từ phiếu xuất kho ${receipt.receipt_number}`,
             created_by: createdBy,
+        });
+
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'receivable',
+            reference_id: receivableId,
+            reference_number: receipt.receipt_number,
+            action: 'CREATE',
+            amount: receipt.total_amount,
+            actor_id: createdBy,
+            status_after: 'unpaid',
+            notes: `Tự động tạo từ phiếu xuất kho ${receipt.receipt_number}`
         });
 
         return receivableId;
@@ -98,6 +111,18 @@ class ReceivableService {
         } catch (err) {
             console.error('Lỗi gửi notification công nợ:', err);
         }
+
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'receivable',
+            reference_id: receivableId,
+            reference_number: `ORD-${order.id}`,
+            action: 'CREATE',
+            amount: order.total_amount,
+            actor_id: createdBy,
+            status_after: 'unpaid',
+            notes: `Tự động tạo từ đơn hàng COD #${order.id}`
+        });
 
         return receivableId;
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { reportService } from '../../services/reportService';
 import { receivableService, ReceivableSummary, ConsolidatedLedgerEntry } from '../../services/receivableService';
 import { payableService, PayableSummary } from '../../services/payableService';
+import { auditService, FinancialAuditLog } from '../../services/auditService';
 import { useReactToPrint } from 'react-to-print';
 import * as XLSX from 'xlsx';
 import {
@@ -31,7 +32,7 @@ const getMonthStart = () => {
     return d.toISOString().split('T')[0];
 };
 
-type TabKey = 'movements' | 'topSelling' | 'inventory' | 'stockValue' | 'receivables_customer' | 'payables_supplier';
+type TabKey = 'movements' | 'topSelling' | 'inventory' | 'stockValue' | 'receivables_customer' | 'payables_supplier' | 'financial_logs';
 
 // ==================== CHART COLORS ====================
 const COLORS = [
@@ -71,6 +72,15 @@ const Reports: React.FC = () => {
     const [payableLedger, setPayableLedger] = useState<any[]>([]);
     const [payableYear, setPayableYear] = useState(new Date().getFullYear());
     const [payableSearch, setPayableSearch] = useState('');
+    
+    // Financial Audit Logs
+    const [auditLogs, setAuditLogs] = useState<FinancialAuditLog[]>([]);
+    const [auditPagination, setAuditPagination] = useState<any>(null);
+    const [auditFilters, setAuditFilters] = useState({
+        page: 1,
+        reference_type: '',
+        actor_id: undefined as number | undefined
+    });
 
     // Drill-down modal
     const [drillDown, setDrillDown] = useState<any>(null);
@@ -141,13 +151,25 @@ const Reports: React.FC = () => {
                     setPayableLedger(ledgerData.data || []);
                     break;
                 }
+                case 'financial_logs': {
+                    const logsData = await auditService.getAllLogs({
+                        page: auditFilters.page,
+                        limit: 20,
+                        start_date: startDate,
+                        end_date: endDate,
+                        reference_type: auditFilters.reference_type || undefined
+                    });
+                    setAuditLogs(logsData.data);
+                    setAuditPagination(logsData.pagination);
+                    break;
+                }
             }
         } catch (error) {
             console.error('Failed to load report:', error);
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, activeTab, receivableYear, receivableSearch, payableYear, payableSearch]);
+    }, [startDate, endDate, activeTab, receivableYear, receivableSearch, payableYear, payableSearch, auditFilters]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -574,6 +596,7 @@ const Reports: React.FC = () => {
                     { key: 'stockValue' as TabKey, label: '💰 Giá trị', desc: 'Phân tích tài sản' },
                     { key: 'receivables_customer' as TabKey, label: '👥 Nợ Khách', desc: 'Quản lý thu nợ' },
                     { key: 'payables_supplier' as TabKey, label: '🏢 Nợ NCC', desc: 'Quản lý trả nợ' },
+                    { key: 'financial_logs' as TabKey, label: '🕒 Nhật ký TT', desc: 'Truy vết Thu/Chi' },
                 ]).map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                         className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 ${activeTab === tab.key
@@ -936,6 +959,115 @@ const Reports: React.FC = () => {
                                 )}
                             </div>
                         )}
+
+                        {/* FINANCIAL AUDIT LOGS VIEW */}
+                        {activeTab === 'financial_logs' && (
+                            <div className="space-y-6 animate-fadeIn">
+                                {/* Filters Row */}
+                                <div className="flex flex-wrap gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-500">LOẠI PHIẾU:</span>
+                                        <select 
+                                            value={auditFilters.reference_type} 
+                                            onChange={(e) => setAuditFilters({...auditFilters, reference_type: e.target.value, page: 1})}
+                                            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="">Tất cả</option>
+                                            <option value="payment_receipt">Phiếu Thu (Khách hàng)</option>
+                                            <option value="payment_voucher">Phiếu Chi (Nhà cung cấp)</option>
+                                        </select>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 italic flex-1">
+                                        * Nhật ký này lưu lại mọi thao tác thay đổi số dư công nợ của nhân viên và hệ thống.
+                                    </p>
+                                </div>
+
+                                {/* Table */}
+                                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                            <tr>
+                                                <th className="px-6 py-4">Thời gian</th>
+                                                <th className="px-6 py-4">Đối tượng</th>
+                                                <th className="px-6 py-4">Hành động</th>
+                                                <th className="px-6 py-4 text-right">Số tiền</th>
+                                                <th className="px-6 py-4">Người thực hiện</th>
+                                                <th className="px-6 py-4">Trạng thái cuối</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {auditLogs.length > 0 ? auditLogs.map(log => (
+                                                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-slate-800">{new Date(log.created_at).toLocaleDateString('vi-VN')}</div>
+                                                        <div className="text-[10px] text-slate-400">{new Date(log.created_at).toLocaleTimeString('vi-VN')}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-bold text-indigo-600">{log.reference_number}</div>
+                                                        <div className="text-[10px] text-slate-400 uppercase">{log.reference_type === 'payment_receipt' ? 'Phiếu thu' : 'Phiếu chi'}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                            log.action === 'CREATE' ? 'bg-blue-100 text-blue-700' :
+                                                            log.action === 'APPROVE' ? 'bg-emerald-100 text-emerald-700' :
+                                                            log.action === 'REJECT' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                            {log.action}
+                                                        </span>
+                                                        {log.notes && (
+                                                            <div className="text-[10px] text-slate-400 mt-1 max-w-[200px] truncate" title={log.notes}>
+                                                                {log.notes}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-bold text-slate-800">
+                                                        {log.amount ? formatVND(Number(log.amount)) : '--'} đ
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-slate-700">{log.actor_name}</div>
+                                                        {log.approver_name && (
+                                                            <div className="text-[10px] text-emerald-600 italic">Duyệt bởi: {log.approver_name}</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="text-[11px] font-bold text-slate-500 uppercase">{log.status_after || '--'}</span>
+                                                    </td>
+                                                </tr>
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
+                                                        Không tìm thấy nhật ký giao dịch nào trong khoảng thời gian này.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination */}
+                                {auditPagination && auditPagination.totalPages > 1 && (
+                                    <div className="flex justify-center gap-2 mt-4">
+                                        <button 
+                                            disabled={auditFilters.page === 1}
+                                            onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page - 1})}
+                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
+                                        >
+                                            Trước
+                                        </button>
+                                        <span className="px-4 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-lg">
+                                            {auditFilters.page} / {auditPagination.totalPages}
+                                        </span>
+                                        <button 
+                                            disabled={auditFilters.page === auditPagination.totalPages}
+                                            onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page + 1})}
+                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
+                                        >
+                                            Sau
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </>
                 )}
 
@@ -1167,6 +1299,126 @@ const Reports: React.FC = () => {
                                 </table>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* ===== TAB: NHẬT KÝ TÀI CHÍNH ===== */}
+                {activeTab === 'financial_logs' && !loading && (
+                    <div className="p-6 space-y-6 animate-fadeIn">
+                        {/* Filters Row */}
+                        <div className="flex flex-wrap gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-slate-500">LOẠI PHIẾU:</span>
+                                <select 
+                                    value={auditFilters.reference_type} 
+                                    onChange={(e) => setAuditFilters({...auditFilters, reference_type: e.target.value, page: 1})}
+                                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                >
+                                    <option value="">Tất cả giao dịch</option>
+                                    <option value="payment_receipt">Phiếu Thu (Từ Khách hàng)</option>
+                                    <option value="payment_voucher">Phiếu Chi (Trả Nhà cung cấp)</option>
+                                </select>
+                            </div>
+                            <div className="h-6 w-[1px] bg-slate-200 mx-2 hidden sm:block"></div>
+                            <p className="text-[11px] text-slate-400 italic flex-1">
+                                * Hệ thống tự động truy vết mọi thao tác phê duyệt, từ chối hoặc hủy bỏ liên quan đến tiền tệ.
+                            </p>
+                        </div>
+
+                        {/* Table */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg shadow-slate-200/50">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                        <tr>
+                                            <th className="px-6 py-4">Thời gian</th>
+                                            <th className="px-6 py-4">Chứng từ</th>
+                                            <th className="px-6 py-4">Hành động</th>
+                                            <th className="px-6 py-4 text-right">Số tiền</th>
+                                            <th className="px-6 py-4">Người thực hiện</th>
+                                            <th className="px-6 py-4">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {auditLogs.length > 0 ? auditLogs.map(log => (
+                                            <tr key={log.id} className="hover:bg-slate-50/80 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-slate-700">{new Date(log.created_at).toLocaleDateString('vi-VN')}</div>
+                                                    <div className="text-[10px] text-slate-400 font-medium">{new Date(log.created_at).toLocaleTimeString('vi-VN')}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-black text-indigo-600 tracking-tight">{log.reference_number}</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase font-bold">{log.reference_type === 'payment_receipt' ? 'Thu nợ' : 'Chi trả'}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black tracking-tighter ${
+                                                        log.action === 'CREATE' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                                        log.action === 'APPROVE' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                                        log.action === 'REJECT' ? 'bg-rose-100 text-rose-700 border border-rose-200' : 
+                                                        'bg-slate-100 text-slate-700 border border-slate-200'
+                                                    }`}>
+                                                        {log.action}
+                                                    </span>
+                                                    {log.notes && (
+                                                        <div className="text-[10px] text-slate-400 mt-1 max-w-[180px] truncate italic" title={log.notes}>
+                                                            "{log.notes}"
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-right font-black text-slate-800 text-base">
+                                                    {log.amount ? formatVND(Number(log.amount)) : '--'} ₫
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-slate-700 flex items-center gap-1">
+                                                        <span className="text-xs">👤</span> {log.actor_name}
+                                                    </div>
+                                                    {log.approver_name && (
+                                                        <div className="text-[10px] text-emerald-600 font-bold">✓ Duyệt: {log.approver_name}</div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[11px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                                        {log.status_after || '--'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={6} className="px-6 py-20 text-center">
+                                                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                        <span className="text-4xl opacity-20">📂</span>
+                                                        <p className="italic font-medium">Không tìm thấy nhật ký giao dịch nào trong khoảng thời gian này.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Pagination */}
+                        {auditPagination && auditPagination.totalPages > 1 && (
+                            <div className="flex justify-center items-center gap-3 mt-6">
+                                <button 
+                                    disabled={auditFilters.page === 1}
+                                    onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page - 1})}
+                                    className="p-2 bg-white border border-slate-200 rounded-xl text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors shadow-sm"
+                                >
+                                    ◀
+                                </button>
+                                <div className="px-6 py-2 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-200">
+                                    TRANG {auditFilters.page} / {auditPagination.totalPages}
+                                </div>
+                                <button 
+                                    disabled={auditFilters.page === auditPagination.totalPages}
+                                    onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page + 1})}
+                                    className="p-2 bg-white border border-slate-200 rounded-xl text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors shadow-sm"
+                                >
+                                    ▶
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

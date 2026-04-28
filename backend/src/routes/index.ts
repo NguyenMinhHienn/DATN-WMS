@@ -32,6 +32,7 @@ import * as receivableController from '../controllers/receivable.controller';
 import { payableController } from '../controllers/payable.controller';
 import * as creditController from '../controllers/credit.controller';
 import * as notificationController from '../controllers/notification.controller';
+import { auditController } from '../controllers/audit.controller';
 
 
 const router = Router();
@@ -287,9 +288,12 @@ router.put('/payment-receipts/:id/reject', authenticate, isAdmin, receivableCont
 router.get('/payables/summary', authenticate, isAdmin, payableController.getSummary);
 router.get('/payables/monthly-stats', authenticate, isAdmin, payableController.getMonthlyStats);
 router.get('/payables/ledger', authenticate, isAdmin, payableController.getConsolidatedLedger);
+router.get('/payables/upcoming-due', authenticate, isAdmin, payableController.getUpcomingDue);
 router.get('/payables', authenticate, isAdmin, payableController.getAll);
+router.get('/payables/supplier/:supplierId/unpaid', authenticate, isAdmin, payableController.getUnpaidBySupplier);
 router.get('/payables/:id', authenticate, isAdmin, payableController.getById);
 router.put('/payables/:id/cancel', authenticate, isAdmin, payableController.cancel);
+router.post('/payables/consolidated-voucher', authenticate, isAdmin, payableController.createConsolidatedVoucher);
 
 // ==================== PAYMENT VOUCHER (PHIẾU CHI) ROUTES ====================
 router.get('/payables/:id/vouchers', authenticate, isAdmin, payableController.getVouchers);
@@ -302,6 +306,8 @@ router.get('/notifications', authenticate, notificationController.getNotificatio
 router.get('/notifications/unread-count', authenticate, notificationController.getUnreadCount);
 router.put('/notifications/:id/read', authenticate, notificationController.markAsRead);
 router.put('/notifications/read-all', authenticate, notificationController.markAllAsRead);
-
+// ==================== AUDIT LOGS ====================
+router.get('/audit/history/:type/:id', authenticate, isStaff, auditController.getHistory);
+router.get('/audit/logs', authenticate, isAdmin, auditController.getAllLogs);
 
 export default router;

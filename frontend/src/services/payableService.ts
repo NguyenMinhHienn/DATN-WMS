@@ -71,7 +71,7 @@ export const payableService = {
 
     async getById(id: number) {
         const response = await api.get(`/payables/${id}`);
-        return response.data;
+        return response.data.data;
     },
 
     async getSummary(params: any = {}): Promise<PayableSummary> {
@@ -94,10 +94,33 @@ export const payableService = {
         return response.data; // Note: This one should return the whole object because it has pagination
     },
 
+    async getUnpaidBySupplier(supplierId: number) {
+        const response = await api.get(`/payables/supplier/${supplierId}/unpaid`);
+        return response.data.data;
+    },
+
+    async createConsolidatedVoucher(data: {
+        supplier_id: number;
+        amount: number;
+        payment_method: 'cash' | 'bank_transfer' | 'other';
+        payment_date?: string;
+        bank_reference?: string;
+        notes?: string;
+    }) {
+        const response = await api.post('/payables/consolidated-voucher', data);
+        return response.data;
+    },
+
+    async getUpcomingDue(days: number = 3) {
+        const response = await api.get('/payables/upcoming-due', { params: { days } });
+        return response.data.data;
+    },
+
+
     // ==================== PAYMENT VOUCHERS ====================
     async getVouchers(payableId: number) {
         const response = await api.get(`/payables/${payableId}/vouchers`);
-        return response.data;
+        return response.data.data;
     },
 
     async createVoucher(payableId: number, data: any) {

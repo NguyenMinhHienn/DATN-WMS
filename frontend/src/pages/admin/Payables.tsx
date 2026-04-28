@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { payableService, Payable, PayableSummary } from '../../services/payableService';
 import { Modal } from '../../components/Modal';
+import { auditService, FinancialAuditLog } from '../../services/auditService';
+import AuditTimeline from '../../components/AuditTimeline';
 
 const Payables: React.FC = () => {
     const [payables, setPayables] = useState<Payable[]>([]);
@@ -22,6 +24,8 @@ const Payables: React.FC = () => {
     const [vouchers, setVouchers] = useState<any[]>([]);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+    const [auditLogs, setAuditLogs] = useState<FinancialAuditLog[]>([]);
+    const [auditLoading, setAuditLoading] = useState(false);
 
     const printRef = useRef<HTMLDivElement>(null);
     const handlePrint = useReactToPrint({
@@ -71,6 +75,7 @@ const Payables: React.FC = () => {
 
     const handleViewDetail = async (id: number) => {
         setSelectedId(id);
+        setAuditLogs([]);
         try {
             const data = await payableService.getById(id);
             setDetailData(data);
@@ -81,9 +86,23 @@ const Payables: React.FC = () => {
 
             setActiveTab('overview');
             setIsDetailModalOpen(true);
+
+            loadAuditLogs('payable', id);
         } catch (error: any) {
             console.error(error);
             alert(error.response?.data?.message || 'Không thể tải chi tiết công nợ.');
+        }
+    };
+
+    const loadAuditLogs = async (type: string, id: number) => {
+        setAuditLoading(true);
+        try {
+            const logs = await auditService.getHistory(type, id);
+            setAuditLogs(logs);
+        } catch (error) {
+            console.error('Lỗi khi tải nhật ký thao tác:', error);
+        } finally {
+            setAuditLoading(false);
         }
     };
 
@@ -345,17 +364,22 @@ const Payables: React.FC = () => {
                     <div className="flex flex-col h-full max-h-[75vh]" ref={printRef}>
                         {/* Tabs Header */}
                         <div className="flex border-b border-slate-200 mb-4 bg-slate-50/50 rounded-t-xl sticky top-0 z-10 p-1 gap-1 print:hidden">
-                            {['overview', 'items', 'history'].map((tab) => (
+                            {['overview', 'items', 'history', 'audit'].map((tab) => (
                                 <button
                                     key={tab}
-                                    onClick={() => setActiveTab(tab)}
+                                    onClick={() => {
+                                        setActiveTab(tab);
+                                        if (tab === 'audit' && detailData.id) loadAuditLogs('payable', detailData.id);
+                                    }}
                                     className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
                                         activeTab === tab 
                                             ? 'bg-white text-blue-900 shadow-sm border border-blue-100' 
                                             : 'text-slate-500 hover:text-blue-900 hover:bg-white/50'
                                     }`}
                                 >
-                                    {tab === 'overview' ? '📑 Tổng quan' : tab === 'items' ? '📦 Hàng hóa' : '💰 Phiếu chi'}
+                                    {tab === 'overview' ? '📑 Tổng quan' : 
+                                     tab === 'items' ? '📦 Sản phẩm' : 
+                                     tab === 'history' ? '💰 Thanh toán' : '🕒 Lịch sử'}
                                 </button>
                             ))}
                         </div>
@@ -583,6 +607,17 @@ const Payables: React.FC = () => {
                                             ))}
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* AUDIT LOGS TAB */}
+                            {activeTab === 'audit' && (
+                                <div className="animate-fadeIn pb-6">
+                                    <div className="mb-4">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nhật ký hệ thống</h4>
+                                        <p className="text-[10px] text-slate-400 italic">Mọi thao tác thay đổi dữ liệu đều được ghi lại tự động</p>
+                                    </div>
+                                    <AuditTimeline logs={auditLogs} loading={auditLoading} />
                                 </div>
                             )}
                         </div>

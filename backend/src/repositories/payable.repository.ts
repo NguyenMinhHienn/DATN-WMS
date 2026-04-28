@@ -353,6 +353,36 @@ class PayableRepository {
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         };
     }
+
+    /**
+     * Lấy danh sách phiếu nợ chưa trả theo supplier_id (FIFO - cũ nhất trước)
+     */
+    async getUnpaidBySupplier(supplierId: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT p.*, cu.full_name as created_by_name
+            FROM payables p
+            LEFT JOIN users cu ON p.created_by = cu.id
+            WHERE p.supplier_id = ? 
+              AND p.status IN ('unpaid', 'partial', 'overdue')
+            ORDER BY p.issue_date ASC, p.id ASC
+        `, [supplierId]);
+        return rows;
+    }
+
+    /**
+     * Lấy danh sách công nợ NCC sắp tới hạn (trong N ngày tới)
+     */
+    async getUpcomingDue(daysAhead: number = 3): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT p.*, s.bank_name, s.bank_account
+            FROM payables p
+            LEFT JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.status IN ('unpaid', 'partial')
+              AND p.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+            ORDER BY p.due_date ASC
+        `, [daysAhead]);
+        return rows;
+    }
 }
 
 export const payableRepository = new PayableRepository();

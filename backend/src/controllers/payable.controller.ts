@@ -136,6 +136,44 @@ class PayableController {
             next(error);
         }
     }
+
+    /** Lấy danh sách phiếu nợ chưa trả theo NCC (FIFO) */
+    async getUnpaidBySupplier(req: Request, res: Response, next: NextFunction) {
+        try {
+            const supplierId = parseInt(req.params.supplierId);
+            const data = await payableService.getUnpaidBySupplier(supplierId);
+            res.json({ success: true, data });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** Tạo phiếu chi gộp (FIFO) cho 1 NCC */
+    async createConsolidatedVoucher(req: Request, res: Response, next: NextFunction) {
+        try {
+            const adminId = (req as any).user.userId;
+            const result = await payableService.createConsolidatedVoucher(req.body, adminId);
+            res.status(201).json({
+                success: true,
+                message: 'Đã thực hiện thanh toán gộp và gạch nợ NCC thành công',
+                data: result
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** Lấy danh sách công nợ NCC sắp tới hạn */
+    async getUpcomingDue(req: Request, res: Response, next: NextFunction) {
+        try {
+            const days = req.query.days ? parseInt(req.query.days as string) : 3;
+            const data = await payableService.getUpcomingDue(days);
+            res.json({ success: true, data });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export const payableController = new PayableController();
+

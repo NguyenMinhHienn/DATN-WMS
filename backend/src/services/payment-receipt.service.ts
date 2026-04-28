@@ -3,6 +3,7 @@ import { receivableRepository } from '../repositories/receivable.repository';
 import { notificationRepository } from '../repositories/notification.repository';
 import { emailService } from './email.service';
 import { AppError } from '../middlewares/error.middleware';
+import { auditService } from './audit.service';
 
 /**
  * Payment Receipt Service - Business logic phiếu thu
@@ -51,6 +52,18 @@ class PaymentReceiptService {
         if (isAdmin && createdBy) {
             await this.processApproval(id, createdBy);
         }
+
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'payment_receipt',
+            reference_id: id,
+            reference_number: `THU-${id}`, // Hoặc lấy receipt_number nếu có repo trả về
+            action: 'CREATE',
+            amount: data.amount,
+            actor_id: createdBy || 0,
+            status_after: isAdmin ? 'approved' : 'pending',
+            notes: data.notes
+        });
 
         return id;
     }
@@ -155,7 +168,8 @@ class PaymentReceiptService {
         const receivable = await receivableRepository.findById(receipt.receivable_id);
         if (!receivable) throw new AppError('Không tìm thấy công nợ liên quan', 404);
 
-        const remaining = parseFloat(receivable.total_amount) - parseFloat(receivable.paid_amount);
+        const paidBefore = parseFloat(receivable.paid_amount);
+        const remaining = parseFloat(receivable.total_amount) - paidBefore;
         if (parseFloat(receipt.amount) > remaining) {
             throw new AppError(`Số tiền thu vượt quá còn nợ hiện tại (${remaining})`, 400);
         }
@@ -166,6 +180,22 @@ class PaymentReceiptService {
 
         // Xử lý sau duyệt
         await this.processApproval(id, userId);
+
+        // Ghi log APPROVE kèm balance snapshot
+        const paidAfter = paidBefore + parseFloat(receipt.amount);
+        const remainingAfter = parseFloat(receivable.total_amount) - paidAfter;
+        await auditService.log({
+            reference_type: 'payment_receipt',
+            reference_id: id,
+            reference_number: receipt.receipt_number,
+            action: 'APPROVE',
+            amount: parseFloat(receipt.amount),
+            actor_id: userId,
+            approver_id: userId,
+            status_before: 'pending',
+            status_after: 'approved',
+            notes: `[Balance] Đã thu: ${paidBefore} → ${paidAfter} | Còn nợ: ${remainingAfter} | Tổng nợ: ${receivable.total_amount}`
+        });
 
         return true;
     }
@@ -241,6 +271,19 @@ class PaymentReceiptService {
 
         const ok = await paymentReceiptRepository.reject(id, userId, reason);
         if (!ok) throw new AppError('Từ chối phiếu thu thất bại', 500);
+
+        // Ghi log REJECT
+        await auditService.log({
+            reference_type: 'payment_receipt',
+            reference_id: id,
+            reference_number: receipt.receipt_number,
+            action: 'REJECT',
+            amount: parseFloat(receipt.amount),
+            actor_id: userId,
+            status_before: 'pending',
+            status_after: 'rejected',
+            notes: reason
+        });
 
         // Notify staff (if debtor has account)
         const receivable = await receivableRepository.findById(receipt.receivable_id);
