@@ -62,7 +62,7 @@ export const getReceivableById = asyncHandler(async (req: AuthRequest, res: Resp
 /** [PUT] /receivables/:id/cancel - Admin: hủy công nợ */
 export const cancelReceivable = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
-    await receivableService.cancel(id);
+    await receivableService.cancel(id, req.user?.userId);
     res.json({ success: true, message: 'Đã hủy công nợ' } as ApiResponse);
 });
 
@@ -77,7 +77,7 @@ export const sendReminder = asyncHandler(async (req: AuthRequest, res: Response)
 /** [PUT] /receivables/:id/bad-debt - Admin: đánh dấu nợ xấu */
 export const markBadDebt = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
-    await receivableService.markBadDebt(id);
+    await receivableService.markBadDebt(id, req.user?.userId);
     res.json({ success: true, message: 'Đã đánh dấu nợ xấu' } as ApiResponse);
 });
 

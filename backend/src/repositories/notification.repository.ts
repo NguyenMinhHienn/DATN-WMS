@@ -8,7 +8,7 @@ class NotificationRepository {
 
     async create(data: {
         user_id: number;
-        type: 'payment_receipt' | 'debt_reminder' | 'debt_created' | 'order_update' | 'system';
+        type: 'payment_receipt' | 'debt_reminder' | 'debt_created' | 'order_update' | 'payable_upcoming_due' | 'system';
         title: string;
         message: string;
         reference_type?: string;

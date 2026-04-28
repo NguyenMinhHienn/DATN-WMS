@@ -99,6 +99,7 @@ class PaymentReceiptService {
 
         let remainingToPay = data.amount;
         const receiptIds: number[] = [];
+        const debtorName = unpaidReceivables[0]?.debtor_name || data.debtor_phone;
 
         // 2. Duyệt qua từng phiếu nợ và gạch nợ
         for (const receivable of unpaidReceivables) {
@@ -124,6 +125,19 @@ class PaymentReceiptService {
 
                 receiptIds.push(receiptId);
 
+                // Ghi log CREATE cho từng phiếu lẻ
+                const paidBefore = parseFloat(receivable.paid_amount);
+                await auditService.log({
+                    reference_type: 'payment_receipt',
+                    reference_id: receiptId,
+                    reference_number: `THU-BATCH-${receiptId}`,
+                    action: 'CREATE',
+                    amount: amountForThisSlip,
+                    actor_id: createdBy,
+                    status_after: isAdmin ? 'approved' : 'pending',
+                    notes: `[Thu gộp] Phiếu ${receivable.receivable_number} | Trước: ${paidBefore} → Sau: ${paidBefore + amountForThisSlip} | Tổng nợ: ${receivable.total_amount}`
+                });
+
                 // Nếu là Admin thì auto-approve luôn
                 if (isAdmin) {
                     await this.processApproval(receiptId, createdBy);
@@ -131,6 +145,19 @@ class PaymentReceiptService {
 
                 remainingToPay -= amountForThisSlip;
             }
+        }
+
+        // 3. Ghi 1 log tổng cho batch operation (để kiểm toán biết đây là thanh toán gộp)
+        if (receiptIds.length > 0) {
+            await auditService.log({
+                reference_type: 'receivable',
+                reference_id: unpaidReceivables[0].id,
+                reference_number: `BATCH-${data.debtor_phone}`,
+                action: 'UPDATE',
+                amount: data.amount - remainingToPay,
+                actor_id: createdBy,
+                notes: `[THANH TOÁN GỘP] KH: ${debtorName} | SĐT: ${data.debtor_phone} | Số phiếu: ${receiptIds.length} | Tổng thu: ${data.amount - remainingToPay} | HTTT: ${data.payment_method}`
+            });
         }
 
         return {

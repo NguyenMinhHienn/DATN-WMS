@@ -249,6 +249,18 @@ class ReceivableService {
             created_by: createdBy,
         });
 
+        // Ghi log CREATE
+        await auditService.log({
+            reference_type: 'receivable',
+            reference_id: receivableId,
+            reference_number: transfer.transfer_number,
+            action: 'CREATE',
+            amount: transfer.total_amount,
+            actor_id: createdBy,
+            status_after: 'unpaid',
+            notes: `Tự động tạo từ phiếu xuất/chuyển kho ${transfer.transfer_number}`
+        });
+
         return receivableId;
     }
 
@@ -262,13 +274,27 @@ class ReceivableService {
     }
 
     /** Hủy công nợ (Admin) */
-    async cancel(id: number) {
+    async cancel(id: number, actorId?: number) {
         const receivable = await receivableRepository.findById(id);
         if (!receivable) throw new AppError('Không tìm thấy công nợ', 404);
         if (receivable.status === 'paid') throw new AppError('Không thể hủy công nợ đã thanh toán', 400);
 
         const ok = await receivableRepository.cancel(id);
         if (!ok) throw new AppError('Hủy công nợ thất bại', 500);
+
+        // Ghi log CANCEL
+        await auditService.log({
+            reference_type: 'receivable',
+            reference_id: id,
+            reference_number: receivable.receivable_number,
+            action: 'CANCEL',
+            amount: parseFloat(receivable.total_amount),
+            actor_id: actorId || 0,
+            status_before: receivable.status,
+            status_after: 'cancelled',
+            notes: `Hủy công nợ ${receivable.receivable_number} | Đã thu: ${receivable.paid_amount} | Tổng: ${receivable.total_amount}`
+        });
+
         return true;
     }
 
@@ -312,13 +338,28 @@ class ReceivableService {
     }
 
     /** Đánh dấu nợ xấu (Admin) */
-    async markBadDebt(id: number) {
+    async markBadDebt(id: number, actorId?: number) {
         const receivable = await receivableRepository.findById(id);
         if (!receivable) throw new AppError('Không tìm thấy công nợ', 404);
         if (receivable.status !== 'overdue') throw new AppError('Chỉ có thể đánh dấu nợ xấu cho công nợ quá hạn', 400);
 
         const ok = await receivableRepository.markBadDebt(id);
         if (!ok) throw new AppError('Thao tác thất bại', 500);
+
+        // Ghi log BAD_DEBT
+        const remaining = parseFloat(receivable.total_amount) - parseFloat(receivable.paid_amount);
+        await auditService.log({
+            reference_type: 'receivable',
+            reference_id: id,
+            reference_number: receivable.receivable_number,
+            action: 'UPDATE',
+            amount: remaining,
+            actor_id: actorId || 0,
+            status_before: receivable.status,
+            status_after: 'bad_debt',
+            notes: `Đánh dấu nợ xấu | Người nợ: ${receivable.debtor_name} | Số nợ xấu: ${remaining}`
+        });
+
         return true;
     }
 

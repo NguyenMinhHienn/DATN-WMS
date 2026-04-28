@@ -144,20 +144,24 @@ class PayableService {
             created_by: adminId,
         });
 
-        // Tự động duyệt phiếu chi nếu được tạo bởi Admin (để trừ nợ ngay lập tức)
-        await this.approveVoucher(voucherId, adminId);
+        // Lấy voucher_number thật từ DB (do repository auto-generate)
+        const createdVoucher = await paymentVoucherRepository.findById(voucherId);
+        const voucherNumber = createdVoucher?.voucher_number || `CHI-${voucherId}`;
 
-        // Ghi log CREATE
+        // Ghi log CREATE TRƯỚC khi approve (đảm bảo thứ tự timeline đúng)
         await auditService.log({
             reference_type: 'payment_voucher',
             reference_id: voucherId,
-            reference_number: `CHI-${voucherId}`,
+            reference_number: voucherNumber,
             action: 'CREATE',
             amount: data.amount,
             actor_id: adminId,
-            status_after: 'approved',
-            notes: data.notes
+            status_after: 'pending',
+            notes: data.notes || `Tạo phiếu chi cho công nợ ${payable.payable_number}`
         });
+
+        // Tự động duyệt phiếu chi nếu được tạo bởi Admin (để trừ nợ ngay lập tức)
+        await this.approveVoucher(voucherId, adminId);
 
         return voucherId;
     }

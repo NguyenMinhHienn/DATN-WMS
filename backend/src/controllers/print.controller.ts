@@ -1,10 +1,5 @@
 import { Request, Response } from 'express';
 import { goodsReceiptRepository } from '../repositories/goods-receipt.repository';
-import { exportSlipRepository } from '../repositories/export-slip.repository';
-// Note: We need to check if exportSlipRepository uses 'export_receipts' or 'goods_issues' or 'stock_transfers'.
-// The frontend calls exportReceiptService, which hits /api/export-receipts
-// Let's import the proper repository for export receipts:
-import { exportReceiptRepository } from '../repositories/export-receipt.repository';
 import { stockTransferRepository } from '../repositories/stock-transfer.repository';
 import pool from '../config/database';
 import { RowDataPacket } from 'mysql2';
@@ -123,16 +118,16 @@ async function buildExportLinkedDocuments(receipt: any, receivable: any | null):
         // Truy vấn thêm thông tin đơn hàng
         try {
             const [orderRows] = await pool.query<RowDataPacket[]>(`
-                SELECT o.id, o.order_number, o.customer_name, o.payment_method, o.status
+                SELECT o.id, o.shipping_name, o.payment_method, o.status
                 FROM orders o WHERE o.id = ?
             `, [receipt.order_id]);
             if (orderRows.length > 0) {
                 const order = orderRows[0];
                 docs.push({
                     type: 'Đơn đặt hàng',
-                    code: order.order_number || `#ĐH-${order.id}`,
+                    code: `#ĐH-${order.id}`,
                     icon: '🛒',
-                    note: `Khách: ${order.customer_name || 'N/A'} | TT: ${order.payment_method || 'N/A'}`
+                    note: `Khách: ${order.shipping_name || 'N/A'} | TT: ${order.payment_method || 'N/A'}`
                 });
             }
         } catch {
@@ -188,15 +183,15 @@ async function buildTransferImportLinkedDocuments(receipt: any, payable: any | n
     if (receipt.order_id) {
         try {
             const [orderRows] = await pool.query<RowDataPacket[]>(
-                `SELECT id, order_number, customer_name FROM orders WHERE id = ?`,
+                `SELECT id, shipping_name, payment_method FROM orders WHERE id = ?`,
                 [receipt.order_id]
             );
             if (orderRows.length > 0) {
                 docs.push({
                     type: 'Đơn đặt hàng liên kết',
-                    code: orderRows[0].order_number || `#ĐH-${orderRows[0].id}`,
+                    code: `#ĐH-${orderRows[0].id}`,
                     icon: '🛒',
-                    note: `Khách: ${orderRows[0].customer_name || 'N/A'}`
+                    note: `Khách: ${orderRows[0].shipping_name || 'N/A'}`
                 });
             }
         } catch {
@@ -237,15 +232,15 @@ async function buildTransferExportLinkedDocuments(receipt: any, receivable: any 
     if (receipt.order_id) {
         try {
             const [orderRows] = await pool.query<RowDataPacket[]>(
-                `SELECT id, order_number, customer_name, payment_method FROM orders WHERE id = ?`,
+                `SELECT id, shipping_name, payment_method FROM orders WHERE id = ?`,
                 [receipt.order_id]
             );
             if (orderRows.length > 0) {
                 docs.push({
                     type: 'Đơn đặt hàng',
-                    code: orderRows[0].order_number || `#ĐH-${orderRows[0].id}`,
+                    code: `#ĐH-${orderRows[0].id}`,
                     icon: '🛒',
-                    note: `Khách: ${orderRows[0].customer_name || 'N/A'} | TT: ${orderRows[0].payment_method || 'N/A'}`
+                    note: `Khách: ${orderRows[0].shipping_name || 'N/A'} | TT: ${orderRows[0].payment_method || 'N/A'}`
                 });
             }
         } catch {
