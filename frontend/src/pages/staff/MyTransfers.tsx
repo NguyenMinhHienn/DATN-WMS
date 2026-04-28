@@ -183,7 +183,16 @@ const MyTransfers: React.FC = () => {
                                                 <span className="text-slate-500">Xuất trực tiếp</span>
                                             )}
                                         </td>
-                                        <td className="py-4 px-6">{getTypeBadge(transfer.transfer_type)}</td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex flex-col gap-1 items-start">
+                                                {getTypeBadge(transfer.transfer_type)}
+                                                {transfer.payment_terms ? (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                                        ⏳ Công nợ {transfer.payment_terms} ngày
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        </td>
                                         <td className="py-4 px-6 text-slate-700">
                                             {transfer.transfer_type === 'IMPORT' && transfer.destination_warehouse_name}
                                             {transfer.transfer_type === 'EXPORT' && transfer.source_warehouse_name}

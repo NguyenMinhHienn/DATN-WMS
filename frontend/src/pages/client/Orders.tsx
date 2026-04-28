@@ -276,6 +276,11 @@ const OrdersPage: React.FC = () => {
                                                 >
                                                     {payInfo.text}
                                                 </span>
+                                                {order.payment_method === 'CREDIT' && (
+                                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white bg-red-500 shadow-sm shadow-red-200">
+                                                        Công nợ (Trả sau)
+                                                    </span>
+                                                )}
                                                   <ExportTransferViewer
                                                     orderId={order.id}            // ✅ ID đơn hàng
                                                     
@@ -312,7 +317,11 @@ const OrdersPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-xs text-slate-400 mb-0.5">{orderService.getPaymentMethodText(order.payment_method)}</p>
+                                                {order.payment_method === 'CREDIT' ? (
+                                                    <p className="text-xs font-bold text-red-500 mb-0.5">Công nợ (Trả sau)</p>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 mb-0.5">{orderService.getPaymentMethodText(order.payment_method)}</p>
+                                                )}
                                                 <p className="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                                                     {formatCurrency(order.total_amount)}
                                                 </p>
@@ -406,9 +415,13 @@ const OrdersPage: React.FC = () => {
                                                                     </div>
                                                                     <div className="text-right">
                                                                         <p className="text-xs text-slate-400 mb-1">Hình thức</p>
-                                                                        <p className="text-sm font-medium text-indigo-300">
-                                                                            {orderService.getPaymentMethodText(order.payment_method)}
-                                                                        </p>
+                                                                        {order.payment_method === 'CREDIT' ? (
+                                                                            <p className="text-sm font-bold text-red-400">Công nợ (Trả sau)</p>
+                                                                        ) : (
+                                                                            <p className="text-sm font-medium text-indigo-300">
+                                                                                {orderService.getPaymentMethodText(order.payment_method)}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>

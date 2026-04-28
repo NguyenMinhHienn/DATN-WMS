@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { reportService } from '../../services/reportService';
 import { receivableService, ReceivableSummary } from '../../services/receivableService';
+import { payableService, PayableSummary } from '../../services/payableService';
 import { MonthlyReportItem } from '../../interface';
 import { useReactToPrint } from 'react-to-print';
 import * as XLSX from 'xlsx';
@@ -30,6 +31,7 @@ const FinancialReport: React.FC = () => {
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [monthlyData, setMonthlyData] = useState<MonthlyReportItem[]>([]);
     const [receivableStats, setReceivableStats] = useState<ReceivableSummary | null>(null);
+    const [payableStats, setPayableStats] = useState<PayableSummary | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Detail Modal States
@@ -53,9 +55,10 @@ const FinancialReport: React.FC = () => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [monthly, receivables] = await Promise.all([
+                const [monthly, receivables, payables] = await Promise.all([
                     reportService.getMonthlyReport(selectedYear),
-                    receivableService.getSummary()
+                    receivableService.getSummary(),
+                    payableService.getSummary()
                 ]);
                 
                 if (isMounted) {
@@ -65,12 +68,16 @@ const FinancialReport: React.FC = () => {
                     if (receivables) {
                         setReceivableStats(receivables);
                     }
+                    if (payables) {
+                        setPayableStats(payables);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load financial data:', error);
                 if (isMounted) {
                     setMonthlyData([]);
                     setReceivableStats(null);
+                    setPayableStats(null);
                 }
             } finally {
                 if (isMounted) setLoading(false);
@@ -379,34 +386,62 @@ const FinancialReport: React.FC = () => {
                 </div>
             </div>
 
-            {/* Receivables Overview */}
-            {receivableStats && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print:hidden">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-slate-500 mb-1 font-medium">Tổng công nợ (Tất cả)</p>
-                            <p className="text-2xl font-bold text-slate-800">{formatCurrency(receivableStats.total_amount)}</p>
+            {/* Debt Overview - Separated by Customer and Supplier */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 print:hidden">
+                {/* Customer Debt (Receivables) */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span className="p-1.5 bg-blue-100 text-blue-600 rounded-lg text-sm">👥</span> 
+                        Công nợ Khách hàng (Phải thu)
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-all">
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Tổng phải thu</p>
+                                <p className="text-xl font-bold text-slate-800">{receivableStats ? formatCurrency(receivableStats.total_amount) : '---'}</p>
+                            </div>
+                            <div className="w-10 h-10 bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 rounded-xl flex items-center justify-center transition-colors">🧾</div>
                         </div>
-                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-xl">🧾</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-emerald-600 mb-1 font-medium">Thực Thu (Tiền mặt/CK)</p>
-                            <p className="text-2xl font-bold text-emerald-700">{formatCurrency(receivableStats.total_paid)}</p>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-red-200 transition-all cursor-pointer" onClick={() => window.location.href='/admin/receivables'}>
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Còn nợ đọng</p>
+                                <p className="text-xl font-bold text-red-600">{receivableStats ? formatCurrency(receivableStats.total_remaining) : '---'}</p>
+                                {receivableStats && receivableStats.total_overdue > 0 && (
+                                    <p className="text-[10px] text-red-500 font-bold mt-1 animate-pulse">⚠️ {receivableStats.total_overdue} khoản quá hạn</p>
+                                )}
+                            </div>
+                            <div className="w-10 h-10 bg-slate-50 text-slate-400 group-hover:bg-red-50 group-hover:text-red-500 rounded-xl flex items-center justify-center transition-colors">⏳</div>
                         </div>
-                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-xl">💰</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden group cursor-pointer transition-all hover:shadow-md" onClick={() => window.location.href='/admin/receivables'}>
-                        <div className="relative z-10">
-                            <p className="text-sm text-red-600 mb-1 font-medium">Còn Nợ đọng</p>
-                            <p className="text-2xl font-bold text-red-700">{formatCurrency(receivableStats.total_remaining)}</p>
-                            <p className="text-xs text-red-500 mt-1">Bao gồm {receivableStats.total_overdue} khoản quá hạn</p>
-                        </div>
-                        <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-xl relative z-10">⚠️</div>
-                        <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rounded-bl-full opacity-50 -z-0 transition-transform group-hover:scale-110"></div>
                     </div>
                 </div>
-            )}
+
+                {/* Supplier Debt (Payables) */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span className="p-1.5 bg-purple-100 text-purple-600 rounded-lg text-sm">🏢</span> 
+                        Công nợ Nhà cung cấp (Phải trả)
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-purple-200 transition-all">
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Tổng phải trả</p>
+                                <p className="text-xl font-bold text-slate-800">{payableStats ? formatCurrency(payableStats.total_amount) : '---'}</p>
+                            </div>
+                            <div className="w-10 h-10 bg-slate-50 text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-500 rounded-xl flex items-center justify-center transition-colors">📝</div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-amber-200 transition-all cursor-pointer" onClick={() => window.location.href='/admin/payables'}>
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Dư nợ NCC</p>
+                                <p className="text-xl font-bold text-amber-600">{payableStats ? formatCurrency(payableStats.total_remaining) : '---'}</p>
+                                {payableStats && payableStats.total_overdue > 0 && (
+                                    <p className="text-[10px] text-amber-500 font-bold mt-1 animate-pulse">⚠️ {payableStats.total_overdue} khoản tới hạn</p>
+                                )}
+                            </div>
+                            <div className="w-10 h-10 bg-slate-50 text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-500 rounded-xl flex items-center justify-center transition-colors">💸</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

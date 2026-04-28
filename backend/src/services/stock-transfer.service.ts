@@ -1,5 +1,6 @@
 import { stockTransferRepository } from '../repositories/stock-transfer.repository';
 import { receivableService } from './receivable.service';
+import { payableService } from './payable.service';
 import {
     CreateStockTransferDto,
     CreateStockTransferItemDto,
@@ -321,6 +322,25 @@ export class StockTransferService {
                 }, adminUserId);
             } catch (recErr) {
                 console.error('⚠️ Lỗi tạo công nợ từ phiếu xuất (Stock Transfer):', recErr);
+            }
+        }
+
+        // 🆕 Tạo công nợ phải trả NCC khi duyệt phiếu NHẬP CÓ CÔNG NỢ
+        if (approved && transfer.transfer_type === 'IMPORT' 
+            && (transfer as any).supplier_id 
+            && ((transfer as any).payment_terms || 0) > 0) {
+            try {
+                await payableService.createFromImportTransfer({
+                    id: transfer.id,
+                    transfer_number: transfer.transfer_number,
+                    total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
+                    transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                    supplier_id: (transfer as any).supplier_id,
+                    supplier_name: (transfer as any).supplier_name || 'Nhà cung cấp',
+                    payment_terms: (transfer as any).payment_terms,
+                }, adminUserId);
+            } catch (payErr) {
+                console.error('⚠️ Lỗi tạo công nợ NCC từ phiếu nhập (Stock Transfer):', payErr);
             }
         }
 

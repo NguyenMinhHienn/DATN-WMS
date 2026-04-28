@@ -29,6 +29,7 @@ import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controll
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 import { getTransferByOrder } from '../controllers/transfer.controller';
 import * as receivableController from '../controllers/receivable.controller';
+import { payableController } from '../controllers/payable.controller';
 import * as creditController from '../controllers/credit.controller';
 import * as notificationController from '../controllers/notification.controller';
 
@@ -281,6 +282,20 @@ router.get('/payment-receipts/:id', authenticate, isStaff, receivableController.
 router.post('/payment-receipts/consolidated', authenticate, isAdmin, receivableController.createConsolidatedPayment);
 router.put('/payment-receipts/:id/approve', authenticate, isAdmin, receivableController.approvePaymentReceipt);
 router.put('/payment-receipts/:id/reject', authenticate, isAdmin, receivableController.rejectPaymentReceipt);
+
+// ==================== PAYABLE (CÔNG NỢ NCC) ROUTES ====================
+router.get('/payables/summary', authenticate, isAdmin, payableController.getSummary);
+router.get('/payables/monthly-stats', authenticate, isAdmin, payableController.getMonthlyStats);
+router.get('/payables/ledger', authenticate, isAdmin, payableController.getConsolidatedLedger);
+router.get('/payables', authenticate, isAdmin, payableController.getAll);
+router.get('/payables/:id', authenticate, isAdmin, payableController.getById);
+router.put('/payables/:id/cancel', authenticate, isAdmin, payableController.cancel);
+
+// ==================== PAYMENT VOUCHER (PHIẾU CHI) ROUTES ====================
+router.get('/payables/:id/vouchers', authenticate, isAdmin, payableController.getVouchers);
+router.post('/payables/:id/vouchers', authenticate, isAdmin, payableController.createVoucher);
+router.put('/payment-vouchers/:voucherId/approve', authenticate, isAdmin, payableController.approveVoucher);
+router.put('/payment-vouchers/:voucherId/reject', authenticate, isAdmin, payableController.rejectVoucher);
 
 // ==================== NOTIFICATION ROUTES ====================
 router.get('/notifications', authenticate, notificationController.getNotifications);

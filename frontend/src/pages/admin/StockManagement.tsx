@@ -231,6 +231,13 @@ const StockManagement: React.FC = () => {
                                                 ) : (
                                                     <span className="text-slate-600">Xuất trực tiếp</span>
                                                 )}
+                                                {t.payment_terms ? (
+                                                    <div className="mt-1">
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                                            ⏳ Công nợ {t.payment_terms} ngày
+                                                        </span>
+                                                    </div>
+                                                ) : null}
                                             </td>
                                             <td className="py-4 px-5 text-sm text-slate-700 font-medium">
                                                 {activeTab === 'IMPORT' ? t.destination_warehouse_name : t.source_warehouse_name}

@@ -30,6 +30,7 @@ const menuItems = [
     { path: '/admin/orders', label: 'Yêu cầu nhập', icon: '📋', badgeKey: 'pendingOrders' as const },
     { path: '/admin/receivables', label: 'Công nợ lẻ', icon: '🧾', badgeKey: null },
     { path: '/admin/customer-ledger', label: 'Sổ nợ (Gộp)', icon: '📖', badgeKey: null },
+    { path: '/admin/payables', label: 'Công nợ NCC', icon: '💸', badgeKey: null },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];

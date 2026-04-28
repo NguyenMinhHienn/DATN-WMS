@@ -458,7 +458,7 @@ const CreateTransfer: React.FC = () => {
                 vat_percent: vatPercent,
                 vat_amount: calculations.grandTotal * vatPercent,
                 shipping_fee: shippingFee,
-                payment_terms: transferType === 'EXPORT' ? paymentTerms : 0,
+                payment_terms: (transferType === 'EXPORT' || transferType === 'IMPORT') ? paymentTerms : 0,
                 items: itemsToConfirm.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -795,26 +795,31 @@ const CreateTransfer: React.FC = () => {
                                         </select>
                                     </div>
                                 )}
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs font-medium text-indigo-600 mb-1 font-semibold">Tạo công nợ B2B (Ngày)</label>
-                                    <select
-                                        value={paymentTerms}
-                                        onChange={(e) => {
-                                            const terms = Number(e.target.value);
-                                            setPaymentTerms(terms);
-                                            if (terms > 0) {
-                                                setPaymentMethod(''); // Clear payment method if using debt
-                                            }
-                                        }}
-                                        className="w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                                    >
-                                        <option value={0}>Thanh toán ngay (0 ngày)</option>
-                                        <option value={15}>Công nợ 15 ngày</option>
-                                        <option value={30}>Công nợ 30 ngày</option>
-                                        <option value={45}>Công nợ 45 ngày</option>
-                                    </select>
-                                </div>
                             </>
+                        )}
+                        
+                        {(transferType === 'EXPORT' || transferType === 'IMPORT') && (
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs font-medium text-indigo-600 mb-1 font-semibold">
+                                    {transferType === 'IMPORT' ? 'Hình thức thanh toán NCC' : 'Tạo công nợ B2B (Ngày)'}
+                                </label>
+                                <select
+                                    value={paymentTerms}
+                                    onChange={(e) => {
+                                        const terms = Number(e.target.value);
+                                        setPaymentTerms(terms);
+                                        if (terms > 0) {
+                                            setPaymentMethod(''); // Clear payment method if using debt
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                >
+                                    <option value={0}>Thanh toán ngay (0 ngày)</option>
+                                    <option value={15}>Công nợ 15 ngày</option>
+                                    <option value={30}>Công nợ 30 ngày</option>
+                                    <option value={45}>Công nợ 45 ngày</option>
+                                </select>
+                            </div>
                         )}
                         <div>
                             <label className="block text-xs font-medium text-slate-500 mb-1">Người lập phiếu</label>

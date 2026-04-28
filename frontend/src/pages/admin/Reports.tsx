@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { reportService } from '../../services/reportService';
 import { receivableService, ReceivableSummary, ConsolidatedLedgerEntry } from '../../services/receivableService';
+import { payableService, PayableSummary } from '../../services/payableService';
 import { useReactToPrint } from 'react-to-print';
 import * as XLSX from 'xlsx';
 import {
@@ -30,7 +31,7 @@ const getMonthStart = () => {
     return d.toISOString().split('T')[0];
 };
 
-type TabKey = 'movements' | 'topSelling' | 'inventory' | 'stockValue' | 'receivables';
+type TabKey = 'movements' | 'topSelling' | 'inventory' | 'stockValue' | 'receivables_customer' | 'payables_supplier';
 
 // ==================== CHART COLORS ====================
 const COLORS = [
@@ -57,12 +58,19 @@ const Reports: React.FC = () => {
     const [stockByProduct, setStockByProduct] = useState<any[]>([]);
     const [stockByCategory, setStockByCategory] = useState<any[]>([]);
 
-    // Receivables data
+    // Receivables (Customer) data
     const [receivableSummary, setReceivableSummary] = useState<ReceivableSummary | null>(null);
     const [receivableMonthly, setReceivableMonthly] = useState<any[]>([]);
     const [receivableLedger, setReceivableLedger] = useState<ConsolidatedLedgerEntry[]>([]);
     const [receivableYear, setReceivableYear] = useState(new Date().getFullYear());
     const [receivableSearch, setReceivableSearch] = useState('');
+
+    // Payables (Supplier) data
+    const [payableSummary, setPayableSummary] = useState<PayableSummary | null>(null);
+    const [payableMonthly, setPayableMonthly] = useState<any[]>([]);
+    const [payableLedger, setPayableLedger] = useState<any[]>([]);
+    const [payableYear, setPayableYear] = useState(new Date().getFullYear());
+    const [payableSearch, setPayableSearch] = useState('');
 
     // Drill-down modal
     const [drillDown, setDrillDown] = useState<any>(null);
@@ -111,7 +119,7 @@ const Reports: React.FC = () => {
                     setStockByCategory(byCategory);
                     break;
                 }
-                case 'receivables': {
+                case 'receivables_customer': {
                     const [summary, monthly, ledgerData] = await Promise.all([
                         receivableService.getSummary({ start_date: startDate, end_date: endDate }),
                         receivableService.getMonthlyStats(receivableYear),
@@ -119,9 +127,18 @@ const Reports: React.FC = () => {
                     ]);
                     setReceivableSummary(summary);
                     setReceivableMonthly(monthly);
-                    // ledgerData returns { success, data: [...] } from the service because of the backend response structure.
-                    // Let's safely extract it.
                     setReceivableLedger(ledgerData.data || []);
+                    break;
+                }
+                case 'payables_supplier': {
+                    const [summary, monthly, ledgerData] = await Promise.all([
+                        payableService.getSummary({ start_date: startDate, end_date: endDate }),
+                        payableService.getMonthlyStats(payableYear),
+                        payableService.getConsolidatedLedger({ limit: 10, search: payableSearch })
+                    ]);
+                    setPayableSummary(summary);
+                    setPayableMonthly(monthly);
+                    setPayableLedger(ledgerData.data || []);
                     break;
                 }
             }
@@ -130,7 +147,7 @@ const Reports: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, activeTab, receivableYear, receivableSearch]);
+    }, [startDate, endDate, activeTab, receivableYear, receivableSearch, payableYear, payableSearch]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -243,6 +260,34 @@ const Reports: React.FC = () => {
         };
     }, [receivableMonthly]);
 
+    const payableChartData = useMemo(() => {
+        const months = Array.from({ length: 12 }, (_, i) => i + 1);
+        const dataMap = new Map();
+        if (payableMonthly) {
+            payableMonthly.forEach(m => dataMap.set(Number(m.month), m));
+        }
+
+        return {
+            labels: months.map(m => `Tháng ${m}`),
+            datasets: [
+                {
+                    label: 'Nợ phát sinh',
+                    data: months.map(m => Number(dataMap.get(m)?.total_issued || 0)),
+                    backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                    borderRadius: 4,
+                    maxBarThickness: 40,
+                },
+                {
+                    label: 'Đã thanh toán',
+                    data: months.map(m => Number(dataMap.get(m)?.total_paid || 0)),
+                    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                    borderRadius: 4,
+                    maxBarThickness: 40,
+                }
+            ]
+        };
+    }, [payableMonthly]);
+
     // ==================== PRINT & EXPORT ====================
     const componentRef = useRef<HTMLDivElement>(null);
     const handlePrint = useReactToPrint({
@@ -330,12 +375,24 @@ const Reports: React.FC = () => {
                 ws = wsCat;
             }
         }
-        else if (activeTab === 'receivables' && receivableLedger.length > 0) {
-            sheetName = 'So_No_Gop';
+        else if (activeTab === 'receivables_customer' && receivableLedger.length > 0) {
+            sheetName = 'So_No_Khach_Hang';
             const data = receivableLedger.map(r => ({
-                'Số điện thoại': r.debtor_phone,
                 'Khách hàng': r.debtor_name,
+                'Số điện thoại': r.debtor_phone,
                 'Tổng nợ phát sinh': r.total_debt,
+                'Đã trả': r.total_paid,
+                'Còn lại': r.remaining_debt,
+                'Hoạt động cuối': r.last_activity_at ? new Date(r.last_activity_at).toLocaleString('vi-VN') : '-'
+            }));
+            ws = XLSX.utils.json_to_sheet(data);
+        }
+        else if (activeTab === 'payables_supplier' && payableLedger.length > 0) {
+            sheetName = 'So_No_Nha_Cung_Cap';
+            const data = payableLedger.map(r => ({
+                'Nhà cung cấp': r.supplier_name,
+                'Số điện thoại': r.supplier_phone,
+                'Tổng nợ': r.total_debt,
                 'Đã trả': r.total_paid,
                 'Còn lại': r.remaining_debt,
                 'Hoạt động cuối': r.last_activity_at ? new Date(r.last_activity_at).toLocaleString('vi-VN') : '-'
@@ -515,7 +572,8 @@ const Reports: React.FC = () => {
                     { key: 'topSelling' as TabKey, label: '🏆 Bán chạy', desc: 'Top sản phẩm' },
                     { key: 'inventory' as TabKey, label: '📋 Tồn kho', desc: 'Số lượng hiện có' },
                     { key: 'stockValue' as TabKey, label: '💰 Giá trị', desc: 'Phân tích tài sản' },
-                    { key: 'receivables' as TabKey, label: '🧾 Công nợ', desc: 'Quản lý thu nợ' },
+                    { key: 'receivables_customer' as TabKey, label: '👥 Nợ Khách', desc: 'Quản lý thu nợ' },
+                    { key: 'payables_supplier' as TabKey, label: '🏢 Nợ NCC', desc: 'Quản lý trả nợ' },
                 ]).map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                         className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-300 ${activeTab === tab.key
@@ -881,8 +939,8 @@ const Reports: React.FC = () => {
                     </>
                 )}
 
-                {/* ===== TAB: CÔNG NỢ ===== */}
-                {activeTab === 'receivables' && !loading && (
+                {/* ===== TAB: CÔNG NỢ KHÁCH HÀNG ===== */}
+                {activeTab === 'receivables_customer' && !loading && (
                     <div className="p-6 space-y-6 animate-fadeIn">
                         {/* Summary cards */}
                         {receivableSummary && (
@@ -943,7 +1001,7 @@ const Reports: React.FC = () => {
                         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                             <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center gap-4 flex-wrap">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                    <span>📓</span> Sổ nợ gộp (Top Khách hàng nợ)
+                                    <span>📓</span> Sổ nợ khách hàng (Top nợ)
                                 </h3>
                                 <div className="flex gap-3 items-center flex-1 justify-end">
                                     <div className="relative max-w-[250px] w-full">
@@ -960,9 +1018,6 @@ const Reports: React.FC = () => {
                                             className="border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full"
                                         />
                                     </div>
-                                    <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md shrink-0">
-                                        Giới hạn Top 10
-                                    </span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto max-h-96 overflow-y-auto">
@@ -970,7 +1025,6 @@ const Reports: React.FC = () => {
                                     <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                                         <tr>
                                             <th className="py-3 px-4">Khách hàng</th>
-                                            <th className="py-3 px-4">Số điện thoại</th>
                                             <th className="py-3 px-4 text-right">Nợ phát sinh</th>
                                             <th className="py-3 px-4 text-right">Đã thu</th>
                                             <th className="py-3 px-4 text-right">Còn nợ</th>
@@ -983,9 +1037,8 @@ const Reports: React.FC = () => {
                                                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
                                                     <td className="py-3 px-4 font-bold text-slate-800">
                                                         {r.debtor_name}
-                                                        <div className="text-[10px] text-slate-400 font-normal">{r.total_slips} phiếu nợ ({r.unpaid_slips} chưa thanh toán)</div>
+                                                        <div className="text-[10px] text-slate-400 font-normal">{r.debtor_phone}</div>
                                                     </td>
-                                                    <td className="py-3 px-4 text-slate-600 font-mono text-xs">{r.debtor_phone}</td>
                                                     <td className="py-3 px-4 text-right font-medium text-slate-600">{formatVND(Number(r.total_debt))} ₫</td>
                                                     <td className="py-3 px-4 text-right font-medium text-emerald-600">{formatVND(Number(r.total_paid))} ₫</td>
                                                     <td className="py-3 px-4 text-right font-bold text-rose-600">{formatVND(Number(r.remaining_debt))} ₫</td>
@@ -994,9 +1047,120 @@ const Reports: React.FC = () => {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={6} className="py-6 text-center text-slate-400 italic">
-                                                    Không có dữ liệu sổ nợ
-                                                </td>
+                                                <td colSpan={5} className="py-6 text-center text-slate-400 italic">Không có dữ liệu</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ===== TAB: CÔNG NỢ NHÀ CUNG CẤP ===== */}
+                {activeTab === 'payables_supplier' && !loading && (
+                    <div className="p-6 space-y-6 animate-fadeIn">
+                        {/* Summary cards */}
+                        {payableSummary && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                                    <p className="text-sm text-purple-600 font-medium">Tổng nợ NCC</p>
+                                    <p className="text-2xl font-bold text-purple-700">{formatVND(payableSummary.total_amount)} ₫</p>
+                                </div>
+                                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                    <p className="text-sm text-blue-600 font-medium">Tổng đã trả</p>
+                                    <p className="text-2xl font-bold text-blue-700">{formatVND(payableSummary.total_paid)} ₫</p>
+                                </div>
+                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                    <p className="text-sm text-amber-600 font-medium">Còn nợ NCC</p>
+                                    <p className="text-2xl font-bold text-amber-700">{formatVND(payableSummary.total_remaining)} ₫</p>
+                                </div>
+                                <div className="bg-rose-50 rounded-xl p-4 border border-rose-200">
+                                    <p className="text-sm text-rose-600 font-medium">Nợ quá hạn</p>
+                                    <p className="text-2xl font-bold text-rose-700">{formatVND(payableSummary.overdue_amount)} ₫</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Chart */}
+                        {payableChartData ? (
+                            <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-lg font-bold text-slate-800">Biểu đồ Công nợ NCC năm {payableYear}</h3>
+                                    <select 
+                                        value={payableYear} 
+                                        onChange={(e) => setPayableYear(Number(e.target.value))}
+                                        className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 font-medium text-slate-700"
+                                    >
+                                        {[...Array(5)].map((_, i) => {
+                                            const y = new Date().getFullYear() - i;
+                                            return <option key={y} value={y}>Năm {y}</option>;
+                                        })}
+                                    </select>
+                                </div>
+                                <div className="h-80">
+                                    <Bar data={payableChartData} options={{
+                                        maintainAspectRatio: false, responsive: true,
+                                        plugins: { legend: { labels: { color: '#334155', usePointStyle: true } } },
+                                        scales: {
+                                            x: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
+                                            y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b' } },
+                                        }
+                                    }} />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-slate-400">
+                                <span className="text-4xl block mb-2">📉</span>Không có dữ liệu biểu đồ
+                            </div>
+                        )}
+
+                        {/* Detailed Table */}
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center gap-4 flex-wrap">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <span>🏢</span> Danh sách Nhà cung cấp (Nợ nhiều nhất)
+                                </h3>
+                                <div className="flex gap-3 items-center flex-1 justify-end">
+                                    <div className="relative max-w-[250px] w-full">
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm NCC..."
+                                            value={payableSearch}
+                                            onChange={(e) => setPayableSearch(e.target.value)}
+                                            className="border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 w-full"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th className="py-3 px-4">Nhà cung cấp</th>
+                                            <th className="py-3 px-4 text-right">Tổng nợ</th>
+                                            <th className="py-3 px-4 text-right">Đã trả</th>
+                                            <th className="py-3 px-4 text-right">Còn nợ</th>
+                                            <th className="py-3 px-4">Hoạt động cuối</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {payableLedger.length > 0 ? (
+                                            payableLedger.map((r, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="py-3 px-4 font-bold text-slate-800">
+                                                        {r.supplier_name}
+                                                        <div className="text-[10px] text-slate-400 font-normal">{r.supplier_phone}</div>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-right font-medium text-slate-600">{formatVND(Number(r.total_debt))} ₫</td>
+                                                    <td className="py-3 px-4 text-right font-medium text-blue-600">{formatVND(Number(r.total_paid))} ₫</td>
+                                                    <td className="py-3 px-4 text-right font-bold text-amber-600">{formatVND(Number(r.remaining_debt))} ₫</td>
+                                                    <td className="py-3 px-4 text-slate-500 text-xs">{r.last_activity_at ? new Date(r.last_activity_at).toLocaleString('vi-VN') : '-'}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} className="py-6 text-center text-slate-400 italic">Không có dữ liệu</td>
                                             </tr>
                                         )}
                                     </tbody>
