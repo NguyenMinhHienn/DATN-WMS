@@ -2,6 +2,7 @@ import { payableRepository } from '../repositories/payable.repository';
 import { paymentVoucherRepository } from '../repositories/payment-voucher.repository';
 import { AppError } from '../middlewares/error.middleware';
 import { auditService } from './audit.service';
+import crypto from 'crypto';
 
 /**
  * Payable Service - Business logic công nợ phải trả NCC
@@ -147,27 +148,35 @@ class PayableService {
         // Lấy voucher_number thật từ DB (do repository auto-generate)
         const createdVoucher = await paymentVoucherRepository.findById(voucherId);
         const voucherNumber = createdVoucher?.voucher_number || `CHI-${voucherId}`;
+        const transactionGroupId = crypto.randomUUID();
 
         // Ghi log CREATE TRƯỚC khi approve (đảm bảo thứ tự timeline đúng)
-        await auditService.log({
-            reference_type: 'payment_voucher',
-            reference_id: voucherId,
-            reference_number: voucherNumber,
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'payment_voucher',
+            referenceId: voucherId,
+            referenceNumber: voucherNumber,
             action: 'CREATE',
             amount: data.amount,
-            actor_id: adminId,
-            status_after: 'pending',
-            notes: data.notes || `Tạo phiếu chi cho công nợ ${payable.payable_number}`
+            actorId: adminId,
+            statusAfter: 'pending',
+            notes: data.notes || `Tạo phiếu chi cho công nợ ${payable.payable_number}`,
+            totalAmount: parseFloat(payable.total_amount),
+            paidBefore: parseFloat(payable.paid_amount),
+            paidAfter: parseFloat(payable.paid_amount),
+            paymentMethod: data.payment_method,
+            bankReference: data.bank_reference,
+            selfApproved: true,
+            transactionGroupId: transactionGroupId
         });
 
         // Tự động duyệt phiếu chi nếu được tạo bởi Admin (để trừ nợ ngay lập tức)
-        await this.approveVoucher(voucherId, adminId);
+        await this.approveVoucher(voucherId, adminId, transactionGroupId);
 
         return voucherId;
     }
 
     /** Duyệt phiếu chi */
-    async approveVoucher(id: number, adminId: number) {
+    async approveVoucher(id: number, adminId: number, transactionGroupId?: string) {
         const voucher = await paymentVoucherRepository.findById(id);
         if (!voucher) throw new AppError('Không tìm thấy phiếu chi', 404);
         if (voucher.status !== 'draft' && voucher.status !== 'pending') {
@@ -193,18 +202,24 @@ class PayableService {
 
         // Ghi log APPROVE kèm balance snapshot
         const paidAfter = paidBefore + parseFloat(voucher.amount);
-        const remainingAfter = parseFloat(payable.total_amount) - paidAfter;
-        await auditService.log({
-            reference_type: 'payment_voucher',
-            reference_id: id,
-            reference_number: voucher.voucher_number,
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'payment_voucher',
+            referenceId: id,
+            referenceNumber: voucher.voucher_number,
             action: 'APPROVE',
             amount: parseFloat(voucher.amount),
-            actor_id: adminId,
-            approver_id: adminId,
-            status_before: voucher.status,
-            status_after: 'approved',
-            notes: `[Balance] Đã trả: ${paidBefore} → ${paidAfter} | Còn nợ: ${remainingAfter} | Tổng nợ: ${payable.total_amount}`
+            actorId: adminId,
+            approverId: adminId,
+            statusBefore: voucher.status,
+            statusAfter: 'approved',
+            notes: `Duyệt phiếu chi ${voucher.voucher_number}`,
+            totalAmount: parseFloat(payable.total_amount),
+            paidBefore: paidBefore,
+            paidAfter: paidAfter,
+            paymentMethod: voucher.payment_method,
+            bankReference: voucher.bank_reference,
+            selfApproved: voucher.created_by === adminId,
+            transactionGroupId: transactionGroupId
         });
 
         return true;

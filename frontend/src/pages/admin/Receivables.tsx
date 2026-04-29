@@ -43,6 +43,7 @@ const Receivables: React.FC = () => {
         notes: '',
         debtor_email: ''
     });
+    const [confirmChecked, setConfirmChecked] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -107,6 +108,10 @@ const Receivables: React.FC = () => {
     const handleCreateReceipt = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedId) return;
+        if (!confirmChecked) {
+            alert('Vui lòng xác nhận chịu trách nhiệm cho giao dịch này.');
+            return;
+        }
         try {
             await receivableService.createPaymentReceipt({
                 receivable_id: selectedId,
@@ -122,6 +127,7 @@ const Receivables: React.FC = () => {
             alert('Tạo phiếu thu thành công!');
             setIsReceiptModalOpen(false);
             setReceiptForm({ amount: '', payment_method: 'cash', bank_name: '', bank_account: '', bank_reference: '', notes: '', debtor_email: '' });
+            setConfirmChecked(false);
             loadData();
             if (selectedId) handleViewDetail(selectedId); // Refresh details
         } catch (error: any) {
@@ -620,6 +626,11 @@ const Receivables: React.FC = () => {
                                                                     ⚠️ CHỜ DUYỆT ĐỂ KHẤU TRỪ NỢ
                                                                 </div>
                                                             )}
+                                                            {receipt.status === 'approved' && receipt.created_by_name && receipt.created_by_name === receipt.approved_by_name && (
+                                                                <div className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold mt-1 inline-flex items-center gap-1">
+                                                                    ⚠️ Tự lập & duyệt
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Số tiền thu</div>
@@ -729,10 +740,29 @@ const Receivables: React.FC = () => {
                         />
                         <p className="text-xs text-slate-500 mt-1">Dùng để tự động gửi Biên lai thanh toán sau khi phiếu này được duyệt.</p>
                     </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                        <p className="font-bold text-amber-800 text-sm flex items-center gap-1">
+                            ⚠️ Bạn đang tự tạo và duyệt phiếu thu này.
+                        </p>
+                        <ul className="text-xs text-amber-700 mt-2 space-y-1 ml-4 list-disc">
+                            <li>Phiếu sẽ gạch nợ ngay lập tức.</li>
+                            <li>Không có sự kiểm tra chéo từ người thứ hai.</li>
+                        </ul>
+                        <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                className="w-4 h-4 text-indigo-600 rounded border-slate-300"
+                                checked={confirmChecked}
+                                onChange={(e) => setConfirmChecked(e.target.checked)}
+                            />
+                            <span className="text-sm font-bold text-amber-900">Tôi xác nhận chịu trách nhiệm cho giao dịch này</span>
+                        </label>
+                    </div>
                     
                     <div className="flex gap-3 justify-end pt-4">
                         <button type="button" className="btn btn-secondary" onClick={() => setIsReceiptModalOpen(false)}>Hủy</button>
-                        <button type="submit" className="btn btn-primary">Tạo phiếu</button>
+                        <button type="submit" className={`btn btn-primary ${!confirmChecked ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!confirmChecked}>Tạo phiếu</button>
                     </div>
                  </form>
             </Modal>

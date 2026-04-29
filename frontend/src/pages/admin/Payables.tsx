@@ -41,6 +41,7 @@ const Payables: React.FC = () => {
         bank_reference: '',
         notes: ''
     });
+    const [confirmChecked, setConfirmChecked] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -109,6 +110,10 @@ const Payables: React.FC = () => {
     const handleCreateVoucher = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedId) return;
+        if (!confirmChecked) {
+            alert('Vui lòng xác nhận chịu trách nhiệm cho giao dịch này.');
+            return;
+        }
         try {
             await payableService.createVoucher(selectedId, {
                 amount: parseFloat(voucherForm.amount.replace(/,/g, '')),
@@ -120,6 +125,7 @@ const Payables: React.FC = () => {
             alert('Tạo phiếu chi thành công!');
             setIsVoucherModalOpen(false);
             setVoucherForm({ amount: '', payment_method: 'bank_transfer', bank_reference: '', notes: '' });
+            setConfirmChecked(false);
             loadData();
             if (selectedId) handleViewDetail(selectedId);
         } catch (error: any) {
@@ -584,6 +590,11 @@ const Payables: React.FC = () => {
                                                                     Đã duyệt bởi: {voucher.approved_by_name}
                                                                 </div>
                                                             )}
+                                                            {voucher.status === 'approved' && voucher.created_by === voucher.approved_by && (
+                                                                <div className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold mt-1 inline-flex items-center gap-1">
+                                                                    ⚠️ Tự lập & duyệt
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Số tiền chi</div>
@@ -681,9 +692,28 @@ const Payables: React.FC = () => {
                         />
                     </div>
                     
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                        <p className="font-bold text-amber-800 text-sm flex items-center gap-1">
+                            ⚠️ Bạn đang tự tạo và duyệt phiếu chi này.
+                        </p>
+                        <ul className="text-xs text-amber-700 mt-2 space-y-1 ml-4 list-disc">
+                            <li>Phiếu sẽ trừ công nợ ngay lập tức.</li>
+                            <li>Không có sự kiểm tra chéo từ người thứ hai.</li>
+                        </ul>
+                        <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                className="w-4 h-4 text-indigo-600 rounded border-slate-300"
+                                checked={confirmChecked}
+                                onChange={(e) => setConfirmChecked(e.target.checked)}
+                            />
+                            <span className="text-sm font-bold text-amber-900">Tôi xác nhận chịu trách nhiệm cho giao dịch này</span>
+                        </label>
+                    </div>
+                    
                     <div className="flex gap-3 justify-end pt-4">
                         <button type="button" className="btn btn-secondary" onClick={() => setIsVoucherModalOpen(false)}>Hủy</button>
-                        <button type="submit" className="btn btn-primary">Tạo phiếu chi</button>
+                        <button type="submit" className={`btn btn-primary ${!confirmChecked ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!confirmChecked}>Tạo phiếu chi</button>
                     </div>
                  </form>
             </Modal>

@@ -283,16 +283,19 @@ class ReceivableService {
         if (!ok) throw new AppError('Hủy công nợ thất bại', 500);
 
         // Ghi log CANCEL
-        await auditService.log({
-            reference_type: 'receivable',
-            reference_id: id,
-            reference_number: receivable.receivable_number,
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'receivable',
+            referenceId: id,
+            referenceNumber: receivable.receivable_number,
             action: 'CANCEL',
             amount: parseFloat(receivable.total_amount),
-            actor_id: actorId || 0,
-            status_before: receivable.status,
-            status_after: 'cancelled',
-            notes: `Hủy công nợ ${receivable.receivable_number} | Đã thu: ${receivable.paid_amount} | Tổng: ${receivable.total_amount}`
+            actorId: actorId || 0,
+            statusBefore: receivable.status,
+            statusAfter: 'cancelled',
+            notes: `Hủy công nợ ${receivable.receivable_number}`,
+            totalAmount: parseFloat(receivable.total_amount),
+            paidBefore: parseFloat(receivable.paid_amount),
+            paidAfter: parseFloat(receivable.paid_amount)
         });
 
         return true;
@@ -348,16 +351,19 @@ class ReceivableService {
 
         // Ghi log BAD_DEBT
         const remaining = parseFloat(receivable.total_amount) - parseFloat(receivable.paid_amount);
-        await auditService.log({
-            reference_type: 'receivable',
-            reference_id: id,
-            reference_number: receivable.receivable_number,
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'receivable',
+            referenceId: id,
+            referenceNumber: receivable.receivable_number,
             action: 'UPDATE',
             amount: remaining,
-            actor_id: actorId || 0,
-            status_before: receivable.status,
-            status_after: 'bad_debt',
-            notes: `Đánh dấu nợ xấu | Người nợ: ${receivable.debtor_name} | Số nợ xấu: ${remaining}`
+            actorId: actorId || 0,
+            statusBefore: receivable.status,
+            statusAfter: 'bad_debt',
+            notes: `Đánh dấu nợ xấu | Người nợ: ${receivable.debtor_name}`,
+            totalAmount: parseFloat(receivable.total_amount),
+            paidBefore: parseFloat(receivable.paid_amount),
+            paidAfter: parseFloat(receivable.paid_amount)
         });
 
         return true;

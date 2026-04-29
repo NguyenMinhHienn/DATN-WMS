@@ -4,6 +4,7 @@ import { notificationRepository } from '../repositories/notification.repository'
 import { emailService } from './email.service';
 import { AppError } from '../middlewares/error.middleware';
 import { auditService } from './audit.service';
+import crypto from 'crypto';
 
 /**
  * Payment Receipt Service - Business logic phiếu thu
@@ -40,7 +41,7 @@ class PaymentReceiptService {
         const id = await paymentReceiptRepository.create({
             ...data,
             created_by: createdBy,
-            status: isAdmin ? 'approved' : 'pending', // Admin tạo = approved luôn
+            status: 'pending', // Luôn tạo pending trước để log CREATE
         });
 
         // Nếu có nhập email, cập nhật email vào công nợ
@@ -48,22 +49,33 @@ class PaymentReceiptService {
             await receivableRepository.updateEmail(data.receivable_id, data.debtor_email);
         }
 
-        // Nếu admin tạo, auto-approve
-        if (isAdmin && createdBy) {
-            await this.processApproval(id, createdBy);
-        }
+        const receipt = await paymentReceiptRepository.findById(id);
+        const receiptNumber = receipt?.receipt_number || `THU-${id}`;
+        const transactionGroupId = crypto.randomUUID();
 
-        // Ghi log CREATE
-        await auditService.log({
-            reference_type: 'payment_receipt',
-            reference_id: id,
-            reference_number: `THU-${id}`, // Hoặc lấy receipt_number nếu có repo trả về
+        // Ghi log CREATE TRƯỚC khi approve
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'payment_receipt',
+            referenceId: id,
+            referenceNumber: receiptNumber,
             action: 'CREATE',
             amount: data.amount,
-            actor_id: createdBy || 0,
-            status_after: isAdmin ? 'approved' : 'pending',
-            notes: data.notes
+            actorId: createdBy || 0,
+            statusAfter: 'pending',
+            notes: data.notes,
+            totalAmount: parseFloat(receivable.total_amount),
+            paidBefore: parseFloat(receivable.paid_amount),
+            paidAfter: parseFloat(receivable.paid_amount),
+            paymentMethod: data.payment_method,
+            bankReference: data.bank_reference,
+            selfApproved: isAdmin,
+            transactionGroupId: transactionGroupId
         });
+
+        // Nếu admin tạo, gọi hàm approve chuẩn để ghi log APPROVE
+        if (isAdmin && createdBy) {
+            await this.approve(id, createdBy, transactionGroupId);
+        }
 
         return id;
     }
@@ -100,6 +112,7 @@ class PaymentReceiptService {
         let remainingToPay = data.amount;
         const receiptIds: number[] = [];
         const debtorName = unpaidReceivables[0]?.debtor_name || data.debtor_phone;
+        const transactionGroupId = crypto.randomUUID();
 
         // 2. Duyệt qua từng phiếu nợ và gạch nợ
         for (const receivable of unpaidReceivables) {
@@ -120,27 +133,37 @@ class PaymentReceiptService {
                     bank_reference: data.bank_reference,
                     notes: data.notes || `Thanh toán gộp cho khách hàng ${data.debtor_phone}`,
                     created_by: createdBy,
-                    status: isAdmin ? 'approved' : 'pending'
+                    status: 'pending' // Luôn tạo pending trước
                 });
 
                 receiptIds.push(receiptId);
 
+                const createdReceipt = await paymentReceiptRepository.findById(receiptId);
+                const receiptNumber = createdReceipt?.receipt_number || `THU-BATCH-${receiptId}`;
+
                 // Ghi log CREATE cho từng phiếu lẻ
                 const paidBefore = parseFloat(receivable.paid_amount);
-                await auditService.log({
-                    reference_type: 'payment_receipt',
-                    reference_id: receiptId,
-                    reference_number: `THU-BATCH-${receiptId}`,
+                await auditService.logWithBalanceSnapshot({
+                    referenceType: 'payment_receipt',
+                    referenceId: receiptId,
+                    referenceNumber: receiptNumber,
                     action: 'CREATE',
                     amount: amountForThisSlip,
-                    actor_id: createdBy,
-                    status_after: isAdmin ? 'approved' : 'pending',
-                    notes: `[Thu gộp] Phiếu ${receivable.receivable_number} | Trước: ${paidBefore} → Sau: ${paidBefore + amountForThisSlip} | Tổng nợ: ${receivable.total_amount}`
+                    actorId: createdBy,
+                    statusAfter: 'pending',
+                    notes: `[Thu gộp] Tạo phiếu thu gộp`,
+                    totalAmount: parseFloat(receivable.total_amount),
+                    paidBefore: paidBefore,
+                    paidAfter: paidBefore,
+                    paymentMethod: data.payment_method,
+                    bankReference: data.bank_reference,
+                    selfApproved: isAdmin,
+                    transactionGroupId: transactionGroupId
                 });
 
-                // Nếu là Admin thì auto-approve luôn
+                // Nếu là Admin thì auto-approve luôn qua hàm approve chuẩn
                 if (isAdmin) {
-                    await this.processApproval(receiptId, createdBy);
+                    await this.approve(receiptId, createdBy, transactionGroupId);
                 }
 
                 remainingToPay -= amountForThisSlip;
@@ -156,7 +179,11 @@ class PaymentReceiptService {
                 action: 'UPDATE',
                 amount: data.amount - remainingToPay,
                 actor_id: createdBy,
-                notes: `[THANH TOÁN GỘP] KH: ${debtorName} | SĐT: ${data.debtor_phone} | Số phiếu: ${receiptIds.length} | Tổng thu: ${data.amount - remainingToPay} | HTTT: ${data.payment_method}`
+                notes: `[THANH TOÁN GỘP] KH: ${debtorName} | SĐT: ${data.debtor_phone} | Số phiếu: ${receiptIds.length} | Tổng thu: ${data.amount - remainingToPay} | HTTT: ${data.payment_method}`,
+                metadata: {
+                    transaction_group_id: transactionGroupId,
+                    is_batch: true
+                }
             });
         }
 
@@ -186,7 +213,7 @@ class PaymentReceiptService {
     }
 
     /** Admin duyệt phiếu thu */
-    async approve(id: number, userId: number) {
+    async approve(id: number, userId: number, transactionGroupId?: string) {
         const receipt = await paymentReceiptRepository.findById(id);
         if (!receipt) throw new AppError('Không tìm thấy phiếu thu', 404);
         if (receipt.status !== 'pending') throw new AppError('Phiếu thu không ở trạng thái chờ duyệt', 400);
@@ -210,18 +237,24 @@ class PaymentReceiptService {
 
         // Ghi log APPROVE kèm balance snapshot
         const paidAfter = paidBefore + parseFloat(receipt.amount);
-        const remainingAfter = parseFloat(receivable.total_amount) - paidAfter;
-        await auditService.log({
-            reference_type: 'payment_receipt',
-            reference_id: id,
-            reference_number: receipt.receipt_number,
+        await auditService.logWithBalanceSnapshot({
+            referenceType: 'payment_receipt',
+            referenceId: id,
+            referenceNumber: receipt.receipt_number,
             action: 'APPROVE',
             amount: parseFloat(receipt.amount),
-            actor_id: userId,
-            approver_id: userId,
-            status_before: 'pending',
-            status_after: 'approved',
-            notes: `[Balance] Đã thu: ${paidBefore} → ${paidAfter} | Còn nợ: ${remainingAfter} | Tổng nợ: ${receivable.total_amount}`
+            actorId: userId,
+            approverId: userId,
+            statusBefore: 'pending',
+            statusAfter: 'approved',
+            notes: `Duyệt phiếu thu ${receipt.receipt_number}`,
+            totalAmount: parseFloat(receivable.total_amount),
+            paidBefore: paidBefore,
+            paidAfter: paidAfter,
+            paymentMethod: receipt.payment_method,
+            bankReference: receipt.bank_reference,
+            selfApproved: receipt.created_by === userId,
+            transactionGroupId: transactionGroupId
         });
 
         return true;

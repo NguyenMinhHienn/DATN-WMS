@@ -63,6 +63,67 @@ class AuditService {
     async getAllLogs(filters: any) {
         return await auditRepository.findAll(filters);
     }
+
+    /**
+     * Helper tự động tính balance snapshot trước/sau khi ghi audit log.
+     * Dùng cho tất cả thao tác tạo/duyệt phiếu thu/chi.
+     */
+    async logWithBalanceSnapshot(params: {
+        referenceType: 'receivable' | 'payable' | 'payment_receipt' | 'payment_voucher';
+        referenceId: number;
+        referenceNumber?: string;
+        action: string;
+        amount?: number;
+        actorId: number;
+        approverId?: number;
+        statusBefore?: string;
+        statusAfter?: string;
+        notes?: string;
+        // Balance info
+        totalAmount: number;
+        paidBefore: number;
+        paidAfter: number;
+        // Payment info
+        paymentMethod?: string;
+        bankReference?: string;
+        // Flags
+        selfApproved?: boolean;
+        transactionGroupId?: string;
+    }) {
+        const remainingBefore = params.totalAmount - params.paidBefore;
+        const remainingAfter = params.totalAmount - params.paidAfter;
+
+        const metadata = {
+            balance_before: {
+                total_amount: params.totalAmount,
+                paid_amount: params.paidBefore,
+                remaining: remainingBefore > 0 ? remainingBefore : 0
+            },
+            balance_after: {
+                total_amount: params.totalAmount,
+                paid_amount: params.paidAfter,
+                remaining: remainingAfter > 0 ? remainingAfter : 0
+            },
+            self_approved: params.selfApproved || false,
+            ...(params.paymentMethod ? { payment_method: params.paymentMethod } : {}),
+            ...(params.bankReference ? { bank_reference: params.bankReference } : {}),
+            ...(params.transactionGroupId ? { transaction_group_id: params.transactionGroupId } : {})
+        };
+
+        return await this.log({
+            reference_type: params.referenceType,
+            reference_id: params.referenceId,
+            reference_number: params.referenceNumber,
+            action: params.action,
+            amount: params.amount,
+            actor_id: params.actorId,
+            approver_id: params.approverId,
+            status_before: params.statusBefore,
+            status_after: params.statusAfter,
+            notes: params.notes,
+            metadata: metadata
+        });
+    }
 }
 
 export const auditService = new AuditService();

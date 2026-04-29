@@ -23,6 +23,7 @@ const CustomerLedger: React.FC = () => {
         bank_reference: '',
         notes: ''
     });
+    const [confirmChecked, setConfirmChecked] = useState(false);
 
     // Detail history modal
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -84,6 +85,10 @@ const CustomerLedger: React.FC = () => {
     const handleProcessBulkPayment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCustomer) return;
+        if (!confirmChecked) {
+            alert('Vui lòng xác nhận chịu trách nhiệm cho giao dịch này.');
+            return;
+        }
 
         const amountNum = parseFloat(bulkForm.amount.replace(/,/g, ''));
         if (isNaN(amountNum) || amountNum <= 0) {
@@ -110,6 +115,7 @@ const CustomerLedger: React.FC = () => {
             
             alert('Thanh toán gộp và gạch nợ thành công!');
             setIsBulkModalOpen(false);
+            setConfirmChecked(false);
             loadData();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý thanh toán');
@@ -329,6 +335,7 @@ const CustomerLedger: React.FC = () => {
                                         <tr>
                                             <th className="py-2 px-3 text-left">Mã phiếu</th>
                                             <th className="py-2 px-3 text-left">Ngày tạo</th>
+                                            <th className="py-2 px-3 text-left">Người lập</th>
                                             <th className="py-2 px-3 text-right">Giá trị</th>
                                             <th className="py-2 px-3 text-right">Còn nợ</th>
                                             <th className="py-2 px-3 text-center">Trạng thái</th>
@@ -339,6 +346,7 @@ const CustomerLedger: React.FC = () => {
                                             <tr key={slip.id} className="hover:bg-slate-50">
                                                 <td className="py-3 px-3 font-bold text-blue-600">{slip.receivable_number}</td>
                                                 <td className="py-3 px-3 text-slate-500 text-xs">{new Date(slip.issue_date).toLocaleDateString('vi-VN')}</td>
+                                                <td className="py-3 px-3 text-slate-500 text-xs">{slip.created_by_name || 'Hệ thống'}</td>
                                                 <td className="py-3 px-3 text-right font-medium">{formatMoney(slip.total_amount)}</td>
                                                 <td className="py-3 px-3 text-right font-bold text-red-500">{formatMoney(parseFloat(slip.total_amount) - parseFloat(slip.paid_amount))}</td>
                                                 <td className="py-3 px-3">
@@ -471,9 +479,28 @@ const CustomerLedger: React.FC = () => {
                             />
                         </div>
 
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                            <p className="font-bold text-amber-800 text-sm flex items-center gap-1">
+                                ⚠️ Bạn đang tự tạo và duyệt giao dịch thu nợ gộp.
+                            </p>
+                            <ul className="text-xs text-amber-700 mt-2 space-y-1 ml-4 list-disc">
+                                <li>Các phiếu nợ cũ nhất sẽ được gạch nợ ngay lập tức.</li>
+                                <li>Không có sự kiểm tra chéo từ người thứ hai.</li>
+                            </ul>
+                            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 text-indigo-600 rounded border-slate-300"
+                                    checked={confirmChecked}
+                                    onChange={(e) => setConfirmChecked(e.target.checked)}
+                                />
+                                <span className="text-sm font-bold text-amber-900">Tôi xác nhận chịu trách nhiệm cho giao dịch này</span>
+                            </label>
+                        </div>
+
                         <div className="flex gap-4 justify-end pt-4 border-t border-slate-100">
                             <button type="button" className="btn btn-secondary !px-8" onClick={() => setIsBulkModalOpen(false)}>Hủy bỏ</button>
-                            <button type="submit" className="btn btn-primary !px-10 shadow-lg shadow-blue-200 hover:scale-105 active:scale-95 transition-all">
+                            <button type="submit" className={`btn btn-primary !px-10 shadow-lg shadow-blue-200 transition-all ${confirmChecked ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'}`} disabled={!confirmChecked}>
                                 Xác nhận Thu tiền
                             </button>
                         </div>
