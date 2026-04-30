@@ -31,32 +31,30 @@ ChartJS.register(
     Filler
 );
 
-// Demo data for charts that don't have real API yet
-const generateDemoCategoryData = () => {
-    return {
-        labels: ['Điện tử', 'Thời trang', 'Gia dụng', 'Thực phẩm', 'Khác'],
-        data: [35, 25, 20, 12, 8],
-        colors: [
-            'rgba(99, 102, 241, 0.85)',
-            'rgba(168, 85, 247, 0.85)',
-            'rgba(236, 72, 153, 0.85)',
-            'rgba(34, 197, 94, 0.85)',
-            'rgba(251, 191, 36, 0.85)',
-        ],
-    };
-};
+const CHART_COLORS = [
+    'rgba(99, 102, 241, 0.85)',
+    'rgba(168, 85, 247, 0.85)',
+    'rgba(236, 72, 153, 0.85)',
+    'rgba(34, 197, 94, 0.85)',
+    'rgba(251, 191, 36, 0.85)',
+    'rgba(20, 184, 166, 0.85)',
+];
 
-const generateDemoTopProducts = () => {
-    return {
-        labels: ['iPhone 15 Pro', 'Samsung TV', 'Áo Polo', 'Máy lọc nước', 'Laptop Dell'],
-        data: [156, 124, 98, 87, 76],
-    };
-};
+const CHART_BORDERS = [
+    'rgba(99, 102, 241, 1)',
+    'rgba(168, 85, 247, 1)',
+    'rgba(236, 72, 153, 1)',
+    'rgba(34, 197, 94, 1)',
+    'rgba(251, 191, 36, 1)',
+    'rgba(20, 184, 166, 1)',
+];
 
 const Dashboard: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
     const [monthlyReport, setMonthlyReport] = useState<MonthlyReportItem[]>([]);
+    const [categoryData, setCategoryData] = useState<{ name: string; count: number }[]>([]);
+    const [topProducts, setTopProducts] = useState<{ name: string; quantity: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -66,14 +64,18 @@ const Dashboard: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            const [dashData, salesData, monthlyData] = await Promise.all([
+            const [dashData, salesData, monthlyData, catData, topData] = await Promise.all([
                 reportService.getDashboard(),
                 reportService.getSalesSummary().catch(() => null),
                 reportService.getMonthlyReport(new Date().getFullYear()).catch(() => []),
+                reportService.getCategoryDistribution().catch(() => []),
+                reportService.getTopProducts().catch(() => []),
             ]);
             setStats(dashData);
             setSalesSummary(salesData);
             setMonthlyReport(monthlyData);
+            setCategoryData(catData);
+            setTopProducts(topData);
         } catch (error) {
             console.error('Failed to load dashboard:', error);
         } finally {
@@ -88,9 +90,6 @@ const Dashboard: React.FC = () => {
     const formatCompact = (value: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(value);
     };
-
-    const categoryDemo = generateDemoCategoryData();
-    const topProductsDemo = generateDemoTopProducts();
 
     const monthLabels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
     const revenueData = monthlyReport.map(m => m.revenue);
@@ -179,10 +178,10 @@ const Dashboard: React.FC = () => {
     };
 
     const doughnutChartData = {
-        labels: categoryDemo.labels,
+        labels: categoryData.map(c => c.name),
         datasets: [{
-            data: categoryDemo.data,
-            backgroundColor: categoryDemo.colors,
+            data: categoryData.map(c => c.count),
+            backgroundColor: CHART_COLORS.slice(0, categoryData.length),
             borderColor: '#ffffff',
             borderWidth: 2,
             hoverOffset: 8,
@@ -210,20 +209,12 @@ const Dashboard: React.FC = () => {
     };
 
     const barChartData = {
-        labels: topProductsDemo.labels,
+        labels: topProducts.map(p => p.name),
         datasets: [{
             label: 'Số lượng bán',
-            data: topProductsDemo.data,
-            backgroundColor: [
-                'rgba(99, 102, 241, 0.85)', 'rgba(168, 85, 247, 0.85)',
-                'rgba(236, 72, 153, 0.85)', 'rgba(34, 197, 94, 0.85)',
-                'rgba(251, 191, 36, 0.85)',
-            ],
-            borderColor: [
-                'rgba(99, 102, 241, 1)', 'rgba(168, 85, 247, 1)',
-                'rgba(236, 72, 153, 1)', 'rgba(34, 197, 94, 1)',
-                'rgba(251, 191, 36, 1)',
-            ],
+            data: topProducts.map(p => p.quantity),
+            backgroundColor: CHART_COLORS.slice(0, topProducts.length),
+            borderColor: CHART_BORDERS.slice(0, topProducts.length),
             borderWidth: 2,
             borderRadius: 8,
         }],
@@ -374,29 +365,49 @@ const Dashboard: React.FC = () => {
 
                 {/* Category Doughnut Chart */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">🍩</span>
-                            Phân bố Danh mục
-                        </h2>
-                        <p className="text-sm text-blue-500/70 mt-1 ml-10">Tỷ lệ sản phẩm theo danh mục</p>
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                                <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">🍩</span>
+                                Phân bố Danh mục
+                            </h2>
+                            <p className="text-sm text-blue-500/70 mt-1 ml-10">Tỷ lệ sản phẩm theo danh mục</p>
+                        </div>
+                        <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Real Data</span>
                     </div>
                     <div className="h-64">
-                        <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                        {categoryData.length > 0 ? (
+                            <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                <span className="text-4xl mb-2">📭</span>
+                                <p className="font-medium">Chưa có dữ liệu danh mục</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Top Products Bar Chart */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-sm">🏆</span>
-                            Top Sản phẩm Bán chạy
-                        </h2>
-                        <p className="text-sm text-blue-500/70 mt-1 ml-10">5 sản phẩm bán chạy nhất</p>
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                                <span className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-sm">🏆</span>
+                                Top Sản phẩm Bán chạy
+                            </h2>
+                            <p className="text-sm text-blue-500/70 mt-1 ml-10">5 sản phẩm bán chạy nhất</p>
+                        </div>
+                        <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Real Data</span>
                     </div>
                     <div className="h-64">
-                        <Bar data={barChartData} options={barChartOptions} />
+                        {topProducts.length > 0 ? (
+                            <Bar data={barChartData} options={barChartOptions} />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                <span className="text-4xl mb-2">📭</span>
+                                <p className="font-medium">Chưa có đơn hàng nào hoàn thành</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

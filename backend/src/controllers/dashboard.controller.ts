@@ -92,3 +92,31 @@ export const getOrderItems = asyncHandler(async (req: AuthRequest, res: Response
         data: items,
     } as ApiResponse);
 });
+
+/**
+ * GET /dashboard/category-distribution
+ * Phân bố sản phẩm theo danh mục
+ */
+export const getCategoryDistribution = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const data = await dashboardService.getCategoryDistribution();
+
+    res.json({
+        success: true,
+        message: 'Category distribution retrieved successfully',
+        data,
+    } as ApiResponse);
+});
+
+/**
+ * GET /dashboard/top-products
+ * Top 5 sản phẩm bán chạy nhất
+ */
+export const getTopProducts = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const data = await dashboardService.getTopProducts();
+
+    res.json({
+        success: true,
+        message: 'Top products retrieved successfully',
+        data,
+    } as ApiResponse);
+});

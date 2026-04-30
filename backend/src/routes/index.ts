@@ -154,6 +154,8 @@ router.get('/dashboard/summary', authenticate, isAdmin, dashboardController.getS
 router.get('/dashboard/monthly-report', authenticate, isAdmin, dashboardController.getMonthlyReport);
 router.get('/dashboard/monthly-detail/:year/:month', authenticate, isAdmin, dashboardController.getMonthlyDetail);
 router.get('/dashboard/order-items/:orderId', authenticate, isAdmin, dashboardController.getOrderItems);
+router.get('/dashboard/category-distribution', authenticate, isAdmin, dashboardController.getCategoryDistribution);
+router.get('/dashboard/top-products', authenticate, isAdmin, dashboardController.getTopProducts);
 
 // ==================== ATTRIBUTE ROUTES (Flexible Variant System) ====================
 // Public: Get all attributes (for product forms)
@@ -277,6 +279,7 @@ router.get('/admin/credit/settings', authenticate, isAdmin, creditController.get
 router.put('/admin/credit/settings', authenticate, isAdmin, creditController.updateCreditSettings);
 
 // ==================== PAYMENT RECEIPT (PHIẾU THU) ROUTES ====================
+router.get('/payment-receipts/pending-count', authenticate, isAdmin, receivableController.getPendingReceiptsCount);
 router.post('/payment-receipts', authenticate, isStaff, receivableController.createPaymentReceipt);
 router.get('/payment-receipts', authenticate, isStaff, receivableController.getAllPaymentReceipts);
 router.get('/payment-receipts/:id', authenticate, isStaff, receivableController.getPaymentReceiptById);
@@ -289,15 +292,17 @@ router.get('/payables/summary', authenticate, isAdmin, payableController.getSumm
 router.get('/payables/monthly-stats', authenticate, isAdmin, payableController.getMonthlyStats);
 router.get('/payables/ledger', authenticate, isAdmin, payableController.getConsolidatedLedger);
 router.get('/payables/upcoming-due', authenticate, isAdmin, payableController.getUpcomingDue);
-router.get('/payables', authenticate, isAdmin, payableController.getAll);
+router.get('/payables', authenticate, isStaff, payableController.getAll);
 router.get('/payables/supplier/:supplierId/unpaid', authenticate, isAdmin, payableController.getUnpaidBySupplier);
-router.get('/payables/:id', authenticate, isAdmin, payableController.getById);
+router.get('/payables/:id', authenticate, isStaff, payableController.getById);
 router.put('/payables/:id/cancel', authenticate, isAdmin, payableController.cancel);
 router.post('/payables/consolidated-voucher', authenticate, isAdmin, payableController.createConsolidatedVoucher);
 
 // ==================== PAYMENT VOUCHER (PHIẾU CHI) ROUTES ====================
-router.get('/payables/:id/vouchers', authenticate, isAdmin, payableController.getVouchers);
-router.post('/payables/:id/vouchers', authenticate, isAdmin, payableController.createVoucher);
+router.get('/payment-vouchers', authenticate, isAdmin, payableController.getAllPaymentVouchers);
+router.get('/payment-vouchers/pending-count', authenticate, isAdmin, payableController.getPendingVouchersCount);
+router.get('/payables/:id/vouchers', authenticate, isStaff, payableController.getVouchers);
+router.post('/payables/:id/vouchers', authenticate, isStaff, payableController.createVoucher);
 router.put('/payment-vouchers/:voucherId/approve', authenticate, isAdmin, payableController.approveVoucher);
 router.put('/payment-vouchers/:voucherId/reject', authenticate, isAdmin, payableController.rejectVoucher);
 

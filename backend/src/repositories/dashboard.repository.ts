@@ -280,6 +280,43 @@ class DashboardRepository {
             products: products || []
         };
     }
+
+    /**
+     * Phân bố sản phẩm theo danh mục (category)
+     * Đếm số sản phẩm thuộc mỗi category
+     */
+    async getCategoryDistribution(): Promise<{ name: string; count: number }[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                c.name,
+                COUNT(p.id) as count
+            FROM categories c
+            LEFT JOIN products p ON c.id = p.category_id
+            GROUP BY c.id, c.name
+            HAVING count > 0
+            ORDER BY count DESC
+            LIMIT 6
+        `);
+        return rows.map(r => ({ name: r.name, count: parseInt(r.count) }));
+    }
+
+    /**
+     * Top 5 sản phẩm bán chạy nhất (từ đơn hàng delivered)
+     */
+    async getTopProducts(): Promise<{ name: string; quantity: number }[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                oi.product_name as name,
+                SUM(oi.quantity) as quantity
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.status = 'delivered'
+            GROUP BY oi.product_id, oi.product_name
+            ORDER BY quantity DESC
+            LIMIT 5
+        `);
+        return rows.map(r => ({ name: r.name, quantity: parseInt(r.quantity) }));
+    }
 }
 
 export const dashboardRepository = new DashboardRepository();

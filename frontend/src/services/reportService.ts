@@ -40,6 +40,16 @@ export const reportService = {
         return response.data.data || [];
     },
 
+    async getCategoryDistribution(): Promise<{ name: string; count: number }[]> {
+        const response = await api.get<ApiResponse<any[]>>('/dashboard/category-distribution');
+        return response.data.data || [];
+    },
+
+    async getTopProducts(): Promise<{ name: string; quantity: number }[]> {
+        const response = await api.get<ApiResponse<any[]>>('/dashboard/top-products');
+        return response.data.data || [];
+    },
+
     async getInventoryReport(warehouseId?: number): Promise<any[]> {
         const params = warehouseId ? `?warehouse_id=${warehouseId}` : '';
         const response = await api.get<ApiResponse<any[]>>(`/reports/inventory${params}`);

@@ -56,6 +56,20 @@ class DashboardService {
     async getOrderItems(orderId: number, orderType: string): Promise<any[]> {
         return dashboardRepository.getOrderItems(orderId, orderType);
     }
+
+    /**
+     * Phân bố sản phẩm theo danh mục
+     */
+    async getCategoryDistribution() {
+        return dashboardRepository.getCategoryDistribution();
+    }
+
+    /**
+     * Top 5 sản phẩm bán chạy nhất
+     */
+    async getTopProducts() {
+        return dashboardRepository.getTopProducts();
+    }
 }
 
 export const dashboardService = new DashboardService();
