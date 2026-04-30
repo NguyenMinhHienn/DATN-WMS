@@ -35,6 +35,8 @@ import StaffProducts from './pages/staff/StaffProducts';
 import StaffDonHang from './pages/staff/StaffDonHang';
 import StaffInventoryView from './pages/staff/StaffInventoryView';
 import StaffProductConfigView from './pages/staff/StaffProductConfigView';
+import StaffReceivables from './pages/staff/StaffReceivables';
+import StaffPayables from './pages/staff/StaffPayables';
 
 // ... rest of imports
 
@@ -145,6 +147,8 @@ const App: React.FC = () => {
                             <Route path="donhang" element={<StaffDonHang />} />
                             <Route path="create-transfer" element={<CreateTransfer />} />
                             <Route path="my-transfers" element={<MyTransfers />} />
+                            <Route path="receivables" element={<StaffReceivables />} />
+                            <Route path="payables" element={<StaffPayables />} />
                         </Route>
 
                         {/* ==================== FALLBACK ==================== */}

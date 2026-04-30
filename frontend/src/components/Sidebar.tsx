@@ -8,6 +8,8 @@ export interface SidebarBadges {
     pendingReceipts?: number;
     pendingIssues?: number;
     pendingOrders?: number;
+    pendingPaymentReceipts?: number;
+    pendingPaymentVouchers?: number;
 }
 
 interface SidebarProps {
@@ -28,9 +30,9 @@ const menuItems = [
     { path: '/admin/inventory', label: 'Tồn kho', icon: '📋', badgeKey: 'lowStock' as const },
     { path: '/admin/stock-management', label: 'Quản lý phiếu', icon: '📦', badgeKey: 'pendingSlips' as const },
     { path: '/admin/orders', label: 'Yêu cầu nhập', icon: '📋', badgeKey: 'pendingOrders' as const },
-    { path: '/admin/receivables', label: 'Công nợ lẻ', icon: '🧾', badgeKey: null },
+    { path: '/admin/receivables', label: 'Công nợ lẻ', icon: '🧾', badgeKey: 'pendingPaymentReceipts' as const },
     { path: '/admin/customer-ledger', label: 'Sổ nợ (Gộp)', icon: '📖', badgeKey: null },
-    { path: '/admin/payables', label: 'Công nợ NCC', icon: '💸', badgeKey: null },
+    { path: '/admin/payables', label: 'Công nợ NCC', icon: '💸', badgeKey: 'pendingPaymentVouchers' as const },
     { path: '/admin/financial-report', label: 'Báo cáo tài chính', icon: '💰', badgeKey: null },
     { path: '/admin/reports', label: 'Báo cáo', icon: '📈', badgeKey: null },
 ];
@@ -63,6 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, badges }) => 
         if (badgeKey === 'lowStock') return badges.lowStock || 0;
         if (badgeKey === 'pendingSlips') return (badges.pendingReceipts || 0) + (badges.pendingIssues || 0);
         if (badgeKey === 'pendingOrders') return badges.pendingOrders || 0;
+        if (badgeKey === 'pendingPaymentReceipts') return badges.pendingPaymentReceipts || 0;
+        if (badgeKey === 'pendingPaymentVouchers') return badges.pendingPaymentVouchers || 0;
         return 0;
     };
 

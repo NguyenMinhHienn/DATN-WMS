@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar, SidebarBadges } from '../components/Sidebar';
 import { reportService } from '../services/reportService';
+import { receivableService } from '../services/receivableService';
+import { payableService } from '../services/payableService';
 import { NotificationBell } from '../components/NotificationBell';
 
 export const AdminLayout: React.FC = () => {
@@ -12,12 +14,18 @@ export const AdminLayout: React.FC = () => {
     useEffect(() => {
         const loadBadges = async () => {
             try {
-                const stats = await reportService.getDashboard();
+                const [stats, pendingReceiptsCount, pendingVouchersCount] = await Promise.all([
+                    reportService.getDashboard(),
+                    receivableService.getPendingReceiptsCount(),
+                    payableService.getPendingVouchersCount()
+                ]);
                 setBadges({
                     lowStock: stats.lowStockItems || 0,
                     pendingReceipts: stats.pendingReceipts || 0,
                     pendingIssues: stats.pendingIssues || 0,
                     pendingOrders: stats.pendingOrders || 0,
+                    pendingPaymentReceipts: pendingReceiptsCount || 0,
+                    pendingPaymentVouchers: pendingVouchersCount || 0,
                 });
             } catch (err) {
                 console.error('Failed to load sidebar badges:', err);
