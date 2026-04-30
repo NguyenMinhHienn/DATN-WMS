@@ -738,7 +738,7 @@ const Receivables: React.FC = () => {
                                                                     >✕</button>
                                                                     <button 
                                                                         onClick={() => handleApproveReceipt(receipt.id)}
-                                                                        className="px-4 p-1.5 bg-emerald-600 text-blue-900 rounded-lg hover:bg-emerald-700 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
+                                                                        className="px-4 p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
                                                                     >DUYỆT NGAY</button>
                                                                 </div>
                                                             )}

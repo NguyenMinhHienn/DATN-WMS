@@ -140,7 +140,7 @@ const StockManagement: React.FC = () => {
                     <p className="text-slate-600 mt-1">Nhập kho, xuất kho & chuyển kho</p>
                 </div>
                 <button onClick={() => loadTransfers()}
-                    className="px-4 py-2 bg-indigo-600 text-blue-900 rounded-xl hover:bg-indigo-700 text-sm font-medium transition-colors">
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium transition-colors">
                     🔄 Làm mới
                 </button>
             </div>
@@ -256,7 +256,7 @@ const StockManagement: React.FC = () => {
                                                         Chi tiết
                                                     </button>
                                                     <button onClick={() => handlePrint(t.id)}
-                                                        className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                        className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                         🖨️ In
                                                     </button>
                                                     {t.status === 'pending' && (
@@ -512,7 +512,7 @@ const StockManagement: React.FC = () => {
                                     <button onClick={() => setShowRejectModal(true)} className="btn btn-danger">❌ Từ chối</button>
                                     <button onClick={() => handleApprove(selectedTransfer.id)}
                                         disabled={actionLoading === `approve-${selectedTransfer.id}`}
-                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-blue-900 rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50">
+                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50">
                                         ✅ Duyệt phiếu
                                     </button>
                                 </>

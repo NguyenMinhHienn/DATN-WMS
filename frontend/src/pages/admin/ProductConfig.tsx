@@ -227,7 +227,7 @@ const ProductConfig: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('categories')}
                     className={`px-4 py-2 rounded-xl font-medium transition-all ${activeTab === 'categories'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-blue-900 shadow-lg shadow-indigo-500/25'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
                         : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100'
                         }`}
                 >
@@ -236,7 +236,7 @@ const ProductConfig: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('attributes')}
                     className={`px-4 py-2 rounded-xl font-medium transition-all ${activeTab === 'attributes'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-blue-900 shadow-lg shadow-indigo-500/25'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
                         : 'bg-blue-50/30 text-slate-600 hover:text-blue-900 hover:bg-slate-100'
                         }`}
                 >
@@ -292,7 +292,7 @@ const ProductConfig: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 {canEdit && (
                                                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                        <button onClick={(e) => handleEditCategory(cat, e)} className="p-2 hover:bg-slate-600 rounded text-slate-600 hover:text-blue-900 transition-colors">✏️</button>
+                                                        <button onClick={(e) => handleEditCategory(cat, e)} className="p-2 hover:bg-slate-600 rounded text-slate-600 hover:text-white transition-colors">✏️</button>
                                                         <button onClick={(e) => handleDeleteCategory(cat, e)} className="p-2 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
                                                     </div>
                                                 )}

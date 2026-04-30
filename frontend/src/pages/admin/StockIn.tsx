@@ -316,7 +316,7 @@ const StockIn: React.FC = () => {
                     <p className="text-slate-600 mt-1">Quản lý phiếu nhập kho theo nghiệp vụ kế toán</p>
                 </div>
                 <button onClick={openCreateModal}
-                    className="px-5 py-2.5 bg-indigo-600 text-blue-900 rounded-xl hover:bg-indigo-700 text-sm font-medium shadow-lg shadow-indigo-500/30 transition-all">
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-sm font-medium shadow-lg shadow-indigo-500/30 transition-all">
                     ➕ Tạo phiếu nhập
                 </button>
             </div>
@@ -396,14 +396,14 @@ const StockIn: React.FC = () => {
                                                         Chi tiết
                                                     </button>
                                                     <button onClick={() => handlePrint(r.id)}
-                                                        className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                        className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                         🖨️ In
                                                     </button>
                                                     {r.status === 'PENDING' && (
                                                         <>
                                                             <button onClick={() => handleApprove(r.id)}
                                                                 disabled={approving === String(r.id)}
-                                                                className="px-3 py-1 bg-emerald-600 text-blue-900 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                                                className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
                                                                 ✅ Duyệt
                                                             </button>
                                                             <button onClick={() => handleDelete(r.id)}
@@ -797,7 +797,7 @@ const StockIn: React.FC = () => {
                         <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary">Hủy</button>
                             <button onClick={handleCreate} disabled={submitting}
-                                className="px-6 py-2.5 bg-indigo-600 text-blue-900 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all">
+                                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all">
                                 {submitting ? '⏳ Đang tạo...' : '📥 Tạo phiếu nhập'}
                             </button>
                         </div>
@@ -966,7 +966,7 @@ const StockIn: React.FC = () => {
                             {selectedReceipt.status === 'PENDING' && (
                                 <button onClick={() => handleApprove(selectedReceipt.id)}
                                     disabled={approving === String(selectedReceipt.id)}
-                                    className="px-5 py-2.5 bg-emerald-600 text-blue-900 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                    className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50">
                                     {approving === String(selectedReceipt.id) ? '⏳ Đang duyệt...' : '✅ Duyệt phiếu (cộng tồn kho)'}
                                 </button>
                             )}

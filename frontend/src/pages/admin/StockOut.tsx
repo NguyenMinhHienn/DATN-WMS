@@ -170,13 +170,13 @@ const StockOut: React.FC = () => {
                                                     <>
                                                         <button
                                                             onClick={() => handleApproveTransfer(transfer.id)}
-                                                            className="px-3 py-1 bg-emerald-600 text-blue-900 rounded hover:bg-emerald-700 text-xs transition-colors"
+                                                            className="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs transition-colors"
                                                         >
                                                             Duyệt xuất
                                                         </button>
                                                         <button
                                                             onClick={() => handleRejectTransfer(transfer.id)}
-                                                            className="px-3 py-1 bg-red-600 text-blue-900 rounded hover:bg-red-700 text-xs transition-colors"
+                                                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs transition-colors"
                                                         >
                                                             Từ chối
                                                         </button>
@@ -282,7 +282,7 @@ const StockOut: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => handleApproveTransfer(selectedTransfer.id)}
-                                    className="px-6 py-2.5 bg-emerald-600 text-blue-900 rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-lg shadow-emerald-500/30"
+                                    className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-lg shadow-emerald-500/30"
                                 >
                                     Duyệt phiếu xuất
                                 </button>

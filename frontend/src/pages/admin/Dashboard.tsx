@@ -268,7 +268,7 @@ const Dashboard: React.FC = () => {
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-blue-900">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
                             <span className="text-2xl">📊</span>
                         </div>
                         <div>
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
                                 <p className="text-3xl font-bold text-slate-800">{formatCompact(salesSummary.total_revenue)}</p>
                                 <p className="text-xs text-blue-500 mt-2 font-medium">Xem chi tiết →</p>
                             </div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/40 text-blue-900">
+                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/40 text-white">
                                 💰
                             </div>
                         </div>
@@ -308,7 +308,7 @@ const Dashboard: React.FC = () => {
                                 <p className="text-3xl font-bold text-slate-800">{formatCompact(salesSummary.total_cost)}</p>
                                 <p className="text-xs text-amber-500 mt-2 font-medium">Xem chi tiết →</p>
                             </div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/40 text-blue-900">
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/40 text-white">
                                 📊
                             </div>
                         </div>
@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
                                 <p className="text-3xl font-bold text-slate-800">{formatCompact(salesSummary.total_profit)}</p>
                                 <p className="text-xs text-emerald-500 mt-2 font-medium">Xem chi tiết →</p>
                             </div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/40 text-blue-900">
+                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/40 text-white">
                                 📈
                             </div>
                         </div>
@@ -334,7 +334,7 @@ const Dashboard: React.FC = () => {
                                 <p className="text-3xl font-bold text-slate-800">{salesSummary.total_orders}</p>
                                 <p className="text-xs text-slate-500 mt-2">Đã giao thành công</p>
                             </div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-purple-500/40 text-blue-900">
+                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-purple-500/40 text-white">
                                 ✅
                             </div>
                         </div>

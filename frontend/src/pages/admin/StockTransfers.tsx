@@ -224,7 +224,7 @@ const StockTransfers: React.FC = () => {
                                             Chi tiết
                                         </button>
                                         <button onClick={() => handlePrint(transfer.id)}
-                                            className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors mr-2">
+                                            className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors mr-2">
                                             🖨️ In
                                         </button>
                                         <button
@@ -399,7 +399,7 @@ const StockTransfers: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => handleApprove(selectedTransfer.id)}
-                                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-blue-900 rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all"
+                                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:opacity-90 font-medium shadow-lg shadow-emerald-500/25 transition-all"
                             >
                                 ✅ Duyệt phiếu
                             </button>

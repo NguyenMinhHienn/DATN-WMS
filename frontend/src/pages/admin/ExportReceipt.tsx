@@ -349,7 +349,7 @@ const ExportReceipt: React.FC = () => {
                     <p className="text-slate-600 mt-1">Xuất kho nội bộ, phi duyệt đơn hàng, xuất trả NCC, v.v...</p>
                 </div>
                 <button onClick={openCreateModal}
-                    className="px-5 py-2.5 bg-orange-500 text-blue-900 rounded-xl hover:bg-orange-600 text-sm font-medium shadow-lg shadow-orange-500/30 transition-all">
+                    className="px-5 py-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 text-sm font-medium shadow-lg shadow-orange-500/30 transition-all">
                     ➕ Tạo phiếu xuất
                 </button>
             </div>
@@ -435,14 +435,14 @@ const ExportReceipt: React.FC = () => {
                                                             Chi tiết
                                                         </button>
                                                         <button onClick={() => handlePrint(r.id)}
-                                                            className="px-3 py-1 bg-slate-600 text-blue-900 rounded text-xs font-medium hover:bg-slate-500 transition-colors">
+                                                            className="px-3 py-1 bg-slate-600 text-white rounded text-xs font-medium hover:bg-slate-500 transition-colors">
                                                             🖨️ In
                                                         </button>
                                                         {r.status === 'PENDING' && (
                                                             <>
                                                                 <button onClick={() => handleApprove(r.id)}
                                                                     disabled={approving === String(r.id)}
-                                                                    className="px-3 py-1 bg-emerald-600 text-blue-900 rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
+                                                                    className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 disabled:opacity-50">
                                                                     ✅ Duyệt trừ kho
                                                                 </button>
                                                                 <button onClick={() => handleDelete(r.id)}
@@ -486,7 +486,7 @@ const ExportReceipt: React.FC = () => {
                                 <button
                                     onClick={loadConfirmedOrders}
                                     disabled={loadingOrders}
-                                    className="px-4 py-2 bg-blue-600 text-blue-900 rounded-xl hover:bg-blue-700 text-sm font-medium transition-all disabled:opacity-50"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium transition-all disabled:opacity-50"
                                 >
                                     {loadingOrders ? '⏳ Đang tải...' : '📋 Tạo từ đơn hàng'}
                                 </button>
@@ -754,7 +754,7 @@ const ExportReceipt: React.FC = () => {
                         <div className="flex justify-end gap-3 pt-4 border-t border-blue-100">
                             <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary">Hủy</button>
                             <button onClick={handleCreate} disabled={submitting}
-                                className="px-6 py-2.5 bg-orange-600 text-blue-900 rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50 transition-all">
+                                className="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50 transition-all">
                                 {submitting ? '⏳ Đang tạo...' : '📤 Tạo phiếu xuất (CHƯA trừ kho)'}
                             </button>
                         </div>
@@ -951,7 +951,7 @@ const ExportReceipt: React.FC = () => {
                                 {selectedReceipt.status === 'PENDING' && (
                                     <button onClick={() => handleApprove(selectedReceipt.id)}
                                         disabled={approving === String(selectedReceipt.id)}
-                                        className="px-5 py-2.5 bg-emerald-600 text-blue-900 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2">
+                                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2">
                                         {approving === String(selectedReceipt.id) ? '⏳ Đang giảm tồn kho...' : '🔥 Duyệt phiếu (bắt đầu trừ Tồn Kho)'}
                                     </button>
                                 )}
