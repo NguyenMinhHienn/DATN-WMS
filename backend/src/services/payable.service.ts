@@ -127,7 +127,7 @@ class PayableService {
         payment_date?: string;
         bank_reference?: string;
         notes?: string;
-    }, adminId: number) {
+    }, userId: number, isAdmin: boolean = false) {
         const payable = await payableRepository.findById(data.payable_id);
         if (!payable) throw new AppError('Không tìm thấy công nợ', 404);
         if (payable.status === 'paid' || payable.status === 'cancelled') {
@@ -142,7 +142,7 @@ class PayableService {
         const voucherId = await paymentVoucherRepository.create({
             ...data,
             payment_date: data.payment_date || new Date().toISOString().split('T')[0],
-            created_by: adminId,
+            created_by: userId,
         });
 
         // Lấy voucher_number thật từ DB (do repository auto-generate)
@@ -157,7 +157,7 @@ class PayableService {
             referenceNumber: voucherNumber,
             action: 'CREATE',
             amount: data.amount,
-            actorId: adminId,
+            actorId: userId,
             statusAfter: 'pending',
             notes: data.notes || `Tạo phiếu chi cho công nợ ${payable.payable_number}`,
             totalAmount: parseFloat(payable.total_amount),
@@ -165,12 +165,14 @@ class PayableService {
             paidAfter: parseFloat(payable.paid_amount),
             paymentMethod: data.payment_method,
             bankReference: data.bank_reference,
-            selfApproved: true,
+            selfApproved: isAdmin,
             transactionGroupId: transactionGroupId
         });
 
         // Tự động duyệt phiếu chi nếu được tạo bởi Admin (để trừ nợ ngay lập tức)
-        await this.approveVoucher(voucherId, adminId, transactionGroupId);
+        if (isAdmin) {
+            await this.approveVoucher(voucherId, userId, transactionGroupId);
+        }
 
         return voucherId;
     }
@@ -254,6 +256,16 @@ class PayableService {
     /** Lấy danh sách phiếu chi của 1 công nợ */
     async getVouchersByPayable(payableId: number) {
         return paymentVoucherRepository.findByPayableId(payableId);
+    }
+
+    /** Lấy danh sách tất cả phiếu chi (có filter) */
+    async getAllVouchers(filters: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        payable_id?: number;
+    }) {
+        return paymentVoucherRepository.findAll(filters);
     }
 
     /** Lấy danh sách phiếu nợ chưa trả theo supplier_id (FIFO) */
@@ -348,6 +360,12 @@ class PayableService {
     /** Lấy danh sách công nợ NCC sắp tới hạn */
     async getUpcomingDue(daysAhead: number = 3) {
         return payableRepository.getUpcomingDue(daysAhead);
+    }
+
+    /** Lấy số lượng phiếu chi đang chờ duyệt */
+    async getPendingCount(): Promise<number> {
+        const result = await paymentVoucherRepository.findAll({ status: 'pending', limit: 1 });
+        return result.pagination.total;
     }
 }
 

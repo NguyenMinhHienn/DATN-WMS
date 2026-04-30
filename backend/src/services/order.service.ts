@@ -280,6 +280,7 @@ class OrderService {
 
     /**
      * Admin đánh dấu giao thất bại: shipping → failed
+     * Hoàn trả reserved stock qua inventoryCoreService
      */
     async markFailed(orderId: number): Promise<void> {
         const order = await orderRepository.getOrderById(orderId);
@@ -289,9 +290,14 @@ class OrderService {
         if (order.status !== 'shipping') {
             throw new AppError(`Không thể đánh dấu "Giao thất bại" từ trạng thái "${order.status}". Chỉ áp dụng cho đơn đang giao.`, 400);
         }
+
+        // Hoàn trả reserved stock (sử dụng cùng logic với cancelOrder)
+        // cancelOrderAndRestoreStock sẽ: update status → failed + releaseStock cho từng item
+        await orderRepository.cancelOrderAndRestoreStock(orderId, order.items);
+        // cancelOrderAndRestoreStock set status = 'cancelled', cần đổi lại thành 'failed'
         await orderRepository.updateOrderStatus(orderId, 'failed');
 
-        // [FIX 1.3] Hủy công nợ liên quan nếu tồn tại (đơn đã delivered → tạo receivable → giờ failed)
+        // Hủy công nợ liên quan nếu tồn tại
         try {
             const { receivableRepository } = require('../repositories/receivable.repository');
             const existing = await receivableRepository.findBySource('order', orderId);
