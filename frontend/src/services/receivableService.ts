@@ -177,6 +177,11 @@ export const receivableService = {
         return response.data;
     },
 
+    async getPendingReceiptsCount() {
+        const response = await api.get('/payment-receipts/pending-count');
+        return response.data.data.count;
+    },
+
     // ==================== HELPERS ====================
     getStatusInfo(status: string) {
         const map: Record<string, { label: string; color: string; bg: string }> = {

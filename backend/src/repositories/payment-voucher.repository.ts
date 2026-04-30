@@ -108,10 +108,12 @@ class PaymentVoucherRepository {
         const total = countRows[0].total;
 
         const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT v.*, cu.full_name as created_by_name, au.full_name as approved_by_name
+            SELECT v.*, cu.full_name as created_by_name, au.full_name as approved_by_name,
+                   p.payable_number, p.supplier_name
             FROM payment_vouchers v
             LEFT JOIN users cu ON v.created_by = cu.id
             LEFT JOIN users au ON v.approved_by = au.id
+            LEFT JOIN payables p ON v.payable_id = p.id
             WHERE ${where}
             ORDER BY v.created_at DESC
             LIMIT ? OFFSET ?

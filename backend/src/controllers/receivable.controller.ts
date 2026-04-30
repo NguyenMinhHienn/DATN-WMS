@@ -118,6 +118,12 @@ export const getAllPaymentReceipts = asyncHandler(async (req: AuthRequest, res: 
     res.json({ success: true, data: result.data, pagination: result.pagination } as ApiResponse);
 });
 
+/** [GET] /payment-receipts/pending-count - Đếm phiếu thu chờ duyệt */
+export const getPendingReceiptsCount = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const count = await paymentReceiptService.getPendingCount();
+    res.json({ success: true, data: count } as ApiResponse);
+});
+
 /** [GET] /payment-receipts/:id - Chi tiết phiếu thu */
 export const getPaymentReceiptById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);

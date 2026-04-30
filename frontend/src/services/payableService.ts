@@ -118,6 +118,11 @@ export const payableService = {
 
 
     // ==================== PAYMENT VOUCHERS ====================
+    async getAllVouchers(params: any = {}) {
+        const response = await api.get('/payment-vouchers', { params });
+        return response.data;
+    },
+
     async getVouchers(payableId: number) {
         const response = await api.get(`/payables/${payableId}/vouchers`);
         return response.data.data;
@@ -136,6 +141,11 @@ export const payableService = {
     async rejectVoucher(voucherId: number, reason: string) {
         const response = await api.put(`/payment-vouchers/${voucherId}/reject`, { reason });
         return response.data;
+    },
+
+    async getPendingVouchersCount() {
+        const response = await api.get('/payment-vouchers/pending-count');
+        return response.data.data.count;
     },
 
     // ==================== HELPERS ====================

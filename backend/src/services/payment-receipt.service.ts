@@ -207,6 +207,12 @@ class PaymentReceiptService {
         return paymentReceiptRepository.findAll(filters);
     }
 
+    /** Lấy số lượng phiếu thu đang chờ duyệt */
+    async getPendingCount(): Promise<number> {
+        const result = await paymentReceiptRepository.findAll({ status: 'pending', limit: 1 });
+        return result.pagination.total;
+    }
+
     /** Lịch sử thu tiền của 1 công nợ */
     async getByReceivableId(receivableId: number) {
         return paymentReceiptRepository.findByReceivableId(receivableId);

@@ -60,6 +60,21 @@ class PayableController {
 
     // --- PHIẾU CHI ---
 
+    /** Lấy danh sách tất cả phiếu chi */
+    async getAllPaymentVouchers(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await payableService.getAllVouchers({
+                page: parseInt(req.query.page as string) || 1,
+                limit: parseInt(req.query.limit as string) || 20,
+                status: req.query.status as string,
+                payable_id: req.query.payable_id ? parseInt(req.query.payable_id as string) : undefined,
+            });
+            res.json({ success: true, data: result.data, pagination: result.pagination });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /** Lấy danh sách phiếu chi của 1 công nợ */
     async getVouchers(req: Request, res: Response, next: NextFunction) {
         try {
@@ -74,12 +89,13 @@ class PayableController {
     /** Tạo phiếu chi mới */
     async createVoucher(req: Request, res: Response, next: NextFunction) {
         try {
-            const adminId = (req as any).user.userId;
+            const userId = (req as any).user.userId;
+            const isAdmin = (req as any).user.roles?.includes('admin') || false;
             const data = {
                 ...req.body,
                 payable_id: parseInt(req.params.id)
             };
-            const voucherId = await payableService.createVoucher(data, adminId);
+            const voucherId = await payableService.createVoucher(data, userId, isAdmin);
             res.status(201).json({ message: 'Tạo phiếu chi thành công', data: { id: voucherId } });
         } catch (error) {
             next(error);
@@ -169,6 +185,16 @@ class PayableController {
             const days = req.query.days ? parseInt(req.query.days as string) : 3;
             const data = await payableService.getUpcomingDue(days);
             res.json({ success: true, data });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /** Lấy số lượng phiếu chi đang chờ duyệt */
+    async getPendingVouchersCount(req: Request, res: Response, next: NextFunction) {
+        try {
+            const count = await payableService.getPendingCount();
+            res.json({ success: true, data: { count } });
         } catch (error) {
             next(error);
         }

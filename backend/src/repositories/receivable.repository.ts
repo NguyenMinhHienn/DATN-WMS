@@ -194,8 +194,12 @@ class ReceivableRepository {
         const params: any[] = [];
 
         if (filters.status) {
-            where += ' AND r.status = ?';
-            params.push(filters.status);
+            if (filters.status === 'has_pending') {
+                where += " AND r.id IN (SELECT receivable_id FROM payment_receipts WHERE status = 'pending')";
+            } else {
+                where += ' AND r.status = ?';
+                params.push(filters.status);
+            }
         }
         if (filters.source_type) {
             where += ' AND r.source_type = ?';

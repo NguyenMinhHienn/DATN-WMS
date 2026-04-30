@@ -157,8 +157,12 @@ class PayableRepository {
         const params: any[] = [];
 
         if (filters.status) {
-            where += ' AND p.status = ?';
-            params.push(filters.status);
+            if (filters.status === 'has_pending') {
+                where += " AND p.id IN (SELECT payable_id FROM payment_vouchers WHERE status = 'pending')";
+            } else {
+                where += ' AND p.status = ?';
+                params.push(filters.status);
+            }
         }
         if (filters.supplier_id) {
             where += ' AND p.supplier_id = ?';

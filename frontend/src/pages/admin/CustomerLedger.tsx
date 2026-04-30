@@ -307,7 +307,7 @@ const CustomerLedger: React.FC = () => {
             </div>
 
             {/* ==================== CUSTOMER DETAIL MODAL ==================== */}
-            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="📜 Bảng Kê Chi Tiết Nợ Khách Hàng">
+            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="📜 Bảng Kê Chi Tiết Nợ Khách Hàng" size="2xl">
                 {selectedCustomer && (
                     <div className="flex flex-col gap-6 max-h-[80vh]">
                         {/* Header Section */}
