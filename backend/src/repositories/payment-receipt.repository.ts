@@ -128,7 +128,7 @@ class PaymentReceiptRepository {
         limit?: number;
         status?: string;
         receivable_id?: number;
-        debtor_phone?: string;
+        user_id?: number;
         start_date?: string;
         end_date?: string;
     }): Promise<{ data: any[]; pagination: any }> {
@@ -148,10 +148,10 @@ class PaymentReceiptRepository {
             where += ' AND pr.receivable_id = ?';
             params.push(filters.receivable_id);
         }
-        if (filters.debtor_phone) {
+        if (filters.user_id) {
             countJoin = 'JOIN receivables r ON pr.receivable_id = r.id';
-            where += ' AND r.debtor_phone = ?';
-            params.push(filters.debtor_phone);
+            where += ' AND r.user_id = ?';
+            params.push(filters.user_id);
         }
         if (filters.start_date) {
             where += ' AND pr.payment_date >= ?';

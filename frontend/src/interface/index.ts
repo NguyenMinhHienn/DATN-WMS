@@ -416,6 +416,9 @@ export interface UserFormData {
     full_name: string;
     phone?: string;
     role_ids: number[];
+    enable_credit?: boolean;
+    credit_limit?: number;
+    credit_payment_terms?: number;
 }
 
 // Stock Transfer types

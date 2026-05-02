@@ -546,6 +546,9 @@ export interface CreateUserDto {
     full_name: string;
     phone?: string;
     role_ids?: number[];
+    enable_credit?: boolean;
+    credit_limit?: number;
+    credit_payment_terms?: number;
 }
 
 export interface UpdateUserDto {
@@ -638,6 +641,7 @@ export interface ExportReceipt {
     id: number;
     receipt_number: string;
     receipt_date: Date;
+    user_id?: number;
     receiver_name?: string;
     receiver_department?: string;
     receiver_address?: string;
@@ -690,6 +694,7 @@ export interface ExportReceiptItem {
 
 export interface CreateExportReceiptDto {
     receipt_date: string;
+    user_id?: number;
     receiver_name?: string;
     receiver_department?: string;
     receiver_address?: string;

@@ -124,19 +124,22 @@ class CreditService {
         let isEligible = user.credit_eligible === 1;
         let reasonNotEligible = '';
 
-        if (!isRegistered) {
-            isEligible = false;
-            reasonNotEligible = 'Bạn chưa đăng ký sử dụng công nợ';
-        } else if (totalSpent < minRequired) {
-            isEligible = false;
-            reasonNotEligible = `Tổng thanh toán chưa đạt ${new Intl.NumberFormat('vi-VN').format(minRequired)}đ (hiện tại: ${new Intl.NumberFormat('vi-VN').format(totalSpent)}đ)`;
-        } else if (debtInfo.hasOverdue) {
-            isEligible = false;
-            reasonNotEligible = 'Tài khoản có nợ quá hạn, vui lòng thanh toán trước';
-        } else if (debtInfo.count > 0) {
-            // Phải trả xong mới nợ tiếp
-            isEligible = false;
-            reasonNotEligible = 'Bạn đang có khoản công nợ chưa thanh toán. Vui lòng thanh toán xong mới sử dụng tiếp';
+        if (isEligible) {
+            // Đã được cấp quyền (Admin cấp hoặc tự động đạt). Chỉ kiểm tra điều kiện giao dịch:
+            if (debtInfo.hasOverdue) {
+                isEligible = false;
+                reasonNotEligible = 'Tài khoản có nợ quá hạn, vui lòng thanh toán trước';
+            } else if (debtInfo.count > 0) {
+                isEligible = false;
+                reasonNotEligible = 'Bạn đang có khoản công nợ chưa thanh toán. Vui lòng thanh toán xong mới sử dụng tiếp';
+            }
+        } else {
+            // Chưa được cấp quyền, giải thích lý do:
+            if (!isRegistered) {
+                reasonNotEligible = 'Bạn chưa đăng ký sử dụng công nợ';
+            } else if (totalSpent < minRequired) {
+                reasonNotEligible = `Tổng thanh toán chưa đạt ${new Intl.NumberFormat('vi-VN').format(minRequired)}đ (hiện tại: ${new Intl.NumberFormat('vi-VN').format(totalSpent)}đ)`;
+            }
         }
 
         return {

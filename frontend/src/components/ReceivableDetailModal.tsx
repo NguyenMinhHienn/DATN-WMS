@@ -80,13 +80,16 @@ export const ReceivableDetailModal: React.FC<ReceivableDetailModalProps> = ({
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleCreateReceipt = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!receivableId) return;
+        if (!receivableId || isSubmitting) return;
         if (!confirmChecked) {
             alert('Vui lòng xác nhận chịu trách nhiệm.');
             return;
         }
+        setIsSubmitting(true);
         try {
             await receivableService.createPaymentReceipt({
                 receivable_id: receivableId,
@@ -107,6 +110,8 @@ export const ReceivableDetailModal: React.FC<ReceivableDetailModalProps> = ({
             if (onReceiptAction) onReceiptAction();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -494,7 +499,9 @@ export const ReceivableDetailModal: React.FC<ReceivableDetailModalProps> = ({
                     </div>
                     <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
                         <button type="button" className="btn btn-secondary" onClick={() => setIsReceiptModalOpen(false)}>Hủy</button>
-                        <button type="submit" disabled={!confirmChecked} className={`btn btn-primary shadow-lg ${!confirmChecked && 'opacity-50'}`}>Tạo Phiếu Thu</button>
+                        <button type="submit" disabled={!confirmChecked || isSubmitting} className={`btn btn-primary shadow-lg ${(!confirmChecked || isSubmitting) && 'opacity-50'}`}>
+                            {isSubmitting ? 'Đang xử lý...' : 'Tạo Phiếu Thu'}
+                        </button>
                     </div>
                 </form>
             </Modal>

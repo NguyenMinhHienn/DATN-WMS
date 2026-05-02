@@ -11,7 +11,8 @@ const Users: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<UserFormData>({
-        username: '', email: '', password: '', full_name: '', phone: '', role_ids: []
+        username: '', email: '', password: '', full_name: '', phone: '', role_ids: [],
+        enable_credit: false, credit_limit: 50000000, credit_payment_terms: 30
     });
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState('');
@@ -51,7 +52,7 @@ const Users: React.FC = () => {
 
     const handleCreate = () => {
         setEditingUser(null);
-        setFormData({ username: '', email: '', password: '', full_name: '', phone: '', role_ids: [] });
+        setFormData({ username: '', email: '', password: '', full_name: '', phone: '', role_ids: [], enable_credit: false, credit_limit: 50000000, credit_payment_terms: 30 });
         setFormError('');
         setIsModalOpen(true);
     };
@@ -381,6 +382,54 @@ const Users: React.FC = () => {
                                 ))}
                             </div>
                         </div>
+                        
+                        {!editingUser && (
+                            <div className="pt-4 border-t border-slate-200">
+                                <label className="flex items-center gap-2 cursor-pointer mb-3">
+                                    <input 
+                                        type="checkbox" 
+                                        name="enable_credit"
+                                        checked={formData.enable_credit} 
+                                        onChange={(e) => setFormData(prev => ({ ...prev, enable_credit: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" 
+                                    />
+                                    <span className="text-sm font-bold text-emerald-700">Kích hoạt Công nợ ngay lập tức</span>
+                                </label>
+                                
+                                {formData.enable_credit && (
+                                    <div className="grid grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-emerald-800 mb-1">Hạn mức công nợ (VNĐ)</label>
+                                            <input 
+                                                type="number" 
+                                                value={formData.credit_limit} 
+                                                onChange={(e) => setFormData(prev => ({ ...prev, credit_limit: Number(e.target.value) }))}
+                                                className="input w-full text-sm font-medium" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-emerald-800 mb-1">Kỳ hạn thanh toán (Ngày)</label>
+                                            <div className="flex gap-2">
+                                                {[15, 30, 45].map(days => (
+                                                    <button 
+                                                        type="button"
+                                                        key={days} 
+                                                        onClick={() => setFormData(prev => ({ ...prev, credit_payment_terms: days }))}
+                                                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            formData.credit_payment_terms === days 
+                                                                ? 'bg-emerald-500 text-white shadow-md' 
+                                                                : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                                        }`}
+                                                    >
+                                                        {days}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-blue-100">
                         <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>

@@ -65,10 +65,10 @@ const CustomerLedger: React.FC = () => {
             // Lấy toàn bộ danh sách nợ (cả đã trả và chưa trả) của SĐT này
             const [recResult, payResult] = await Promise.all([
                 receivableService.getAll({ 
-                    debtor_phone: customer.debtor_phone,
+                    user_id: customer.user_id,
                     limit: 100 // Lấy tối đa 100 bản ghi gần nhất
                 }),
-                receivableService.getPaymentReceipts({ debtor_phone: customer.debtor_phone, limit: 100 })
+                receivableService.getPaymentReceipts({ user_id: customer.user_id, limit: 100 })
             ]);
             setCustomerHistory(recResult.data);
             setCustomerPayments(payResult.data);
@@ -92,9 +92,11 @@ const CustomerLedger: React.FC = () => {
         setIsBulkModalOpen(true);
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleProcessBulkPayment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCustomer) return;
+        if (!selectedCustomer || isSubmitting) return;
         if (!confirmChecked) {
             alert('Vui lòng xác nhận chịu trách nhiệm cho giao dịch này.');
             return;
@@ -111,9 +113,10 @@ const CustomerLedger: React.FC = () => {
             return;
         }
 
+        setIsSubmitting(true);
         try {
             await receivableService.createConsolidatedPayment({
-                debtor_phone: selectedCustomer.debtor_phone,
+                user_id: selectedCustomer.user_id,
                 amount: amountNum,
                 payment_method: bulkForm.payment_method,
                 payment_date: new Date().toISOString().split('T')[0],
@@ -129,6 +132,8 @@ const CustomerLedger: React.FC = () => {
             loadData();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý thanh toán');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -324,8 +329,7 @@ const CustomerLedger: React.FC = () => {
                         <div className="flex justify-between items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
                              <div>
                                 <h3 className="text-xl font-black text-slate-800">{selectedCustomer.debtor_name}</h3>
-                                <p className="text-sm text-slate-500 font-mono mt-1">📞 {selectedCustomer.debtor_phone}</p>
-                                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">📍 {selectedCustomer.debtor_address || '-- Chưa có địa chỉ --'}</p>
+                                <p className="text-sm text-slate-500 font-mono mt-1">📞 {selectedCustomer.debtor_phone || 'N/A'} {selectedCustomer.debtor_email ? `| ✉️ ${selectedCustomer.debtor_email}` : ''}</p>
                              </div>
                              <div className="text-right">
                                 <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1">Dư nợ hiện tại</div>
@@ -585,8 +589,8 @@ const CustomerLedger: React.FC = () => {
 
                         <div className="flex gap-4 justify-end pt-4 border-t border-slate-100">
                             <button type="button" className="btn btn-secondary !px-8" onClick={() => setIsBulkModalOpen(false)}>Hủy bỏ</button>
-                            <button type="submit" className={`btn btn-primary !px-10 shadow-lg shadow-blue-200 transition-all ${confirmChecked ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'}`} disabled={!confirmChecked}>
-                                Xác nhận Thu tiền
+                            <button type="submit" className={`btn btn-primary !px-10 shadow-lg shadow-blue-200 transition-all ${(confirmChecked && !isSubmitting) ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'}`} disabled={!confirmChecked || isSubmitting}>
+                                {isSubmitting ? 'Đang xử lý...' : 'Xác nhận Thu tiền'}
                             </button>
                         </div>
                     </form>

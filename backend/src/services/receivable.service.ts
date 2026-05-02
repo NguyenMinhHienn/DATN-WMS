@@ -17,6 +17,7 @@ class ReceivableService {
         receipt_number: string;
         total_amount: number;
         receipt_date: string;
+        user_id?: number;
         receiver_name?: string;
         receiver_phone?: string;
         receiver_address?: string;
@@ -35,7 +36,8 @@ class ReceivableService {
             source_type: 'export_receipt',
             source_id: receipt.id,
             source_number: receipt.receipt_number,
-            debtor_type: 'external',
+            user_id: receipt.user_id,
+            debtor_type: receipt.user_id ? 'user' : 'external',
             debtor_name: receipt.receiver_name || 'Khách hàng',
             debtor_phone: receipt.receiver_phone,
             debtor_address: receipt.receiver_address,
@@ -71,7 +73,7 @@ class ReceivableService {
         shipping_phone: string;
         shipping_address: string;
         user_id: number;
-        created_at: string;
+        created_at: string | Date;
     }, createdBy?: number): Promise<number> {
         // Kiểm tra đã tồn tại chưa
         const existing = await receivableRepository.findBySource('order', order.id);
@@ -89,7 +91,7 @@ class ReceivableService {
             debtor_phone: order.shipping_phone,
             debtor_address: order.shipping_address,
             total_amount: order.total_amount,
-            issue_date: order.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            issue_date: (order.created_at instanceof Date ? order.created_at.toISOString() : String(order.created_at || '')).split('T')[0] || new Date().toISOString().split('T')[0],
             payment_terms: 0, // COD = thanh toán ngay
             notes: `Tự động tạo từ đơn hàng COD #${order.id}`,
             created_by: createdBy,
@@ -138,7 +140,7 @@ class ReceivableService {
         shipping_phone: string;
         shipping_address: string;
         user_id: number;
-        created_at: string;
+        created_at: string | Date;
         payment_terms: number;
     }, createdBy?: number): Promise<number> {
         // Kiểm tra đã tồn tại chưa
@@ -159,7 +161,7 @@ class ReceivableService {
             debtor_phone: order.shipping_phone,
             debtor_address: order.shipping_address,
             total_amount: order.total_amount,
-            issue_date: order.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            issue_date: (order.created_at instanceof Date ? order.created_at.toISOString() : String(order.created_at || '')).split('T')[0] || new Date().toISOString().split('T')[0],
             payment_terms: paymentTerms,
             notes: `Công nợ từ đơn hàng trả sau #${order.id} - Hạn ${paymentTerms} ngày`,
             created_by: createdBy,
@@ -224,6 +226,7 @@ class ReceivableService {
         receiver_phone?: string;
         receiver_address?: string;
         payment_terms?: number;
+        user_id?: number;
     }, createdBy?: number): Promise<number> {
         // Kiểm tra đã tồn tại chưa
         const existing = await receivableRepository.findBySource('export_transfer', transfer.id);
@@ -238,10 +241,11 @@ class ReceivableService {
             source_type: 'export_transfer',
             source_id: transfer.id,
             source_number: transfer.transfer_number,
-            debtor_type: 'external',
+            debtor_type: transfer.user_id ? 'internal' : 'external',
             debtor_name: transfer.receiver_name || 'Khách hàng/Kho nhận',
             debtor_phone: transfer.receiver_phone,
             debtor_address: transfer.receiver_address,
+            user_id: transfer.user_id,
             total_amount: transfer.total_amount,
             issue_date: issueDate,
             payment_terms: paymentTerms,
@@ -379,9 +383,9 @@ class ReceivableService {
         return receivableRepository.getConsolidatedLedger(filters);
     }
 
-    /** Lấy danh sách phiếu chưa trả theo SĐT */
-    async getUnpaidByPhone(phone: string) {
-        return receivableRepository.getUnpaidByPhone(phone);
+    /** Lấy danh sách phiếu chưa trả theo User ID */
+    async getUnpaidByUserId(userId: number) {
+        return receivableRepository.getUnpaidByUserId(userId);
     }
 }
 

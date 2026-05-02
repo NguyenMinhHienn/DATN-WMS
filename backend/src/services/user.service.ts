@@ -1,4 +1,5 @@
 import { userRepository } from '../repositories/user.repository';
+import pool from '../config/database';
 import { authService } from './auth.service';
 import { CreateUserDto, UpdateUserDto, UserWithRoles, Role } from '../types';
 import { AppError } from '../middlewares/error.middleware';
@@ -39,6 +40,20 @@ export class UserService {
         const user = await userRepository.findById(userId);
         if (!user) {
             throw new AppError('Failed to create user', 500);
+        }
+
+        // Handle instant credit activation
+        if (dto.enable_credit) {
+            await pool.query(
+                `UPDATE users SET 
+                    credit_registered = 1,
+                    credit_eligible = 1, 
+                    credit_enabled_at = NOW(),
+                    credit_limit = ?,
+                    credit_payment_terms = ?
+                 WHERE id = ?`,
+                [dto.credit_limit || 50000000, dto.credit_payment_terms || 30, userId]
+            );
         }
 
         return user;

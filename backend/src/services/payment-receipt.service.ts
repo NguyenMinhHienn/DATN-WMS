@@ -85,7 +85,7 @@ class PaymentReceiptService {
      * Ưu tiên thanh toán cho các phiếu cũ trước (FIFO)
      */
     async createConsolidatedPayment(data: {
-        debtor_phone: string;
+        user_id: number;
         amount: number;
         payment_method: string;
         payment_date: string;
@@ -97,9 +97,9 @@ class PaymentReceiptService {
         if (data.amount <= 0) throw new AppError('Số tiền phải lớn hơn 0', 400);
 
         // 1. Lấy danh sách phiếu nợ chưa trả của SĐT này (FIFO)
-        const unpaidReceivables = await receivableRepository.getUnpaidByPhone(data.debtor_phone);
+        const unpaidReceivables = await receivableRepository.getUnpaidByUserId(data.user_id);
         if (unpaidReceivables.length === 0) {
-            throw new AppError(`Khách hàng số điện thoại ${data.debtor_phone} không còn nợ`, 400);
+            throw new AppError(`Khách hàng không còn nợ`, 400);
         }
 
         const totalRemaining = unpaidReceivables.reduce((sum, r) => 
@@ -111,7 +111,7 @@ class PaymentReceiptService {
 
         let remainingToPay = data.amount;
         const receiptIds: number[] = [];
-        const debtorName = unpaidReceivables[0]?.debtor_name || data.debtor_phone;
+        const debtorName = unpaidReceivables[0]?.debtor_name || 'Khách hàng';
         const transactionGroupId = crypto.randomUUID();
 
         // 2. Duyệt qua từng phiếu nợ và gạch nợ
@@ -131,7 +131,7 @@ class PaymentReceiptService {
                     bank_name: data.bank_name,
                     bank_account: data.bank_account,
                     bank_reference: data.bank_reference,
-                    notes: data.notes || `Thanh toán gộp cho khách hàng ${data.debtor_phone}`,
+                    notes: data.notes || `Thanh toán gộp cho khách hàng ID: ${data.user_id}`,
                     created_by: createdBy,
                     status: 'pending' // Luôn tạo pending trước
                 });
@@ -175,11 +175,11 @@ class PaymentReceiptService {
             await auditService.log({
                 reference_type: 'receivable',
                 reference_id: unpaidReceivables[0].id,
-                reference_number: `BATCH-${data.debtor_phone}`,
+                reference_number: `BATCH-${data.user_id}`,
                 action: 'UPDATE',
                 amount: data.amount - remainingToPay,
                 actor_id: createdBy,
-                notes: `[THANH TOÁN GỘP] KH: ${debtorName} | SĐT: ${data.debtor_phone} | Số phiếu: ${receiptIds.length} | Tổng thu: ${data.amount - remainingToPay} | HTTT: ${data.payment_method}`,
+                notes: `[THANH TOÁN GỘP] KH: ${debtorName} | User ID: ${data.user_id} | Số phiếu: ${receiptIds.length} | Tổng thu: ${data.amount - remainingToPay} | HTTT: ${data.payment_method}`,
                 metadata: {
                     transaction_group_id: transactionGroupId,
                     is_batch: true

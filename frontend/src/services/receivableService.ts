@@ -71,9 +71,10 @@ export interface ReceivableSummary {
 }
 
 export interface ConsolidatedLedgerEntry {
-    debtor_phone: string;
+    user_id: number;
     debtor_name: string;
-    debtor_address: string;
+    debtor_phone: string | null;
+    debtor_email: string | null;
     total_slips: number;
     unpaid_slips: number;
     total_debt: number;
@@ -137,7 +138,7 @@ export const receivableService = {
     },
 
     async createConsolidatedPayment(data: {
-        debtor_phone: string;
+        user_id: number;
         amount: number;
         payment_method: string;
         payment_date: string;

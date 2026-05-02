@@ -210,6 +210,7 @@ class ReceivableRepository {
         search?: string;
         start_date?: string;
         end_date?: string;
+        user_id?: number;
     }): Promise<{ data: any[]; pagination: any }> {
         const page = filters.page || 1;
         const limit = filters.limit || 20;
@@ -243,6 +244,10 @@ class ReceivableRepository {
             where += ' AND r.issue_date <= ?';
             params.push(filters.end_date);
         }
+        if (filters.user_id !== undefined) {
+            where += ' AND r.user_id = ?';
+            params.push(filters.user_id);
+        }
 
         const [countRows] = await pool.query<RowDataPacket[]>(
             `SELECT COUNT(*) as total FROM receivables r WHERE ${where}`, params
@@ -265,13 +270,6 @@ class ReceivableRepository {
         };
     }
 
-    /** Lấy công nợ của 1 user */
-    async findByUserId(userId: number): Promise<any[]> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT * FROM receivables WHERE user_id = ? ORDER BY created_at DESC
-        `, [userId]);
-        return rows;
-    }
 
     /** Cập nhật paid_amount và status sau khi duyệt phiếu thu */
     async updatePaidAmount(id: number, additionalAmount: number): Promise<void> {
@@ -438,8 +436,8 @@ class ReceivableRepository {
     }
 
     /** 
-     * Lấy sổ nợ tổng hợp theo khách hàng (SĐT) 
-     * Gộp tất cả các phiếu nợ theo số điện thoại
+     * Lấy sổ nợ tổng hợp theo khách hàng (user_id) 
+     * Gộp tất cả các phiếu nợ theo tài khoản người dùng
      */
     async getConsolidatedLedger(filters: {
         page?: number;
@@ -450,27 +448,27 @@ class ReceivableRepository {
         const limit = filters.limit || 20;
         const offset = (page - 1) * limit;
 
-        let where = '1=1 AND r.status != "cancelled"';
+        let where = 'r.status != "cancelled" AND r.user_id IS NOT NULL';
         const params: any[] = [];
 
         if (filters.search) {
-            where += ' AND (r.debtor_phone LIKE ? OR r.debtor_name LIKE ?)';
+            where += ' AND (u.phone LIKE ? OR u.full_name LIKE ?)';
             params.push(`%${filters.search}%`, `%${filters.search}%`);
         }
 
-        // Đếm tổng số khách hàng (SĐT) duy nhất
+        // Đếm tổng số khách hàng duy nhất
         const [countRows] = await pool.query<RowDataPacket[]>(
-            `SELECT COUNT(DISTINCT debtor_phone) as total FROM receivables r WHERE ${where}`, params
+            `SELECT COUNT(DISTINCT r.user_id) as total FROM receivables r LEFT JOIN users u ON r.user_id = u.id WHERE ${where}`, params
         );
         const total = countRows[0].total || 0;
 
         // Lấy danh sách gộp
-        // Logic: Lấy tên mới nhất cho mỗi SĐT bằng cách sử dụng MAX(created_at)
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT 
-                r.debtor_phone,
-                (SELECT debtor_name FROM receivables r2 WHERE r2.debtor_phone = r.debtor_phone ORDER BY r2.created_at DESC LIMIT 1) as debtor_name,
-                (SELECT debtor_address FROM receivables r3 WHERE r3.debtor_phone = r.debtor_phone ORDER BY r3.created_at DESC LIMIT 1) as debtor_address,
+                r.user_id,
+                u.full_name as debtor_name,
+                u.phone as debtor_phone,
+                u.email as debtor_email,
                 COUNT(r.id) as total_slips,
                 SUM(CASE WHEN r.status IN ("unpaid", "partial", "overdue") THEN 1 ELSE 0 END) as unpaid_slips,
                 SUM(r.total_amount) as total_debt,
@@ -479,8 +477,9 @@ class ReceivableRepository {
                 MAX(r.last_payment_at) as last_payment_at,
                 MAX(r.created_at) as last_activity_at
             FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
             WHERE ${where}
-            GROUP BY r.debtor_phone
+            GROUP BY r.user_id
             ORDER BY remaining_debt DESC, last_activity_at DESC
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
@@ -495,13 +494,13 @@ class ReceivableRepository {
      * Lấy danh sách các phiếu chưa trả hết của 1 SĐT khách hàng
      * Phục vụ logic "Gạch nợ" FIFO
      */
-    async getUnpaidByPhone(phone: string): Promise<any[]> {
+    async getUnpaidByUserId(userId: number): Promise<any[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT * FROM receivables 
-            WHERE debtor_phone = ? 
-              AND status IN ('unpaid', 'partial', 'overdue')
+            WHERE user_id = ? 
+            AND status IN ('unpaid', 'partial', 'overdue')
             ORDER BY issue_date ASC, created_at ASC
-        `, [phone]);
+        `, [userId]);
         return rows;
     }
 }

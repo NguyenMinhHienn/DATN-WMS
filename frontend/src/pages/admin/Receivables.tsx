@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
+import React, { useState, useEffect } from 'react';
 import { receivableService, Receivable, ReceivableSummary, PaymentReceipt } from '../../services/receivableService';
-import { Modal } from '../../components/Modal';
-import { auditService, FinancialAuditLog } from '../../services/auditService';
-import AuditTimeline from '../../components/AuditTimeline';
 import { ReceivableDetailModal } from '../../components/ReceivableDetailModal';
 
 const Receivables: React.FC = () => {
@@ -22,30 +18,7 @@ const Receivables: React.FC = () => {
 
     // Modal Details
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [detailData, setDetailData] = useState<Receivable | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview');
-    const [auditLogs, setAuditLogs] = useState<FinancialAuditLog[]>([]);
-    const [auditLoading, setAuditLoading] = useState(false);
-
-    const printRef = useRef<HTMLDivElement>(null);
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: `Phieu_No_${detailData?.receivable_number || ''}`,
-    });
-
-    // Modal Create Receipt
-    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-    const [receiptForm, setReceiptForm] = useState({
-        amount: '',
-        payment_method: 'cash',
-        bank_name: '',
-        bank_account: '',
-        bank_reference: '',
-        notes: '',
-        debtor_email: ''
-    });
-    const [confirmChecked, setConfirmChecked] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -93,61 +66,7 @@ const Receivables: React.FC = () => {
 
     const handleViewDetail = async (id: number) => {
         setSelectedId(id);
-        setAuditLogs([]); // Clear old logs
-        try {
-            const data = await receivableService.getById(id);
-            setDetailData(data);
-            setActiveTab('overview'); // Reset to first tab
-            setIsDetailModalOpen(true);
-            
-            // Load audit logs in background or when tab clicked
-            loadAuditLogs('receivable', id);
-        } catch (error: any) {
-            console.error(error);
-            alert(error.response?.data?.message || 'Không thể tải chi tiết công nợ. Vui lòng kiểm tra lại kết nối hoặc dữ liệu nguồn.');
-        }
-    };
-
-    const loadAuditLogs = async (type: string, id: number) => {
-        setAuditLoading(true);
-        try {
-            const logs = await auditService.getHistory(type, id);
-            setAuditLogs(logs);
-        } catch (error) {
-            console.error('Lỗi khi tải nhật ký thao tác:', error);
-        } finally {
-            setAuditLoading(false);
-        }
-    };
-
-    const handleCreateReceipt = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedId) return;
-        if (!confirmChecked) {
-            alert('Vui lòng xác nhận chịu trách nhiệm cho giao dịch này.');
-            return;
-        }
-        try {
-            await receivableService.createPaymentReceipt({
-                receivable_id: selectedId,
-                amount: parseFloat(receiptForm.amount.replace(/,/g, '')),
-                payment_method: receiptForm.payment_method,
-                payment_date: new Date().toISOString().split('T')[0],
-                bank_name: receiptForm.bank_name,
-                bank_account: receiptForm.bank_account,
-                bank_reference: receiptForm.bank_reference,
-                notes: receiptForm.notes,
-                debtor_email: receiptForm.debtor_email
-            });
-            alert('Tạo phiếu thu thành công!');
-            setIsReceiptModalOpen(false);
-            setReceiptForm({ amount: '', payment_method: 'cash', bank_name: '', bank_account: '', bank_reference: '', notes: '', debtor_email: '' });
-            setConfirmChecked(false);
-            loadData();
-            if (selectedId) handleViewDetail(selectedId); // Refresh details
-        } catch (error: any) {
-            alert(error.response?.data?.message || 'Có lỗi xảy ra');
-        }
+        setIsDetailModalOpen(true);
     };
 
     const handleApproveReceipt = async (receiptId: number) => {
@@ -156,7 +75,6 @@ const Receivables: React.FC = () => {
             await receivableService.approvePaymentReceipt(receiptId);
             alert('Đã duyệt phiếu thu');
             loadData();
-            if (selectedId) handleViewDetail(selectedId);
         } catch (error: any) {
              alert(error.response?.data?.message || 'Có lỗi xảy ra');
         }
@@ -169,33 +87,8 @@ const Receivables: React.FC = () => {
             await receivableService.rejectPaymentReceipt(receiptId, reason);
             alert('Đã từ chối phiếu thu');
             loadData();
-            if (selectedId) handleViewDetail(selectedId);
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra');
-        }
-    };
-
-    const handleSendReminder = async (id: number) => {
-        const defaultEmail = detailData?.debtor_email || detailData?.user_email_account || '';
-        const email = prompt('Hệ thống sẽ gửi Email nhắc nợ (Sắp đến hạn / Quá hạn) đến Khách hàng.\nVui lòng xác nhận hoặc nhập địa chỉ Email nhận:', defaultEmail);
-        
-        if (email === null) return; // User cancelled
-        if (!email.trim()) {
-            alert('Vui lòng cung cấp địa chỉ Email để gửi nhắc nợ!');
-            return;
-        }
-
-        try {
-            const res = await receivableService.sendReminder(id, email.trim());
-            
-            // Update local state so it doesn't need a reload
-            if (detailData && detailData.id === id) {
-                setDetailData({...detailData, debtor_email: email.trim()});
-            }
-            
-            alert(res.message || 'Đã gửi Email Nhắc Nợ thành công!');
-        } catch (error: any) {
-            alert(error.response?.data?.message || 'Có lỗi xảy ra khi gửi Email Nhắc Nợ');
         }
     };
 
@@ -370,9 +263,15 @@ const Receivables: React.FC = () => {
                                                     <div className="text-sm">{item.created_by_name || 'System'}</div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <div className="flex gap-2 justify-center">
-                                                        <button onClick={() => handleApproveReceipt(item.id)} className="btn btn-primary !py-1 !px-2 !text-xs !bg-emerald-600 hover:!bg-emerald-700">Duyệt</button>
-                                                        <button onClick={() => handleRejectReceipt(item.id)} className="btn btn-danger !py-1 !px-2 !text-xs">Từ chối</button>
+                                                    <div className="flex gap-2 justify-center items-center">
+                                                        {item.status === 'pending' ? (
+                                                            <>
+                                                                <button onClick={() => handleApproveReceipt(item.id)} className="btn btn-primary !py-1 !px-2 !text-xs !bg-emerald-600 hover:!bg-emerald-700">Duyệt</button>
+                                                                <button onClick={() => handleRejectReceipt(item.id)} className="btn btn-danger !py-1 !px-2 !text-xs">Từ chối</button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-500 italic bg-slate-100 px-2 py-1 rounded">Đã xử lý</span>
+                                                        )}
                                                         <button onClick={() => handleViewDetail(item.receivable_id)} className="btn btn-secondary !py-1 !px-2 !text-xs">Chi tiết</button>
                                                     </div>
                                                 </td>
