@@ -56,6 +56,8 @@ import Profile from './pages/Profile';
 import OrdersPage from './pages/client/Orders';
 import SupportPage from './pages/client/SupportTicketsPage';
 import PaymentCancel from './pages/client/PaymentCancel';
+import DebtPaymentSuccess from './pages/client/DebtPaymentSuccess';
+import DebtPaymentCancel from './pages/client/DebtPaymentCancel';
 // import PaymentSuccess from './pages/client/PaymentSuccess';
 
 /**
@@ -99,6 +101,8 @@ const App: React.FC = () => {
                         <Route path="/orders/:id" element={<OrdersPage />} />
                         <Route path="/support" element={<SupportPage />} />
                         <Route path="/payment-cancel" element={<PaymentCancel />} />
+                        <Route path="/debt-payment-success" element={<DebtPaymentSuccess />} />
+                        <Route path="/debt-payment-cancel" element={<DebtPaymentCancel />} />
                         <Route path="/my-receivables" element={<ClientReceivables />} />
                         <Route path="/my-credit" element={<CreditDashboard />} />
 

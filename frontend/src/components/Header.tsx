@@ -65,6 +65,11 @@ export const Header: React.FC = () => {
                         <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                             Hàng hóa
                         </Link>
+                        {isAuthenticated && (
+                            <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
+                                <span className="text-sm">💳</span> Công nợ
+                            </Link>
+                        )}
                     </nav>
 
                     {/* Auth buttons */}

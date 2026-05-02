@@ -63,10 +63,11 @@ export const NotificationBell: React.FC = () => {
 
         // Chuyển hướng dựa trên loại thông báo
         setIsOpen(false);
+        const isAdminOrStaff = window.location.pathname.includes('/admin') || window.location.pathname.includes('/staff');
         if (notif.type === 'payment_receipt' || notif.type === 'debt_created' || notif.type === 'debt_reminder') {
-            navigate(window.location.pathname.includes('/admin') ? '/admin/receivables' : '/client/orders');
+            navigate(isAdminOrStaff ? '/admin/receivables' : '/my-receivables');
         } else if (notif.type === 'order_update') {
-             navigate(window.location.pathname.includes('/admin') ? '/admin/orders' : '/client/orders');
+             navigate(isAdminOrStaff ? '/admin/orders' : '/orders');
         }
     };
 

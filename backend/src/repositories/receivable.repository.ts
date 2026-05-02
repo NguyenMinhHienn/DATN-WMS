@@ -107,6 +107,31 @@ class ReceivableRepository {
         return receivable;
     }
 
+    /** Lấy danh sách công nợ theo user_id (Client) */
+    async findByUserId(userId: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, u.full_name as user_full_name, u.email as user_email_account
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.user_id = ?
+            ORDER BY r.created_at DESC
+        `, [userId]);
+
+        // Attach payment history for each receivable
+        for (const r of rows) {
+            const [receipts] = await pool.query<RowDataPacket[]>(`
+                SELECT pr.*, cu.full_name as created_by_name
+                FROM payment_receipts pr
+                LEFT JOIN users cu ON pr.created_by = cu.id
+                WHERE pr.receivable_id = ? AND pr.status != 'rejected'
+                ORDER BY pr.payment_date DESC
+            `, [r.id]);
+            r.payment_history = receipts;
+        }
+
+        return rows;
+    }
+
     /** 
      * Lấy danh sách sản phẩm từ nguồn (Source) của công nợ
      */

@@ -112,6 +112,7 @@ const Home: React.FC = () => {
                         {isAuthenticated && (
                             <>
                                 <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Yêu cầu nhập</Link>
+                                <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors flex items-center gap-1"><span className="text-sm"></span> Công nợ</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -209,6 +210,14 @@ const Home: React.FC = () => {
                                             <span>💬</span> Hỗ trợ
                                         </button>
 
+                                        {/* Công nợ */}
+                                        <button
+                                            onClick={() => { navigate('/my-receivables'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 transition-colors text-sm"
+                                        >
+                                            <span>💳</span> Công nợ của tôi
+                                        </button>
+
                                         <button
                                             onClick={() => { navigate('/profile'); setDropdownOpen(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
@@ -268,6 +277,7 @@ const Home: React.FC = () => {
                         {isAuthenticated && (
                             <>
                                 <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Yêu cầu nhập</Link>
+                                <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">💳 Công nợ</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -534,7 +544,7 @@ const Home: React.FC = () => {
                             </div>
                             <p className="text-sm leading-relaxed mb-4">
                                 Hệ thống quản lý kho hàng thông minh.<br />
-                                Đồ án tốt nghiệp - 2026
+                                Dự án tốt nghiệp - 2026
                             </p>
                             <div className="flex items-start gap-2 text-sm">
                                 <span>📍</span>
@@ -545,7 +555,7 @@ const Home: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h4 className="font-semibold text-white mb-4">Liên kết</h4>
+                            <h4 className="font-semibold text-white mb-4">Liên hệ</h4>
                             <ul className="space-y-2 text-sm">
                                 <li><Link to="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
                                 <li><Link to="/products" className="hover:text-white transition-colors">Sản phẩm</Link></li>
@@ -563,7 +573,9 @@ const Home: React.FC = () => {
                     </div>
                     <div className="border-t border-slate-800 pt-8 text-center text-sm">
                         <p>© 2026 StockFlow - Smart Inventory Management System</p>
-                        <p className="mt-1 text-slate-500">Made with ❤️ for Graduation Project</p>
+                        <p className="mt-1 text-slate-500">
+                            Author by Nguyen Minh Hien
+                        </p>
                     </div>
                 </div>
             </footer>

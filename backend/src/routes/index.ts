@@ -25,7 +25,7 @@ import * as cartController from '../controllers/cart.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
 import supplierRoutes from './supplier.routes';
 import printRoutes from './print.routes';
-import { cancelPaymentOrder, createPaymentLink, payosWebhook } from '../controllers/payment.controller';
+import { cancelPaymentOrder, createPaymentLink, createDebtPaymentLink, payosWebhook } from '../controllers/payment.controller';
 import { confirmWebhook } from '../controllers/payosSetup.Controller';
 import { getTransferByOrder } from '../controllers/transfer.controller';
 import * as receivableController from '../controllers/receivable.controller';
@@ -263,6 +263,7 @@ router.put('/receivables/:id/bad-debt', authenticate, isAdmin, receivableControl
 
 // Client routes - user xem công nợ của mình
 router.get('/client/receivables', authenticate, receivableController.getClientReceivables);
+router.post('/client/debt-payment', authenticate, createDebtPaymentLink);
 
 // ==================== CREDIT (CÔNG NỢ MUA HÀNG) ROUTES ====================
 // Client routes
@@ -303,6 +304,7 @@ router.get('/payment-vouchers', authenticate, isAdmin, payableController.getAllP
 router.get('/payment-vouchers/pending-count', authenticate, isAdmin, payableController.getPendingVouchersCount);
 router.get('/payables/:id/vouchers', authenticate, isStaff, payableController.getVouchers);
 router.post('/payables/:id/vouchers', authenticate, isStaff, payableController.createVoucher);
+router.get('/payment-vouchers/:voucherId', authenticate, isStaff, payableController.getVoucherById);
 router.put('/payment-vouchers/:voucherId/approve', authenticate, isAdmin, payableController.approveVoucher);
 router.put('/payment-vouchers/:voucherId/reject', authenticate, isAdmin, payableController.rejectVoucher);
 

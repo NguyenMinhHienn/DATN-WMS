@@ -43,7 +43,7 @@ export interface PaymentReceipt {
     receipt_number: string;
     receivable_id: number;
     amount: string;
-    payment_method: 'cash' | 'bank_transfer' | 'banking_online' | 'cod_collected' | 'other';
+    payment_method: 'cash' | 'bank_transfer' | 'banking_online' | 'online_payos' | 'cod_collected' | 'other';
     payment_date: string;
     bank_name: string | null;
     bank_account: string | null;
@@ -156,10 +156,21 @@ export const receivableService = {
         return response.data.data;
     },
 
+    /** Client: tạo link PayOS thanh toán công nợ online */
+    async createDebtPaymentLink(receivableId: number, amount: number) {
+        const response = await api.post('/client/debt-payment', { receivableId, amount });
+        return response.data;
+    },
+
     // ==================== PAYMENT RECEIPTS ====================
     async getPaymentReceipts(params: any = {}) {
         const response = await api.get('/payment-receipts', { params });
         return response.data;
+    },
+
+    async getPaymentReceiptById(id: number) {
+        const response = await api.get(`/payment-receipts/${id}`);
+        return response.data.data;
     },
 
     async createPaymentReceipt(data: any) {
@@ -210,6 +221,7 @@ export const receivableService = {
             'cash': 'Tiền mặt',
             'bank_transfer': 'Chuyển khoản',
             'banking_online': 'Thanh toán Online',
+            'online_payos': '💳 PayOS Online',
             'cod_collected': 'Thu hộ COD',
             'other': 'Khác',
         };
