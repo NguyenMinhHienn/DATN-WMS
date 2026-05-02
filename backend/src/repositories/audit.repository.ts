@@ -80,7 +80,7 @@ class AuditRepository {
         }
         if (filters.end_date) {
             where += " AND created_at <= ?";
-            params.push(filters.end_date);
+            params.push(filters.end_date + ' 23:59:59');
         }
         if (filters.reference_type) {
             where += " AND reference_type = ?";

@@ -69,14 +69,36 @@ class PaymentVoucherRepository {
             SELECT v.*, 
                    cu.full_name as created_by_name,
                    au.full_name as approved_by_name,
-                   p.payable_number, p.supplier_name
+                   p.payable_number, p.supplier_name, p.source_type, p.source_id, p.source_number
             FROM payment_vouchers v
             LEFT JOIN users cu ON v.created_by = cu.id
             LEFT JOIN users au ON v.approved_by = au.id
             LEFT JOIN payables p ON v.payable_id = p.id
             WHERE v.id = ?
         `, [id]);
-        return rows.length > 0 ? rows[0] : null;
+        
+        if (rows.length === 0) return null;
+        const voucher = rows[0];
+
+        // Load items if it's from an import transfer
+        voucher.items = [];
+        try {
+            if (voucher.source_type === 'import_transfer' && voucher.source_id) {
+                const [itemRows] = await pool.query<RowDataPacket[]>(`
+                    SELECT pr.sku, pr.name as product_name, 
+                           COALESCE(NULLIF(sti.quantity_received, 0), NULLIF(sti.quantity_shipped, 0), sti.quantity_requested) as quantity, 
+                           sti.unit_cost as unit_price, sti.line_total as total
+                    FROM stock_transfer_items sti
+                    JOIN products pr ON sti.product_id = pr.id
+                    WHERE sti.stock_transfer_id = ?
+                `, [voucher.source_id]);
+                voucher.items = itemRows;
+            }
+        } catch (err) {
+            console.error("Could not load voucher source items", err);
+        }
+
+        return voucher;
     }
 
     /** Lấy tất cả phiếu chi (có filter) */

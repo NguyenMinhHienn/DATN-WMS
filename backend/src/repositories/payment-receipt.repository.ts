@@ -76,7 +76,7 @@ class PaymentReceiptRepository {
             SELECT pr.*, 
                    r.receivable_number, r.debtor_name, r.debtor_phone, r.debtor_email,
                    r.total_amount as receivable_total, r.paid_amount as receivable_paid,
-                   (r.total_amount - r.paid_amount) as receivable_remaining, r.source_type, r.source_number,
+                   (r.total_amount - r.paid_amount) as receivable_remaining, r.source_type, r.source_number, r.source_id,
                    r.user_id as debtor_user_id,
                    cu.full_name as created_by_name,
                    au.full_name as approved_by_name
@@ -86,7 +86,40 @@ class PaymentReceiptRepository {
             LEFT JOIN users au ON pr.approved_by = au.id
             WHERE pr.id = ?
         `, [id]);
-        return rows.length > 0 ? rows[0] : null;
+        
+        if (rows.length === 0) return null;
+        
+        const receipt = rows[0];
+        
+        // Load items if it's from an export receipt or order
+        receipt.items = [];
+        try {
+            if ((receipt.source_type === 'export_receipt' || receipt.source_type === 'export_transfer') && receipt.source_id) {
+                // Try fetching from stock_transfer_items assuming source_id is the transfer_id
+                const [itemRows] = await pool.query<RowDataPacket[]>(`
+                    SELECT p.sku, p.name as product_name, 
+                           COALESCE(NULLIF(sti.quantity_shipped, 0), NULLIF(sti.quantity_received, 0), sti.quantity_requested) as quantity, 
+                           sti.unit_cost as unit_price, sti.line_total as total
+                    FROM stock_transfer_items sti
+                    JOIN products p ON sti.product_id = p.id
+                    WHERE sti.stock_transfer_id = ?
+                `, [receipt.source_id]);
+                receipt.items = itemRows;
+            } else if (receipt.source_type === 'order' && receipt.source_id) {
+                 const [itemRows] = await pool.query<RowDataPacket[]>(`
+                    SELECT p.sku, p.name as product_name, oi.quantity, 
+                           oi.unit_price, (oi.quantity * oi.unit_price) as total
+                    FROM order_items oi
+                    JOIN products p ON oi.product_id = p.id
+                    WHERE oi.order_id = ?
+                `, [receipt.source_id]);
+                receipt.items = itemRows;
+            }
+        } catch (err) {
+            console.error("Could not load receipt source items", err);
+        }
+
+        return receipt;
     }
 
     /** Danh sách phiếu thu với filter + pagination */
@@ -95,6 +128,7 @@ class PaymentReceiptRepository {
         limit?: number;
         status?: string;
         receivable_id?: number;
+        debtor_phone?: string;
         start_date?: string;
         end_date?: string;
     }): Promise<{ data: any[]; pagination: any }> {
@@ -103,6 +137,7 @@ class PaymentReceiptRepository {
         const offset = (page - 1) * limit;
 
         let where = '1=1';
+        let countJoin = '';
         const params: any[] = [];
 
         if (filters.status) {
@@ -112,6 +147,11 @@ class PaymentReceiptRepository {
         if (filters.receivable_id) {
             where += ' AND pr.receivable_id = ?';
             params.push(filters.receivable_id);
+        }
+        if (filters.debtor_phone) {
+            countJoin = 'JOIN receivables r ON pr.receivable_id = r.id';
+            where += ' AND r.debtor_phone = ?';
+            params.push(filters.debtor_phone);
         }
         if (filters.start_date) {
             where += ' AND pr.payment_date >= ?';
@@ -123,12 +163,12 @@ class PaymentReceiptRepository {
         }
 
         const [countRows] = await pool.query<RowDataPacket[]>(
-            `SELECT COUNT(*) as total FROM payment_receipts pr WHERE ${where}`, params
+            `SELECT COUNT(*) as total FROM payment_receipts pr ${countJoin} WHERE ${where}`, params
         );
 
         const [rows] = await pool.query<RowDataPacket[]>(`
             SELECT pr.*, 
-                   r.receivable_number, r.debtor_name, r.source_type, r.source_number, r.user_id as debtor_user_id,
+                   r.receivable_number, r.debtor_name, r.source_type, r.source_number, r.user_id as debtor_user_id, r.debtor_phone,
                    cu.full_name as created_by_name,
                    au.full_name as approved_by_name
             FROM payment_receipts pr

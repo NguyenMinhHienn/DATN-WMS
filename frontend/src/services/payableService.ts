@@ -123,6 +123,11 @@ export const payableService = {
         return response.data;
     },
 
+    async getVoucherById(voucherId: number) {
+        const response = await api.get(`/payment-vouchers/${voucherId}`);
+        return response.data.data;
+    },
+
     async getVouchers(payableId: number) {
         const response = await api.get(`/payables/${payableId}/vouchers`);
         return response.data.data;

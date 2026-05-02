@@ -127,6 +127,20 @@ class PayableController {
         }
     }
 
+    /** Lấy chi tiết 1 phiếu chi theo ID */
+    async getVoucherById(req: Request, res: Response, next: NextFunction) {
+        try {
+            const voucherId = parseInt(req.params.voucherId);
+            const voucher = await payableService.getVoucherById(voucherId);
+            if (!voucher) {
+                return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu chi' });
+            }
+            res.json({ success: true, data: voucher });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /** Thống kê theo tháng */
     async getMonthlyStats(req: Request, res: Response, next: NextFunction) {
         try {

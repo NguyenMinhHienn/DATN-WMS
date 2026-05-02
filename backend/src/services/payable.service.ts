@@ -268,6 +268,11 @@ class PayableService {
         return paymentVoucherRepository.findAll(filters);
     }
 
+    /** Lấy chi tiết 1 phiếu chi theo ID */
+    async getVoucherById(voucherId: number) {
+        return paymentVoucherRepository.findById(voucherId);
+    }
+
     /** Lấy danh sách phiếu nợ chưa trả theo supplier_id (FIFO) */
     async getUnpaidBySupplier(supplierId: number) {
         return payableRepository.getUnpaidBySupplier(supplierId);
