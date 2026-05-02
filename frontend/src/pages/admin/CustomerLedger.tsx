@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { receivableService, Receivable, ConsolidatedLedgerEntry, ReceivableSummary } from '../../services/receivableService';
 import { Modal } from '../../components/Modal';
+import { ReceivableDetailModal } from '../../components/ReceivableDetailModal';
 
 const CustomerLedger: React.FC = () => {
     const [ledger, setLedger] = useState<ConsolidatedLedgerEntry[]>([]);
@@ -28,7 +29,11 @@ const CustomerLedger: React.FC = () => {
     // Detail history modal
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [customerHistory, setCustomerHistory] = useState<Receivable[]>([]);
+    const [customerPayments, setCustomerPayments] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'receivables' | 'payments'>('receivables');
+    const [selectedReceivableId, setSelectedReceivableId] = useState<number | null>(null);
+    const [isReceivableModalOpen, setIsReceivableModalOpen] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -55,13 +60,18 @@ const CustomerLedger: React.FC = () => {
         setSelectedCustomer(customer);
         setIsDetailModalOpen(true);
         setHistoryLoading(true);
+        setActiveTab('receivables');
         try {
             // Lấy toàn bộ danh sách nợ (cả đã trả và chưa trả) của SĐT này
-            const result = await receivableService.getAll({ 
-                debtor_phone: customer.debtor_phone,
-                limit: 100 // Lấy tối đa 100 bản ghi gần nhất
-            });
-            setCustomerHistory(result.data);
+            const [recResult, payResult] = await Promise.all([
+                receivableService.getAll({ 
+                    debtor_phone: customer.debtor_phone,
+                    limit: 100 // Lấy tối đa 100 bản ghi gần nhất
+                }),
+                receivableService.getPaymentReceipts({ debtor_phone: customer.debtor_phone, limit: 100 })
+            ]);
+            setCustomerHistory(recResult.data);
+            setCustomerPayments(payResult.data);
         } catch (error) {
             console.error('Lỗi tải lịch sử nợ:', error);
         } finally {
@@ -326,47 +336,122 @@ const CustomerLedger: React.FC = () => {
 
                         {/* List of Slips */}
                         <div className="flex-1 overflow-y-auto">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-1">Lịch sử các phiếu phát sinh</h4>
+                            <div className="flex border-b border-slate-200 mb-4 bg-slate-50/50 rounded-t-xl sticky top-0 z-10 p-1 gap-1">
+                                <button
+                                    onClick={() => setActiveTab('receivables')}
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                                        activeTab === 'receivables' 
+                                            ? 'bg-white text-blue-900 shadow-sm border border-blue-100' 
+                                            : 'text-slate-500 hover:text-blue-900 hover:bg-white/50'
+                                    }`}
+                                >📑 Lịch sử Phát sinh Nợ</button>
+                                <button
+                                    onClick={() => setActiveTab('payments')}
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                                        activeTab === 'payments' 
+                                            ? 'bg-white text-blue-900 shadow-sm border border-blue-100' 
+                                            : 'text-slate-500 hover:text-blue-900 hover:bg-white/50'
+                                    }`}
+                                >💸 Lịch sử Thanh toán</button>
+                            </div>
+
                             {historyLoading ? (
                                 <div className="py-12 text-center text-slate-400 animate-pulse">Đang truy xuất lịch sử...</div>
                             ) : (
-                                <table className="w-full text-sm border-collapse">
-                                    <thead className="sticky top-0 bg-white border-b border-slate-200 font-bold text-slate-600">
-                                        <tr>
-                                            <th className="py-2 px-3 text-left">Mã phiếu</th>
-                                            <th className="py-2 px-3 text-left">Ngày tạo</th>
-                                            <th className="py-2 px-3 text-left">Người lập</th>
-                                            <th className="py-2 px-3 text-right">Giá trị</th>
-                                            <th className="py-2 px-3 text-right">Còn nợ</th>
-                                            <th className="py-2 px-3 text-center">Trạng thái</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {customerHistory.map(slip => (
-                                            <tr key={slip.id} className="hover:bg-slate-50">
-                                                <td className="py-3 px-3 font-bold text-blue-600">{slip.receivable_number}</td>
-                                                <td className="py-3 px-3 text-slate-500 text-xs">{new Date(slip.issue_date).toLocaleDateString('vi-VN')}</td>
-                                                <td className="py-3 px-3 text-slate-500 text-xs">{slip.created_by_name || 'Hệ thống'}</td>
-                                                <td className="py-3 px-3 text-right font-medium">{formatMoney(slip.total_amount)}</td>
-                                                <td className="py-3 px-3 text-right font-bold text-red-500">{formatMoney(parseFloat(slip.total_amount) - parseFloat(slip.paid_amount))}</td>
-                                                <td className="py-3 px-3">
-                                                    <div className="flex justify-center">
-                                                        <span 
-                                                            className="text-[10px] px-2 py-0.5 rounded font-bold uppercase border shadow-sm"
-                                                            style={{ 
-                                                                color: receivableService.getStatusInfo(slip.status).color, 
-                                                                backgroundColor: receivableService.getStatusInfo(slip.status).bg,
-                                                                borderColor: receivableService.getStatusInfo(slip.status).color + '30'
-                                                            }}
-                                                        >
-                                                            {receivableService.getStatusInfo(slip.status).label}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <>
+                                    {activeTab === 'receivables' && (
+                                        <table className="w-full text-sm border-collapse">
+                                            <thead className="sticky top-0 bg-white border-b border-slate-200 font-bold text-slate-600">
+                                                <tr>
+                                                    <th className="py-2 px-3 text-left">Mã phiếu</th>
+                                                    <th className="py-2 px-3 text-left">Ngày tạo</th>
+                                                    <th className="py-2 px-3 text-left">Người lập</th>
+                                                    <th className="py-2 px-3 text-right">Giá trị</th>
+                                                    <th className="py-2 px-3 text-right">Còn nợ</th>
+                                                    <th className="py-2 px-3 text-center">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {customerHistory.map(slip => (
+                                                    <tr 
+                                                        key={slip.id} 
+                                                        className="hover:bg-blue-50 cursor-pointer transition-colors" 
+                                                        onClick={() => { setSelectedReceivableId(slip.id); setIsReceivableModalOpen(true); }}
+                                                    >
+                                                        <td className="py-3 px-3 font-bold text-blue-600 hover:underline">{slip.receivable_number}</td>
+                                                        <td className="py-3 px-3 text-slate-500 text-xs">{new Date(slip.issue_date).toLocaleDateString('vi-VN')}</td>
+                                                        <td className="py-3 px-3 text-slate-500 text-xs">{slip.created_by_name || 'Hệ thống'}</td>
+                                                        <td className="py-3 px-3 text-right font-medium">{formatMoney(slip.total_amount)}</td>
+                                                        <td className="py-3 px-3 text-right font-bold text-red-500">{formatMoney(parseFloat(slip.total_amount) - parseFloat(slip.paid_amount))}</td>
+                                                        <td className="py-3 px-3">
+                                                            <div className="flex justify-center">
+                                                                <span 
+                                                                    className="text-[10px] px-2 py-0.5 rounded font-bold uppercase border shadow-sm"
+                                                                    style={{ 
+                                                                        color: receivableService.getStatusInfo(slip.status).color, 
+                                                                        backgroundColor: receivableService.getStatusInfo(slip.status).bg,
+                                                                        borderColor: receivableService.getStatusInfo(slip.status).color + '30'
+                                                                    }}
+                                                                >
+                                                                    {receivableService.getStatusInfo(slip.status).label}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {customerHistory.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">Chưa có khoản nợ nào</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                    {activeTab === 'payments' && (
+                                        <table className="w-full text-sm border-collapse">
+                                            <thead className="sticky top-0 bg-white border-b border-slate-200 font-bold text-slate-600">
+                                                <tr>
+                                                    <th className="py-2 px-3 text-left">Số phiếu thu</th>
+                                                    <th className="py-2 px-3 text-left">Ngày thu</th>
+                                                    <th className="py-2 px-3 text-left">Mã nợ gốc</th>
+                                                    <th className="py-2 px-3 text-left">Hình thức</th>
+                                                    <th className="py-2 px-3 text-right">Số tiền</th>
+                                                    <th className="py-2 px-3 text-center">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {customerPayments.map(pay => (
+                                                    <tr key={pay.id} className="hover:bg-slate-50">
+                                                        <td className="py-3 px-3 font-bold text-emerald-600">{pay.receipt_number}</td>
+                                                        <td className="py-3 px-3 text-slate-500 text-xs">{new Date(pay.payment_date).toLocaleDateString('vi-VN')}</td>
+                                                        <td className="py-3 px-3 text-blue-600 font-medium text-xs cursor-pointer hover:underline" onClick={() => { setSelectedReceivableId(pay.receivable_id); setIsReceivableModalOpen(true); }}>{pay.receivable_number || '---'}</td>
+                                                        <td className="py-3 px-3 text-slate-500 text-xs">{pay.payment_method === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</td>
+                                                        <td className="py-3 px-3 text-right font-bold text-emerald-600">+{formatMoney(pay.amount)} đ</td>
+                                                        <td className="py-3 px-3">
+                                                            <div className="flex justify-center">
+                                                                <span 
+                                                                    className="text-[10px] px-2 py-0.5 rounded font-bold uppercase border shadow-sm"
+                                                                    style={{ 
+                                                                        color: receivableService.getReceiptStatusInfo(pay.status).color, 
+                                                                        backgroundColor: receivableService.getReceiptStatusInfo(pay.status).bg,
+                                                                        borderColor: receivableService.getReceiptStatusInfo(pay.status).color + '30'
+                                                                    }}
+                                                                >
+                                                                    {receivableService.getReceiptStatusInfo(pay.status).label}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {customerPayments.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">Chưa có lịch sử thanh toán</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </>
                             )}
                         </div>
 
@@ -507,6 +592,15 @@ const CustomerLedger: React.FC = () => {
                     </form>
                 )}
             </Modal>
+
+            <ReceivableDetailModal
+                isOpen={isReceivableModalOpen}
+                onClose={() => setIsReceivableModalOpen(false)}
+                receivableId={selectedReceivableId}
+                onReceiptAction={() => {
+                    if (selectedCustomer) handleViewHistory(selectedCustomer);
+                }}
+            />
         </div>
     );
 };

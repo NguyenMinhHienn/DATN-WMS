@@ -111,6 +111,7 @@ export const getAllPaymentReceipts = asyncHandler(async (req: AuthRequest, res: 
         limit: parseInt(req.query.limit as string) || 20,
         status: req.query.status as string,
         receivable_id: req.query.receivable_id ? parseInt(req.query.receivable_id as string) : undefined,
+        debtor_phone: req.query.debtor_phone as string,
         start_date: req.query.start_date as string,
         end_date: req.query.end_date as string,
     });

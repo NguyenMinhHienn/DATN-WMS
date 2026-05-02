@@ -87,6 +87,10 @@ const Reports: React.FC = () => {
     const [drillDownLoading, setDrillDownLoading] = useState(false);
     const [showAlerts, setShowAlerts] = useState(false);
 
+    // Financial detail modal (for audit log drill-down)
+    const [financialDetail, setFinancialDetail] = useState<any>(null);
+    const [financialDetailLoading, setFinancialDetailLoading] = useState(false);
+
     // ==================== DATA LOADING ====================
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -181,6 +185,26 @@ const Reports: React.FC = () => {
             setDrillDown(data);
         } catch (e) { console.error(e); }
         finally { setDrillDownLoading(false); }
+    };
+
+    // Open financial detail modal for audit log entry
+    const openFinancialDetail = async (log: FinancialAuditLog) => {
+        setFinancialDetailLoading(true);
+        setFinancialDetail({ type: log.reference_type, log }); // show loading state
+        try {
+            let detail;
+            if (log.reference_type === 'payment_receipt') {
+                detail = await receivableService.getPaymentReceiptById(log.reference_id);
+            } else if (log.reference_type === 'payment_voucher') {
+                detail = await payableService.getVoucherById(log.reference_id);
+            }
+            setFinancialDetail({ type: log.reference_type, data: detail, log });
+        } catch (e) {
+            console.error('Failed to load financial detail:', e);
+            setFinancialDetail({ type: log.reference_type, error: true, log });
+        } finally {
+            setFinancialDetailLoading(false);
+        }
     };
 
     // ==================== QUICK FILTERS ====================
@@ -959,115 +983,6 @@ const Reports: React.FC = () => {
                                 )}
                             </div>
                         )}
-
-                        {/* FINANCIAL AUDIT LOGS VIEW */}
-                        {activeTab === 'financial_logs' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                {/* Filters Row */}
-                                <div className="flex flex-wrap gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-slate-500">LOẠI PHIẾU:</span>
-                                        <select 
-                                            value={auditFilters.reference_type} 
-                                            onChange={(e) => setAuditFilters({...auditFilters, reference_type: e.target.value, page: 1})}
-                                            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            <option value="">Tất cả</option>
-                                            <option value="payment_receipt">Phiếu Thu (Khách hàng)</option>
-                                            <option value="payment_voucher">Phiếu Chi (Nhà cung cấp)</option>
-                                        </select>
-                                    </div>
-                                    <p className="text-[11px] text-slate-400 italic flex-1">
-                                        * Nhật ký này lưu lại mọi thao tác thay đổi số dư công nợ của nhân viên và hệ thống.
-                                    </p>
-                                </div>
-
-                                {/* Table */}
-                                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                                            <tr>
-                                                <th className="px-6 py-4">Thời gian</th>
-                                                <th className="px-6 py-4">Đối tượng</th>
-                                                <th className="px-6 py-4">Hành động</th>
-                                                <th className="px-6 py-4 text-right">Số tiền</th>
-                                                <th className="px-6 py-4">Người thực hiện</th>
-                                                <th className="px-6 py-4">Trạng thái cuối</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {auditLogs.length > 0 ? auditLogs.map(log => (
-                                                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-medium text-slate-800">{new Date(log.created_at).toLocaleDateString('vi-VN')}</div>
-                                                        <div className="text-[10px] text-slate-400">{new Date(log.created_at).toLocaleTimeString('vi-VN')}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold text-indigo-600">{log.reference_number}</div>
-                                                        <div className="text-[10px] text-slate-400 uppercase">{log.reference_type === 'payment_receipt' ? 'Phiếu thu' : 'Phiếu chi'}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                            log.action === 'CREATE' ? 'bg-blue-100 text-blue-700' :
-                                                            log.action === 'APPROVE' ? 'bg-emerald-100 text-emerald-700' :
-                                                            log.action === 'REJECT' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
-                                                        }`}>
-                                                            {log.action}
-                                                        </span>
-                                                        {log.notes && (
-                                                            <div className="text-[10px] text-slate-400 mt-1 max-w-[200px] truncate" title={log.notes}>
-                                                                {log.notes}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-bold text-slate-800">
-                                                        {log.amount ? formatVND(Number(log.amount)) : '--'} đ
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-medium text-slate-700">{log.actor_name}</div>
-                                                        {log.approver_name && (
-                                                            <div className="text-[10px] text-emerald-600 italic">Duyệt bởi: {log.approver_name}</div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="text-[11px] font-bold text-slate-500 uppercase">{log.status_after || '--'}</span>
-                                                    </td>
-                                                </tr>
-                                            )) : (
-                                                <tr>
-                                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                                                        Không tìm thấy nhật ký giao dịch nào trong khoảng thời gian này.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Pagination */}
-                                {auditPagination && auditPagination.totalPages > 1 && (
-                                    <div className="flex justify-center gap-2 mt-4">
-                                        <button 
-                                            disabled={auditFilters.page === 1}
-                                            onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page - 1})}
-                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
-                                        >
-                                            Trước
-                                        </button>
-                                        <span className="px-4 py-1.5 bg-indigo-50 text-indigo-700 font-bold rounded-lg">
-                                            {auditFilters.page} / {auditPagination.totalPages}
-                                        </span>
-                                        <button 
-                                            disabled={auditFilters.page === auditPagination.totalPages}
-                                            onClick={() => setAuditFilters({...auditFilters, page: auditFilters.page + 1})}
-                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
-                                        >
-                                            Sau
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </>
                 )}
 
@@ -1331,33 +1246,36 @@ const Reports: React.FC = () => {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                                         <tr>
-                                            <th className="px-6 py-4">Thời gian</th>
-                                            <th className="px-6 py-4">Chứng từ</th>
-                                            <th className="px-6 py-4">Hành động</th>
-                                            <th className="px-6 py-4 text-right">Số tiền</th>
-                                            <th className="px-6 py-4">Người thực hiện</th>
-                                            <th className="px-6 py-4">Trạng thái</th>
+                                            <th className="px-5 py-4">Thời gian</th>
+                                            <th className="px-5 py-4">Chứng từ</th>
+                                            <th className="px-5 py-4">Hành động</th>
+                                            <th className="px-5 py-4 text-right">Số tiền</th>
+                                            <th className="px-5 py-4">Người thực hiện</th>
+                                            <th className="px-5 py-4">Trạng thái</th>
+                                            <th className="px-5 py-4 text-center">Thao tác</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {auditLogs.length > 0 ? auditLogs.map(log => (
                                             <tr key={log.id} className="hover:bg-slate-50/80 transition-colors group">
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <div className="font-bold text-slate-700">{new Date(log.created_at).toLocaleDateString('vi-VN')}</div>
                                                     <div className="text-[10px] text-slate-400 font-medium">{new Date(log.created_at).toLocaleTimeString('vi-VN')}</div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <div className="font-black text-indigo-600 tracking-tight">{log.reference_number}</div>
-                                                    <div className="text-[10px] text-slate-400 uppercase font-bold">{log.reference_type === 'payment_receipt' ? 'Thu nợ' : 'Chi trả'}</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase font-bold">
+                                                        {log.reference_type === 'payment_receipt' ? '🟢 Thu nợ' : log.reference_type === 'payment_voucher' ? '🔵 Chi trả' : log.reference_type}
+                                                    </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <span className={`px-2 py-1 rounded-md text-[10px] font-black tracking-tighter ${
                                                         log.action === 'CREATE' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
                                                         log.action === 'APPROVE' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
                                                         log.action === 'REJECT' ? 'bg-rose-100 text-rose-700 border border-rose-200' : 
                                                         'bg-slate-100 text-slate-700 border border-slate-200'
                                                     }`}>
-                                                        {log.action}
+                                                        {log.action === 'CREATE' ? 'TẠO MỚI' : log.action === 'APPROVE' ? 'PHÊ DUYỆT' : log.action === 'REJECT' ? 'TỪ CHỐI' : log.action}
                                                     </span>
                                                     {log.notes && (
                                                         <div className="text-[10px] text-slate-400 mt-1 max-w-[180px] truncate italic" title={log.notes}>
@@ -1365,10 +1283,10 @@ const Reports: React.FC = () => {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-black text-slate-800 text-base">
+                                                <td className="px-5 py-4 text-right font-black text-slate-800 text-base">
                                                     {log.amount ? formatVND(Number(log.amount)) : '--'} ₫
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <div className="font-bold text-slate-700 flex items-center gap-1">
                                                         <span className="text-xs">👤</span> {log.actor_name}
                                                     </div>
@@ -1376,15 +1294,33 @@ const Reports: React.FC = () => {
                                                         <div className="text-[10px] text-emerald-600 font-bold">✓ Duyệt: {log.approver_name}</div>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="text-[11px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                                        {log.status_after || '--'}
+                                                <td className="px-5 py-4">
+                                                    <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded border ${
+                                                        log.status_after === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                        log.status_after === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                                        log.status_after === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                        'bg-slate-50 text-slate-400 border-slate-100'
+                                                    }`}>
+                                                        {log.status_after === 'approved' ? '✓ Đã duyệt' : 
+                                                         log.status_after === 'rejected' ? '✕ Từ chối' :
+                                                         log.status_after === 'pending' ? '⏳ Chờ duyệt' :
+                                                         log.status_after || '--'}
                                                     </span>
+                                                </td>
+                                                <td className="px-5 py-4 text-center">
+                                                    {(log.reference_type === 'payment_receipt' || log.reference_type === 'payment_voucher') && (
+                                                        <button
+                                                            onClick={() => openFinancialDetail(log)}
+                                                            className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 border border-indigo-200 transition-all hover:shadow-sm"
+                                                        >
+                                                            📋 Chi tiết
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-20 text-center">
+                                                <td colSpan={7} className="px-6 py-20 text-center">
                                                     <div className="flex flex-col items-center gap-2 text-slate-400">
                                                         <span className="text-4xl opacity-20">📂</span>
                                                         <p className="italic font-medium">Không tìm thấy nhật ký giao dịch nào trong khoảng thời gian này.</p>
@@ -1422,6 +1358,282 @@ const Reports: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* ===== FINANCIAL DETAIL MODAL ===== */}
+            {financialDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 print:relative print:inset-auto print:bg-transparent print:backdrop-blur-none">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto m-4 shadow-2xl print:shadow-none print:max-w-none print:m-0 print:rounded-none" id="financial-detail-print">
+                        <button onClick={() => setFinancialDetail(null)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-xl print:hidden">✕</button>
+
+                        {financialDetailLoading ? (
+                            <div className="flex items-center justify-center h-40">
+                                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        ) : financialDetail.error ? (
+                            <div className="text-center py-8 text-slate-400">
+                                <span className="text-4xl block mb-2">⚠️</span>
+                                <p className="font-medium">Không thể tải chi tiết phiếu. Phiếu có thể đã bị xóa.</p>
+                            </div>
+                        ) : financialDetail.data ? (
+                            <div className="space-y-5">
+                                {/* Header */}
+                                <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg ${
+                                        financialDetail.type === 'payment_receipt' 
+                                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-200' 
+                                            : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-200'
+                                    }`}>
+                                        {financialDetail.type === 'payment_receipt' ? '📥' : '📤'}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h2 className="text-xl font-black text-slate-800">
+                                            {financialDetail.type === 'payment_receipt' ? 'Chi tiết Phiếu Thu' : 'Chi tiết Phiếu Chi'}
+                                        </h2>
+                                        <p className="text-sm text-indigo-600 font-bold mt-0.5">
+                                            {financialDetail.data.receipt_number || financialDetail.data.voucher_number}
+                                        </p>
+                                    </div>
+                                    <span className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase ${
+                                        financialDetail.data.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                        financialDetail.data.status === 'rejected' ? 'bg-rose-100 text-rose-700 border border-rose-200' :
+                                        financialDetail.data.status === 'pending' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                        'bg-slate-100 text-slate-600 border border-slate-200'
+                                    }`}>
+                                        {financialDetail.data.status === 'approved' ? '✓ Đã duyệt' : 
+                                         financialDetail.data.status === 'rejected' ? '✕ Từ chối' :
+                                         financialDetail.data.status === 'pending' ? '⏳ Chờ duyệt' :
+                                         financialDetail.data.status}
+                                    </span>
+                                </div>
+
+                                {/* Amount highlight */}
+                                <div className={`rounded-2xl p-5 text-center border ${
+                                    financialDetail.type === 'payment_receipt' 
+                                        ? 'bg-emerald-50 border-emerald-200' 
+                                        : 'bg-blue-50 border-blue-200'
+                                }`}>
+                                    <p className="text-sm font-medium text-slate-500 mb-1">Số tiền</p>
+                                    <p className={`text-3xl font-black ${
+                                        financialDetail.type === 'payment_receipt' ? 'text-emerald-700' : 'text-blue-700'
+                                    }`}>
+                                        {formatVND(Number(financialDetail.data.amount))} ₫
+                                    </p>
+                                </div>
+
+                                {/* Detail grid */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {financialDetail.type === 'payment_receipt' && (
+                                        <>
+                                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Khách hàng</p>
+                                                <p className="font-bold text-slate-800 mt-0.5">{financialDetail.data.debtor_name || '--'}</p>
+                                            </div>
+                                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Mã công nợ</p>
+                                                <p className="font-bold text-indigo-600 mt-0.5">{financialDetail.data.receivable_number || '--'}</p>
+                                            </div>
+                                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Nguồn phiếu</p>
+                                                <p className="font-bold text-slate-700 mt-0.5">{financialDetail.data.source_number || financialDetail.data.source_type || '--'}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                    {financialDetail.type === 'payment_voucher' && (
+                                        <>
+                                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Nhà cung cấp</p>
+                                                <p className="font-bold text-slate-800 mt-0.5">{financialDetail.data.supplier_name || '--'}</p>
+                                            </div>
+                                            <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold">Mã công nợ</p>
+                                                <p className="font-bold text-indigo-600 mt-0.5">{financialDetail.data.payable_number || '--'}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Hình thức</p>
+                                        <p className="font-bold text-slate-700 mt-0.5">
+                                            {financialDetail.data.payment_method === 'cash' ? '💵 Tiền mặt' :
+                                             financialDetail.data.payment_method === 'bank_transfer' ? '🏦 Chuyển khoản' :
+                                             financialDetail.data.payment_method === 'banking_online' ? '📱 Online Banking' :
+                                             financialDetail.data.payment_method || '--'}
+                                        </p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Ngày thanh toán</p>
+                                        <p className="font-bold text-slate-700 mt-0.5">
+                                            {financialDetail.data.payment_date ? new Date(financialDetail.data.payment_date).toLocaleDateString('vi-VN') : '--'}
+                                        </p>
+                                    </div>
+                                    {financialDetail.data.bank_reference && (
+                                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 col-span-2">
+                                            <p className="text-[10px] text-slate-400 uppercase font-bold">Mã giao dịch ngân hàng</p>
+                                            <p className="font-bold text-slate-700 mt-0.5 font-mono">{financialDetail.data.bank_reference}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Items List (Nếu có) */}
+                                {financialDetail.data.items && financialDetail.data.items.length > 0 && (
+                                    <div className="border border-slate-200 rounded-xl overflow-hidden mt-4">
+                                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                                            <h3 className="font-bold text-slate-700 text-sm">📦 Chi tiết sản phẩm giao dịch</h3>
+                                        </div>
+                                        <div className="overflow-x-auto max-h-48 overflow-y-auto">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-white border-b border-slate-100 text-slate-500 font-medium sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-2">Sản phẩm</th>
+                                                        <th className="px-4 py-2 text-right">SL</th>
+                                                        <th className="px-4 py-2 text-right">Đơn giá</th>
+                                                        <th className="px-4 py-2 text-right">Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {financialDetail.data.items.map((item: any, idx: number) => (
+                                                        <tr key={idx} className="hover:bg-slate-50">
+                                                            <td className="px-4 py-2">
+                                                                <div className="font-medium text-slate-700">{item.product_name}</div>
+                                                                {item.sku && <div className="text-[10px] text-slate-400 font-mono">{item.sku}</div>}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right font-medium">{item.quantity}</td>
+                                                            <td className="px-4 py-2 text-right">{formatVND(Number(item.unit_price))} ₫</td>
+                                                            <td className="px-4 py-2 text-right font-bold text-slate-800">{formatVND(Number(item.total))} ₫</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Audit info */}
+                                <div className="border-t border-slate-200 pt-4 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Người tạo</p>
+                                        <p className="font-bold text-slate-700 mt-0.5">👤 {financialDetail.data.created_by_name || '--'}</p>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                            {financialDetail.data.created_at ? new Date(financialDetail.data.created_at).toLocaleString('vi-VN') : ''}
+                                        </p>
+                                    </div>
+                                    {financialDetail.data.approved_by_name && (
+                                        <div>
+                                            <p className="text-[10px] text-slate-400 uppercase font-bold">Người duyệt</p>
+                                            <p className="font-bold text-emerald-700 mt-0.5">✓ {financialDetail.data.approved_by_name}</p>
+                                            {financialDetail.data.approved_at && (
+                                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                                    {new Date(financialDetail.data.approved_at).toLocaleString('vi-VN')}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Notes */}
+                                {financialDetail.data.notes && (
+                                    <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                                        <p className="text-[10px] text-amber-600 uppercase font-bold mb-1">📝 Ghi chú</p>
+                                        <p className="text-sm text-slate-700">{financialDetail.data.notes}</p>
+                                    </div>
+                                )}
+
+                                {/* Print button */}
+                                <div className="flex justify-end gap-3 pt-2 print:hidden">
+                                    <button
+                                        onClick={() => setFinancialDetail(null)}
+                                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-all"
+                                    >
+                                        Đóng
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const printContent = document.getElementById('financial-detail-print');
+                                            if (printContent) {
+                                                const printWindow = window.open('', '_blank');
+                                                if (printWindow) {
+                                                    printWindow.document.write(`
+                                                        <html><head><title>${financialDetail.data.receipt_number || financialDetail.data.voucher_number}</title>
+                                                        <style>body{font-family:system-ui,sans-serif;padding:20px;color:#1e293b}
+                                                        .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+                                                        .card{background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0}
+                                                        .label{font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700}
+                                                        .value{font-weight:700;margin-top:4px}
+                                                        .amount{text-align:center;font-size:28px;font-weight:900;padding:20px;border-radius:12px}
+                                                        .receipt .amount{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+                                                        .voucher .amount{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+                                                        h2{margin:0 0 4px}
+                                                        .sub{color:#4f46e5;font-weight:700;font-size:14px}
+                                                        hr{border:none;border-top:1px solid #e2e8f0;margin:16px 0}
+                                                        </style></head>
+                                                        <body class="${financialDetail.type === 'payment_receipt' ? 'receipt' : 'voucher'}">
+                                                        <h2>${financialDetail.type === 'payment_receipt' ? 'PHIẾU THU' : 'PHIẾU CHI'}</h2>
+                                                        <p class="sub">${financialDetail.data.receipt_number || financialDetail.data.voucher_number}</p>
+                                                        <div class="amount">${formatVND(Number(financialDetail.data.amount))} ₫</div>
+                                                        <hr/>
+                                                        <div class="grid">
+                                                        ${financialDetail.type === 'payment_receipt' ? `
+                                                            <div class="card"><div class="label">Khách hàng</div><div class="value">${financialDetail.data.debtor_name || '--'}</div></div>
+                                                            <div class="card"><div class="label">Mã công nợ</div><div class="value">${financialDetail.data.receivable_number || '--'}</div></div>
+                                                        ` : `
+                                                            <div class="card"><div class="label">Nhà cung cấp</div><div class="value">${financialDetail.data.supplier_name || '--'}</div></div>
+                                                            <div class="card"><div class="label">Mã công nợ</div><div class="value">${financialDetail.data.payable_number || '--'}</div></div>
+                                                        `}
+                                                        <div class="card"><div class="label">Hình thức</div><div class="value">${financialDetail.data.payment_method === 'cash' ? 'Tiền mặt' : financialDetail.data.payment_method === 'bank_transfer' ? 'Chuyển khoản' : financialDetail.data.payment_method || '--'}</div></div>
+                                                        <div class="card"><div class="label">Ngày thanh toán</div><div class="value">${financialDetail.data.payment_date ? new Date(financialDetail.data.payment_date).toLocaleDateString('vi-VN') : '--'}</div></div>
+                                                        </div>
+                                                        <hr/>
+                                                        ${financialDetail.data.items && financialDetail.data.items.length > 0 ? `
+                                                            <h3 style="font-size:14px;margin-bottom:8px">Chi tiết sản phẩm</h3>
+                                                            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px">
+                                                                <thead style="background:#f1f5f9;text-align:left">
+                                                                    <tr>
+                                                                        <th style="padding:8px;border-bottom:2px solid #e2e8f0">Sản phẩm</th>
+                                                                        <th style="padding:8px;border-bottom:2px solid #e2e8f0;text-align:right">SL</th>
+                                                                        <th style="padding:8px;border-bottom:2px solid #e2e8f0;text-align:right">Đơn giá</th>
+                                                                        <th style="padding:8px;border-bottom:2px solid #e2e8f0;text-align:right">Thành tiền</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    ${financialDetail.data.items.map((item: any) => `
+                                                                        <tr>
+                                                                            <td style="padding:8px;border-bottom:1px solid #e2e8f0">
+                                                                                <div style="font-weight:600">${item.product_name}</div>
+                                                                                ${item.sku ? `<div style="font-size:10px;color:#64748b;font-family:monospace">${item.sku}</div>` : ''}
+                                                                            </td>
+                                                                            <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${item.quantity}</td>
+                                                                            <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${formatVND(Number(item.unit_price))} ₫</td>
+                                                                            <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600">${formatVND(Number(item.total))} ₫</td>
+                                                                        </tr>
+                                                                    `).join('')}
+                                                                </tbody>
+                                                            </table>
+                                                            <hr/>
+                                                        ` : ''}
+                                                        <div class="grid">
+                                                        <div class="card"><div class="label">Người tạo</div><div class="value">${financialDetail.data.created_by_name || '--'}</div></div>
+                                                        <div class="card"><div class="label">Người duyệt</div><div class="value">${financialDetail.data.approved_by_name || '--'}</div></div>
+                                                        </div>
+                                                        ${financialDetail.data.notes ? `<hr/><div class="card"><div class="label">Ghi chú</div><div class="value">${financialDetail.data.notes}</div></div>` : ''}
+                                                        <hr/>
+                                                        <p style="text-align:center;font-size:11px;color:#94a3b8">In lúc: ${new Date().toLocaleString('vi-VN')} — StockFlow WMS</p>
+                                                        </body></html>
+                                                    `);
+                                                    printWindow.document.close();
+                                                    printWindow.print();
+                                                }
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200"
+                                    >
+                                        🖨️ In phiếu
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            )}
 
             {/* ===== DRILL-DOWN MODAL ===== */}
             {(drillDown || drillDownLoading) && (
