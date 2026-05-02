@@ -10,6 +10,7 @@ import { StaffRoute } from './components/StaffRoute';
 // Layouts
 import { AdminLayout } from './layout/AdminLayout';
 import { StaffLayout } from './layout/StaffLayout';
+import { ClientLayout } from './layout/ClientLayout';
 
 // Admin Pages
 import Dashboard from './pages/admin/Dashboard';
@@ -90,21 +91,23 @@ const App: React.FC = () => {
                         <Route path="/" element={<Home />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
-                        <Route path="/products" element={<ProductList />} />
-                        <Route path="/products/:id" element={<ProductDetail />} />
-                        <Route path="/cart" element={<Cart />} />
                         <Route path="/403" element={<AccessDenied />} />
 
-                        {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/orders" element={<OrdersPage />} />
-                        <Route path="/orders/:id" element={<OrdersPage />} />
-                        <Route path="/support" element={<SupportPage />} />
-                        <Route path="/payment-cancel" element={<PaymentCancel />} />
-                        <Route path="/debt-payment-success" element={<DebtPaymentSuccess />} />
-                        <Route path="/debt-payment-cancel" element={<DebtPaymentCancel />} />
-                        <Route path="/my-receivables" element={<ClientReceivables />} />
-                        <Route path="/my-credit" element={<CreditDashboard />} />
+                        {/* ==================== CLIENT ROUTES (with ClientLayout) ==================== */}
+                        <Route element={<ClientLayout />}>
+                            <Route path="/products" element={<ProductList />} />
+                            <Route path="/products/:id" element={<ProductDetail />} />
+                            <Route path="/cart" element={<Cart />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/orders" element={<OrdersPage />} />
+                            <Route path="/orders/:id" element={<OrdersPage />} />
+                            <Route path="/support" element={<SupportPage />} />
+                            <Route path="/payment-cancel" element={<PaymentCancel />} />
+                            <Route path="/debt-payment-success" element={<DebtPaymentSuccess />} />
+                            <Route path="/debt-payment-cancel" element={<DebtPaymentCancel />} />
+                            <Route path="/my-receivables" element={<ClientReceivables />} />
+                            <Route path="/my-credit" element={<CreditDashboard />} />
+                        </Route>
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}

@@ -125,9 +125,12 @@ class OrderRepository {
     async getAllOrders(page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         let query = `
-            SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                   COALESCE(st.vat_amount, 0) as vat_amount,
+                   COALESCE(st.shipping_fee, 0) as shipping_fee
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
             WHERE 1=1
         `;
         const params: any[] = [];
@@ -167,8 +170,11 @@ class OrderRepository {
     async getOrdersByUserId(userId: number, page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         let query = `
-            SELECT o.*
+            SELECT o.*,
+                   COALESCE(st.vat_amount, 0) as vat_amount,
+                   COALESCE(st.shipping_fee, 0) as shipping_fee
             FROM orders o
+            LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
             WHERE o.user_id = ?
         `;
         const params: any[] = [userId];
@@ -206,9 +212,12 @@ class OrderRepository {
      */
     async getOrderById(orderId: number): Promise<(OrderRow & { items: OrderItemRow[] }) | null> {
         const [orderRows] = await pool.query<RowDataPacket[]>(
-            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                    COALESCE(st.vat_amount, 0) as vat_amount,
+                    COALESCE(st.shipping_fee, 0) as shipping_fee
              FROM orders o
              LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
              WHERE o.id = ?`,
             [orderId]
         );
@@ -295,9 +304,12 @@ class OrderRepository {
     async getOrdersByStatus(status: string, page: number = 1, limit: number = 10): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                    COALESCE(st.vat_amount, 0) as vat_amount,
+                    COALESCE(st.shipping_fee, 0) as shipping_fee
              FROM orders o
              LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
              WHERE o.status = ?
              ORDER BY o.created_at DESC
              LIMIT ? OFFSET ?`,

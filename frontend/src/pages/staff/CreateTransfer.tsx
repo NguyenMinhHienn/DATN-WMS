@@ -4,7 +4,8 @@ import { stockTransferService } from '../../services/stockTransferService';
 import { productService } from '../../services/productService';
 import { supplierService, Supplier } from '../../services/supplierService';
 import { useAuth } from '../../context/AuthContext';
-import { Product } from '../../interface';
+import { userService } from '../../services/userService';
+import { Product, User } from '../../interface';
 const AddressMapPicker = lazy(() => import('../../components/AddressMapPicker'));
 type TransferType = 'IMPORT' | 'EXPORT' | 'TRANSFER';
 
@@ -67,6 +68,12 @@ const CreateTransfer: React.FC = () => {
     const [shippingFee, setShippingFee] = useState<number>(0);
     const [paymentTerms, setPaymentTerms] = useState<number>(0);
 
+    // User Search State
+    const [users, setUsers] = useState<User[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<number | undefined>();
+    const [searchUserQuery, setSearchUserQuery] = useState('');
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+
     // Reference data
     const [products, setProducts] = useState<Product[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -108,12 +115,14 @@ const CreateTransfer: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [productRes, supplierRes] = await Promise.all([
+            const [productRes, supplierRes, userRes] = await Promise.all([
                 productService.getAll(1, 200),
                 supplierService.getAll(),
+                userService.getAll()
             ]);
             setProducts(productRes.data || []);
             setSuppliers(supplierRes || []);
+            setUsers(userRes || []);
 
             // Check if nav state exists (coming from specific order)
             if (location.state?.fromOrder) {
@@ -333,6 +342,10 @@ const CreateTransfer: React.FC = () => {
                 setError('Vui lòng chọn Lý do xuất kho');
                 return;
             }
+            if (paymentTerms > 0 && !selectedUserId) {
+                setError('Vui lòng chọn Khách hàng (User) khi tạo đơn hàng Công nợ.');
+                return;
+            }
             // Người nhận bắt buộc
             if (!receiverName.trim()) {
                 setError('Vui lòng nhập tên Người nhận hàng');
@@ -452,6 +465,7 @@ const CreateTransfer: React.FC = () => {
                 receiver_department: transferType === 'EXPORT' ? receiverDepartment || undefined : undefined,
                 receiver_address: transferType === 'EXPORT' ? receiverAddress || undefined : undefined,
                 receiver_phone: transferType === 'EXPORT' ? receiverPhone || undefined : undefined,
+                user_id: transferType === 'EXPORT' ? selectedUserId : undefined,
                 receiver_latitude: transferType === 'EXPORT' ? receiverLat : undefined,
                 receiver_longitude: transferType === 'EXPORT' ? receiverLng : undefined,
                 subtotal: calculations.grandTotal,
@@ -725,6 +739,53 @@ const CreateTransfer: React.FC = () => {
                         )}
                         {transferType === 'EXPORT' && (
                             <>
+                                {paymentTerms > 0 && (
+                                    <div className="col-span-2 relative">
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            Khách hàng / Tài khoản <span className="text-red-500">*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={searchUserQuery}
+                                            onChange={(e) => {
+                                                setSearchUserQuery(e.target.value);
+                                                setShowUserDropdown(true);
+                                                if (!e.target.value) {
+                                                    setSelectedUserId(undefined);
+                                                }
+                                            }}
+                                            onFocus={() => setShowUserDropdown(true)}
+                                            className={`w-full px-4 py-3 bg-white border rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${selectedUserId ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200'}`}
+                                            placeholder="🔍 Nhập Tên hoặc SĐT để tìm KH..." 
+                                        />
+                                        {showUserDropdown && searchUserQuery && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                {users.filter(u => 
+                                                    u.full_name.toLowerCase().includes(searchUserQuery.toLowerCase()) || 
+                                                    (u.phone && u.phone.includes(searchUserQuery))
+                                                ).slice(0, 5).map(u => (
+                                                    <div 
+                                                        key={u.id}
+                                                        className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+                                                        onClick={() => {
+                                                            setSearchUserQuery(`${u.full_name} - ${u.phone || ''}`);
+                                                            setSelectedUserId(u.id);
+                                                            setReceiverName(u.full_name);
+                                                            setReceiverPhone(u.phone || '');
+                                                            setShowUserDropdown(false);
+                                                        }}
+                                                    >
+                                                        <div className="font-medium text-sm text-slate-800">{u.full_name}</div>
+                                                        <div className="text-xs text-slate-500">{u.phone || 'Chưa có SĐT'} - {u.email}</div>
+                                                    </div>
+                                                ))}
+                                                <div className="p-2 text-xs text-slate-400 text-center bg-slate-50 rounded-b-lg border-t border-slate-100 cursor-pointer" onClick={() => setShowUserDropdown(false)}>
+                                                    Đóng
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">Người nhận *</label>
                                     <input

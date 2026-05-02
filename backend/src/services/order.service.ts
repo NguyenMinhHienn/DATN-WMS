@@ -250,19 +250,39 @@ class OrderService {
         if (order.payment_method === 'CREDIT') {
             try {
                 const { receivableService } = require('./receivable.service');
-                const creditInfo = await creditService.getCreditInfo(order.user_id);
-                await receivableService.createFromCreditOrder({
-                    id: orderId,
-                    total_amount: Number(order.total_amount),
-                    shipping_name: order.shipping_name,
-                    shipping_phone: order.shipping_phone,
-                    shipping_address: order.shipping_address,
-                    user_id: order.user_id,
-                    created_at: order.created_at,
-                    payment_terms: creditInfo.credit_payment_terms,
-                });
-                // Cập nhật credit_used
-                await creditService.syncCreditUsed(order.user_id);
+                const { receivableRepository } = require('../repositories/receivable.repository');
+
+                // Kiểm tra xem đã có receivable từ export_transfer chưa (tránh duplicate)
+                const existingFromTransfer = await receivableRepository.findBySource('order', orderId);
+                if (existingFromTransfer) {
+                    console.log(`ℹ️ Đã có công nợ ${existingFromTransfer.receivable_number} cho đơn #${orderId}, bỏ qua tạo mới`);
+                } else {
+                    // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                    const pool = require('../config/database').default;
+                    const [stRows] = await pool.query(
+                        `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                         FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                        [orderId]
+                    );
+                    let grandTotal = Number(order.total_amount);
+                    if (stRows.length > 0) {
+                        grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                    }
+
+                    const creditInfo = await creditService.getCreditInfo(order.user_id);
+                    await receivableService.createFromCreditOrder({
+                        id: orderId,
+                        total_amount: grandTotal,
+                        shipping_name: order.shipping_name,
+                        shipping_phone: order.shipping_phone,
+                        shipping_address: order.shipping_address,
+                        user_id: order.user_id,
+                        created_at: order.created_at,
+                        payment_terms: creditInfo.credit_payment_terms,
+                    });
+                    // Cập nhật credit_used
+                    await creditService.syncCreditUsed(order.user_id);
+                }
             } catch (recErr) {
                 console.error('⚠️ Lỗi tạo công nợ từ đơn CREDIT:', recErr);
             }

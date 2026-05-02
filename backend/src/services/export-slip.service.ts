@@ -3,6 +3,7 @@ import { orderRepository } from '../repositories/order.repository';
 import { AppError } from '../middlewares/error.middleware';
 import { inventoryCoreService } from './inventory-core.service';
 import pool from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 /**
  * ExportSlip Service
@@ -205,9 +206,21 @@ class ExportSlipService {
         if (order.payment_method === 'COD') {
             try {
                 const { receivableService } = require('./receivable.service');
+
+                // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                const [stRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                     FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    [slip.order_id]
+                );
+                let grandTotal = Number(order.total_amount);
+                if (stRows.length > 0) {
+                    grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                }
+
                 const receivableId = await receivableService.createFromOrder({
                     id: slip.order_id,
-                    total_amount: Number(order.total_amount),
+                    total_amount: grandTotal,
                     shipping_name: order.shipping_name,
                     shipping_phone: order.shipping_phone,
                     shipping_address: order.shipping_address,
@@ -216,7 +229,7 @@ class ExportSlipService {
                 });
                 // Auto-close receivable vì COD đã thu tiền khi giao
                 const { receivableRepository } = require('../repositories/receivable.repository');
-                await receivableRepository.updatePaidAmount(receivableId, Number(order.total_amount));
+                await receivableRepository.updatePaidAmount(receivableId, grandTotal);
             } catch (recErr) {
                 // Log lỗi nhưng KHÔNG throw - đảm bảo delivery vẫn thành công
                 console.error('⚠️ [ExportSlip] Lỗi tạo công nợ từ đơn COD:', recErr);
@@ -228,10 +241,22 @@ class ExportSlipService {
             try {
                 const { receivableService } = require('./receivable.service');
                 const { creditService } = require('./credit.service');
+
+                // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                const [stRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                     FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    [slip.order_id]
+                );
+                let grandTotal = Number(order.total_amount);
+                if (stRows.length > 0) {
+                    grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                }
+
                 const creditInfo = await creditService.getCreditInfo(order.user_id);
                 await receivableService.createFromCreditOrder({
                     id: slip.order_id,
-                    total_amount: Number(order.total_amount),
+                    total_amount: grandTotal,
                     shipping_name: order.shipping_name,
                     shipping_phone: order.shipping_phone,
                     shipping_address: order.shipping_address,

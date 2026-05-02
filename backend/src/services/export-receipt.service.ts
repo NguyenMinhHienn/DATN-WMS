@@ -76,6 +76,7 @@ export class ExportReceiptService {
                         receipt_number: receipt.receipt_number,
                         total_amount: Number(receipt.total_amount),
                         receipt_date: receipt.receipt_date instanceof Date ? receipt.receipt_date.toISOString() : String(receipt.receipt_date),
+                        user_id: receipt.user_id,
                         receiver_name: receipt.receiver_name,
                         receiver_phone: receipt.receiver_phone,
                         receiver_address: receipt.receiver_address,

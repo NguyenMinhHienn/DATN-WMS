@@ -3,6 +3,8 @@ import { exportReceiptService, ExportReceiptSummary, ExportReceiptFull } from '.
 import { orderService, OrderSummary } from '../../services/orderService';
 import { productVariantService } from '../../services/productVariantService';
 import { productService } from '../../services/productService';
+import { userService } from '../../services/userService';
+import { User } from '../../interface';
 import { Pagination } from '../../components/Pagination';
 
 interface ReceiptItem {
@@ -34,6 +36,11 @@ const ExportReceipt: React.FC = () => {
     const [variants, setVariants] = useState<any[]>([]);
     const [selectedProductId, setSelectedProductId] = useState<number>(0);
 
+    // User Search State
+    const [users, setUsers] = useState<User[]>([]);
+    const [searchUserQuery, setSearchUserQuery] = useState('');
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+
     // Create form
     const [formData, setFormData] = useState({
         receipt_date: new Date().toISOString().split('T')[0],
@@ -52,6 +59,8 @@ const ExportReceipt: React.FC = () => {
         delivery_method: 'delivery' as string, // 'delivery' | 'pickup'
         shipping_fee: 30000,       // Phí ship mặc định
         shipping_fee_manual: false, // User đã sửa thủ công chưa
+        user_id: undefined as number | undefined,
+        payment_method: 'cash' as string, // 'cash' | 'credit'
     });
     const [formItems, setFormItems] = useState<ReceiptItem[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -84,7 +93,9 @@ const ExportReceipt: React.FC = () => {
     const openCreateModal = async () => {
         try {
             const prRes = await productService.getAll(1, 200);
+            const userRes = await userService.getAll();
             setProducts(prRes.data || []);
+            setUsers(userRes || []);
             setFormData({
                 receipt_date: new Date().toISOString().split('T')[0],
                 export_reason: 'sale',
@@ -102,7 +113,10 @@ const ExportReceipt: React.FC = () => {
                 delivery_method: 'delivery',
                 shipping_fee: 30000,
                 shipping_fee_manual: false,
+                user_id: undefined,
+                payment_method: 'cash',
             });
+            setSearchUserQuery('');
             setFormItems([]);
             setShowCreateModal(true);
         } catch (err) {
@@ -134,6 +148,8 @@ const ExportReceipt: React.FC = () => {
             receiver_name: order.shipping_name || '',
             receiver_address: order.shipping_address || '',
             receiver_phone: order.shipping_phone || '',
+            user_id: order.user_id,
+            payment_method: isCredit ? 'credit' : 'cash',
             notes: `Xuất theo đơn hàng #${order.id}${creditNote}`,
             reference_document: `ĐH-${order.id}${isCredit ? '-CREDIT' : ''}`,
         }));
@@ -248,6 +264,11 @@ const ExportReceipt: React.FC = () => {
         const warningStr = checkStockWarnings();
         if (warningStr && !window.confirm(warningStr)) { return; }
 
+        if (formData.payment_method === 'credit' && !formData.user_id) {
+            alert('Vui lòng chọn khách hàng có tài khoản để ghi nợ!');
+            return;
+        }
+
         setSubmitting(true);
         try {
             // Tính VAT và shipping để gửi lên server
@@ -255,6 +276,7 @@ const ExportReceipt: React.FC = () => {
 
             await exportReceiptService.createReceipt({
                 receipt_date: formData.receipt_date,
+                user_id: formData.user_id,
                 warehouse_id: formData.warehouse_id,
                 export_reason: formData.export_reason || 'sale',
                 receiver_name: formData.receiver_name || undefined,
@@ -268,6 +290,7 @@ const ExportReceipt: React.FC = () => {
                 vat_percent: vatPctDecimal,
                 shipping_fee: currentShippingFee,
                 delivery_method: formData.delivery_method,
+                payment_terms: formData.payment_method === 'credit' ? 30 : 0, // Mặc định 30 ngày nếu chọn nợ, backend sẽ lấy từ DB nếu có
                 items: formItems.map(item => ({
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id,
@@ -518,6 +541,76 @@ const ExportReceipt: React.FC = () => {
                             <div>
                                 <label className="block text-sm text-slate-600 mb-1">Ngày xuất *</label>
                                 <input type="date" value={formData.receipt_date} onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })} className="input w-full" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm text-slate-600 mb-1">Phương thức TT</label>
+                                <select 
+                                    value={formData.payment_method} 
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFormData({ ...formData, payment_method: val });
+                                        if (val === 'credit' && !formData.user_id) {
+                                            alert('Lưu ý: Bán công nợ bắt buộc phải chọn Khách hàng (User)');
+                                        }
+                                    }} 
+                                    className={`input w-full ${formData.payment_method === 'credit' ? 'border-amber-400 bg-amber-50' : ''}`}
+                                >
+                                    <option value="cash">Tiền mặt / Chuyển khoản</option>
+                                    <option value="credit">Công nợ (Trả sau)</option>
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-2 relative">
+                                <label className="block text-sm text-slate-600 mb-1">
+                                    Khách hàng / Đối tác {formData.payment_method === 'credit' && <span className="text-red-500">*</span>}
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={searchUserQuery}
+                                    onChange={(e) => {
+                                        setSearchUserQuery(e.target.value);
+                                        setShowUserDropdown(true);
+                                        if (!e.target.value) {
+                                            setFormData(prev => ({ ...prev, user_id: undefined }));
+                                        }
+                                    }}
+                                    onFocus={() => setShowUserDropdown(true)}
+                                    className={`input w-full ${formData.user_id ? 'border-emerald-400 bg-emerald-50' : ''}`} 
+                                    placeholder="🔍 Nhập Tên hoặc SĐT để tìm KH (Bỏ trống nếu khách vãng lai)" 
+                                />
+                                {showUserDropdown && searchUserQuery && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        {users.filter(u => 
+                                            u.full_name.toLowerCase().includes(searchUserQuery.toLowerCase()) || 
+                                            (u.phone && u.phone.includes(searchUserQuery))
+                                        ).slice(0, 5).map(u => (
+                                            <div 
+                                                key={u.id}
+                                                className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+                                                onClick={() => {
+                                                    setSearchUserQuery(`${u.full_name} - ${u.phone || ''}`);
+                                                    setFormData(prev => ({ 
+                                                        ...prev, 
+                                                        user_id: u.id,
+                                                        receiver_name: u.full_name,
+                                                        receiver_phone: u.phone || '',
+                                                    }));
+                                                    setShowUserDropdown(false);
+                                                }}
+                                            >
+                                                <div className="font-medium text-slate-800">{u.full_name}</div>
+                                                <div className="text-xs text-slate-500">{u.phone || 'Không có SĐT'} | {u.email}</div>
+                                            </div>
+                                        ))}
+                                        {users.filter(u => 
+                                            u.full_name.toLowerCase().includes(searchUserQuery.toLowerCase()) || 
+                                            (u.phone && u.phone.includes(searchUserQuery))
+                                        ).length === 0 && (
+                                            <div className="px-4 py-3 text-sm text-slate-500 text-center">Không tìm thấy khách hàng nào</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div>

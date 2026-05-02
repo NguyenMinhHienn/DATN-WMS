@@ -90,6 +90,7 @@ export interface CreateStockTransferData {
     receiver_department?: string;
     receiver_address?: string;
     receiver_phone?: string;
+    user_id?: number;
     order_id?: number;
     reason?: string;
     notes?: string;

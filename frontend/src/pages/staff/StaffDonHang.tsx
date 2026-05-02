@@ -336,7 +336,7 @@ const StaffDonHang: React.FC = () => {
                                         {/* Right: Price + Actions */}
                                         <div className="flex flex-col items-end gap-2 shrink-0">
                                             <p className="text-lg font-bold text-emerald-600">
-                                                {formatCurrency(order.total_amount)}
+                                                {formatCurrency(Number(order.total_amount) + Number((order as any).vat_amount || 0) + Number((order as any).shipping_fee || 0))}
                                             </p>
                                             <span className="text-[11px] text-slate-400">{formatDate(order.created_at)}</span>
 
@@ -433,12 +433,30 @@ const StaffDonHang: React.FC = () => {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    {/* Total */}
-                                                    <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-                                                        <span className="text-sm text-slate-500 font-medium">Tổng cộng</span>
-                                                        <span className="text-lg font-bold text-emerald-600">
-                                                            {formatCurrency(selectedOrder.total_amount)}
-                                                        </span>
+                                                    {/* Total breakdown */}
+                                                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-1.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs text-slate-400">Tạm tính</span>
+                                                            <span className="text-sm font-medium text-slate-600">{formatCurrency(selectedOrder.total_amount)}</span>
+                                                        </div>
+                                                        {Number((selectedOrder as any).vat_amount) > 0 && (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-slate-400">Thuế VAT</span>
+                                                                <span className="text-sm font-medium text-orange-500">+{formatCurrency((selectedOrder as any).vat_amount)}</span>
+                                                            </div>
+                                                        )}
+                                                        {Number((selectedOrder as any).shipping_fee) > 0 && (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-slate-400">Phí vận chuyển</span>
+                                                                <span className="text-sm font-medium text-orange-500">+{formatCurrency((selectedOrder as any).shipping_fee)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
+                                                            <span className="text-sm text-slate-600 font-semibold">Tổng cộng</span>
+                                                            <span className="text-lg font-bold text-emerald-600">
+                                                                {formatCurrency(Number(selectedOrder.total_amount) + Number((selectedOrder as any).vat_amount || 0) + Number((selectedOrder as any).shipping_fee || 0))}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

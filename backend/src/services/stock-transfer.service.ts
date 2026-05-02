@@ -310,16 +310,65 @@ export class StockTransferService {
 
         if (approved && transfer.transfer_type === 'EXPORT') {
             try {
-                await receivableService.createFromExportTransfer({
-                    id: transfer.id,
-                    transfer_number: transfer.transfer_number,
-                    total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
-                    transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
-                    receiver_name: (transfer as any).receiver_name,
-                    receiver_phone: (transfer as any).receiver_phone,
-                    receiver_address: (transfer as any).receiver_address,
-                    payment_terms: (transfer as any).payment_terms || 0,
-                }, adminUserId);
+                if ((transfer as any).order_id) {
+                    const orderId = (transfer as any).order_id;
+                    const pool = require('../config/database').default;
+                    const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ? LIMIT 1', [orderId]);
+                    
+                    if (orders.length > 0) {
+                        const order = orders[0];
+                        const { receivableRepository } = require('../repositories/receivable.repository');
+                        const existingOrderReceivable = await receivableRepository.findBySource('order', orderId);
+                        
+                        if (!existingOrderReceivable) {
+                            const grandTotal = parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0) + 
+                                               parseFloat((transfer as any).vat_amount || 0) + 
+                                               parseFloat((transfer as any).shipping_fee || 0);
+
+                            if (order.payment_method === 'CREDIT') {
+                                const { creditService } = require('./credit.service');
+                                const creditInfo = await creditService.getCreditInfo(order.user_id);
+                                await receivableService.createFromCreditOrder({
+                                    id: orderId,
+                                    total_amount: grandTotal,
+                                    shipping_name: order.shipping_name,
+                                    shipping_phone: order.shipping_phone,
+                                    shipping_address: order.shipping_address,
+                                    user_id: order.user_id,
+                                    created_at: order.created_at,
+                                    payment_terms: creditInfo.credit_payment_terms,
+                                });
+                                await creditService.syncCreditUsed(order.user_id);
+                                console.log(`✅ Đã tạo công nợ Credit sớm cho đơn hàng #${orderId} khi duyệt phiếu xuất`);
+                            } else if (order.payment_method === 'COD') {
+                                // Với COD, tạo công nợ nhưng chưa auto-close (chờ lúc giao hàng xong mới close)
+                                await receivableService.createFromOrder({
+                                    id: orderId,
+                                    total_amount: grandTotal,
+                                    shipping_name: order.shipping_name,
+                                    shipping_phone: order.shipping_phone,
+                                    shipping_address: order.shipping_address,
+                                    user_id: order.user_id,
+                                    created_at: order.created_at,
+                                });
+                                console.log(`✅ Đã tạo công nợ COD sớm cho đơn hàng #${orderId} khi duyệt phiếu xuất`);
+                            }
+                        }
+                    }
+                } else {
+                    // Phiếu xuất ngoài không qua Order
+                    await receivableService.createFromExportTransfer({
+                        id: transfer.id,
+                        transfer_number: transfer.transfer_number,
+                        total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
+                        transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                        receiver_name: (transfer as any).receiver_name,
+                        receiver_phone: (transfer as any).receiver_phone,
+                        receiver_address: (transfer as any).receiver_address,
+                        payment_terms: (transfer as any).payment_terms || 0,
+                        user_id: (transfer as any).user_id,
+                    }, adminUserId);
+                }
             } catch (recErr) {
                 console.error('⚠️ Lỗi tạo công nợ từ phiếu xuất (Stock Transfer):', recErr);
             }

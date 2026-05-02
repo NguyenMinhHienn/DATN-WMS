@@ -62,11 +62,13 @@ export interface CreateExportReceiptPayload {
     receiver_department?: string;
     receiver_address?: string;
     receiver_phone?: string;
+    user_id?: number;
     export_reason?: string;
     warehouse_id: number;
     vat_percent?: number;
     shipping_fee?: number;
     delivery_method?: string;
+    payment_terms?: number;
     notes?: string;
     reference_document?: string;
     delivery_person?: string;
