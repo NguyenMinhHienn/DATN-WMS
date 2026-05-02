@@ -107,3 +107,24 @@ export const getInventoryReport = asyncHandler(async (req: AuthRequest, res: Res
         data: report,
     } as ApiResponse);
 });
+
+export const getOverallInventoryReport = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const fromDate = req.query.from_date as string;
+    const toDate = req.query.to_date as string;
+    const warehouseId = req.query.warehouse_id ? parseInt(req.query.warehouse_id as string) : undefined;
+
+    if (!fromDate || !toDate) {
+        res.status(400).json({
+            success: false,
+            message: 'from_date và to_date là bắt buộc',
+        } as ApiResponse);
+        return;
+    }
+
+    const report = await inventoryService.getOverallInventoryReport(fromDate, toDate, warehouseId);
+
+    res.json({
+        success: true,
+        data: report,
+    } as ApiResponse);
+});

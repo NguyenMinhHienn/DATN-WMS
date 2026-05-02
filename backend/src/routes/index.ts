@@ -47,7 +47,7 @@ router.put('/auth/password', authenticate, authController.changePassword);
 router.post('/auth/avatar', authenticate, uploadController.upload.single('avatar'), uploadController.uploadAvatar);
 
 // ==================== USER ROUTES ====================
-router.get('/users', authenticate, isAdmin, userController.getAllUsers);
+router.get('/users', authenticate, isStaff, userController.getAllUsers);
 router.get('/users/:id', authenticate, isAdmin, userController.getUserById);
 router.post('/users', authenticate, isAdmin, userController.createUser);
 router.put('/users/:id', authenticate, isAdmin, userController.updateUser);
@@ -97,6 +97,7 @@ router.get('/inventory', authenticate, checkViewPermission('view_inventory'), in
 router.get('/inventory/low-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getLowStockItems);
 router.get('/inventory/under-ten-stock', authenticate, checkViewPermission('view_inventory'), inventoryController.getUnderTenStockItems);
 router.get('/inventory/movements', authenticate, checkViewPermission('view_inventory'), inventoryController.getMovementLogs);
+router.get('/inventory/report/overall', authenticate, checkViewPermission('view_inventory'), inventoryController.getOverallInventoryReport);
 router.get('/inventory/:id/metrics', authenticate, checkViewPermission('view_inventory'), inventoryController.getPerformanceMetrics);
 router.get('/inventory/:id/report', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryReport);
 router.get('/inventory/:id', authenticate, checkViewPermission('view_inventory'), inventoryController.getInventoryById);

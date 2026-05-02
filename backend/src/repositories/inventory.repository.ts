@@ -410,5 +410,87 @@ export class InventoryRepository {
             totalProfit: revenue - cost
         };
     }
+
+    /**
+     * Báo cáo Tổng hợp Nhập – Xuất – Tồn cho toàn bộ sản phẩm
+     */
+    async getOverallInventoryReport(
+        fromDate: string,
+        toDate: string,
+        warehouseId?: number
+    ): Promise<any[]> {
+        const warehouseFilter = warehouseId ? `AND i.warehouse_id = ${pool.escape(warehouseId)}` : '';
+
+        // 1. Lấy thông tin cơ bản của tất cả các biến thể đang có trong kho
+        const query = `
+            SELECT 
+                i.id as inventory_id,
+                p.id as product_id,
+                p.name as product_name,
+                COALESCE(pv.sku, p.sku) as sku,
+                CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+                w.name as warehouse_name,
+                
+                -- Tồn đầu kỳ: Tổng số lượng thay đổi trước fromDate
+                COALESCE((
+                    SELECT SUM(il.quantity_change)
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.created_at < ?
+                ), 0) AS ton_dau,
+                
+                -- Nhập trong kỳ: Tổng số lượng thay đổi dương trong khoảng thời gian
+                COALESCE((
+                    SELECT SUM(il.quantity_change)
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.quantity_change > 0
+                    AND il.created_at >= ? AND il.created_at <= ?
+                ), 0) AS nhap_trong_ky,
+                
+                -- Xuất trong kỳ: Tổng trị tuyệt đối số lượng thay đổi âm trong khoảng thời gian
+                COALESCE((
+                    SELECT SUM(ABS(il.quantity_change))
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.quantity_change < 0
+                    AND il.created_at >= ? AND il.created_at <= ?
+                ), 0) AS xuat_trong_ky
+                
+            FROM inventories i
+            INNER JOIN products p ON i.product_id = p.id
+            INNER JOIN warehouses w ON i.warehouse_id = w.id
+            LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+            WHERE p.deleted_at IS NULL 
+            AND (pv.id IS NULL OR pv.is_active = 1)
+            ${warehouseFilter}
+            ORDER BY p.name ASC, pv.sku ASC
+        `;
+
+        const [rows] = await pool.query<RowDataPacket[]>(query, [
+            fromDate, 
+            fromDate, toDate, 
+            fromDate, toDate
+        ]);
+
+        // Tính tồn cuối kỳ cho mỗi dòng
+        const reportData = rows.map(row => {
+            const ton_dau = Number(row.ton_dau) || 0;
+            const nhap_trong_ky = Number(row.nhap_trong_ky) || 0;
+            const xuat_trong_ky = Number(row.xuat_trong_ky) || 0;
+            return {
+                ...row,
+                ton_dau,
+                nhap_trong_ky,
+                xuat_trong_ky,
+                ton_cuoi: ton_dau + nhap_trong_ky - xuat_trong_ky
+            };
+        });
+
+        return reportData;
+    }
 }
 export const inventoryRepository = new InventoryRepository();

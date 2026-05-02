@@ -83,5 +83,15 @@ export const inventoryService = {
     async getReport(id: number, fromDate: string, toDate: string): Promise<{ ton_dau: number, nhap_trong_ky: number, xuat_trong_ky: number, ton_cuoi: number }> {
         const response = await api.get<ApiResponse<any>>(`/inventory/${id}/report?from_date=${fromDate}&to_date=${toDate}`);
         return response.data.data;
+    },
+
+    async getOverallReport(fromDate: string, toDate: string, warehouseId?: number): Promise<any[]> {
+        const params = new URLSearchParams();
+        params.append('from_date', fromDate);
+        params.append('to_date', toDate);
+        if (warehouseId) params.append('warehouse_id', warehouseId.toString());
+        
+        const response = await api.get<ApiResponse<any[]>>(`/inventory/report/overall?${params.toString()}`);
+        return response.data.data || [];
     }
 };

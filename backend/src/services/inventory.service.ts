@@ -56,6 +56,10 @@ export class InventoryService {
     async getPerformanceMetrics(inventoryId: number) {
         return inventoryRepository.getProductPerformanceMetrics(inventoryId);
     }
+
+    async getOverallInventoryReport(fromDate: string, toDate: string, warehouseId?: number) {
+        return inventoryRepository.getOverallInventoryReport(fromDate, toDate, warehouseId);
+    }
 }
 
 export const inventoryService = new InventoryService();

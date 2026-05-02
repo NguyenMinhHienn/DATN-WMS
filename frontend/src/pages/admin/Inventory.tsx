@@ -62,9 +62,83 @@ const InventoryPage: React.FC = () => {
     const [reportLoading, setReportLoading] = useState(false);
 
     // Expanded State
+    
     const [expandedProducts, setExpandedProducts] = useState<number[]>([]);
 
+    // Overall Report State
+    const [overallReportData, setOverallReportData] = useState<any[]>([]);
+    const [overallLoading, setOverallLoading] = useState(false);
+    const [overallFromDate, setOverallFromDate] = useState(getDefaultFromDate());
+    const [overallToDate, setOverallToDate] = useState(getDefaultToDate());
+    const [activeMainTab, setActiveMainTab] = useState<'details' | 'overall'>('details');
+
+    const loadOverallReport = async () => {
+        try {
+            setOverallLoading(true);
+            const toDateEnd = overallToDate + ' 23:59:59';
+            const data = await inventoryService.getOverallReport(overallFromDate, toDateEnd);
+            setOverallReportData(data);
+        } catch (error) {
+            console.error('Failed to load overall report:', error);
+            alert('Lỗi tải báo cáo tổng hợp');
+        } finally {
+            setOverallLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeMainTab === 'overall' && overallReportData.length === 0) {
+            loadOverallReport();
+        }
+    }, [activeMainTab]);
+
+    const exportOverallReportToExcel = () => {
+        if (overallReportData.length === 0) return;
+        
+        const wb = XLSX.utils.book_new();
+        
+        const data = [
+            ['BÁO CÁO TỔNG HỢP XUẤT NHẬP TỒN TOÀN KHO'],
+            ['Thời gian:', `${overallFromDate} đến ${overallToDate}`],
+            [''],
+            ['STT', 'Sản phẩm', 'Biến thể', 'SKU', 'Kho', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']
+        ];
+
+        overallReportData.forEach((item, index) => {
+            data.push([
+                index + 1,
+                item.product_name,
+                item.variant_label || 'Bản tiêu chuẩn',
+                item.sku,
+                item.warehouse_name,
+                item.ton_dau,
+                item.nhap_trong_ky,
+                item.xuat_trong_ky,
+                item.ton_cuoi
+            ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        const wscols = [
+            { wch: 5 },
+            { wch: 30 },
+            { wch: 20 },
+            { wch: 15 },
+            { wch: 20 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 15 }
+        ];
+        ws['!cols'] = wscols;
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Tổng hợp XNT');
+        XLSX.writeFile(wb, `Bao-cao-Tong-hop-XNT_${overallFromDate}.xlsx`);
+    };
+
     // Edit Price State
+
     const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
     const [editPriceValue, setEditPriceValue] = useState<number>(0);
     const [priceLoading, setPriceLoading] = useState(false);
@@ -331,13 +405,36 @@ const InventoryPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn">
+            
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold">
-                    <span className="gradient-text">Tồn kho</span>
-                </h1>
-                <p className="text-slate-600 mt-1">Theo dõi tồn kho tại các kho hàng</p>
+            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">
+                        <span className="gradient-text">Tồn kho</span>
+                    </h1>
+                    <p className="text-slate-600 mt-1">Theo dõi tồn kho tại các kho hàng</p>
+                </div>
             </div>
+
+            {/* Main Tabs */}
+            <div className="flex border-b border-slate-200 mb-6">
+                <button
+                    onClick={() => setActiveMainTab('details')}
+                    className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${activeMainTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                    Chi tiết Tồn kho
+                </button>
+                <button
+                    onClick={() => setActiveMainTab('overall')}
+                    className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${activeMainTab === 'overall' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                    Tổng hợp Xuất Nhập Tồn
+                </button>
+            </div>
+
+            {activeMainTab === 'details' && (
+                <>
+
 
             {/* Low Stock Alert - Accordion */}
             {lowStock.length > 0 && (
@@ -679,7 +776,180 @@ const InventoryPage: React.FC = () => {
                 )}
             </div>
 
+            
+                </>
+            )}
+
+            {activeMainTab === 'overall' && (
+                <div className="animate-fadeIn">
+                    {/* Filters */}
+                    <div className="chart-container mb-6 p-5 flex flex-wrap items-end gap-4">
+                        <div className="flex flex-col">
+                            <label className="text-xs font-medium text-slate-500 mb-1">Từ ngày</label>
+                            <input
+                                type="date"
+                                value={overallFromDate}
+                                onChange={(e) => setOverallFromDate(e.target.value)}
+                                className="px-4 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-xs font-medium text-slate-500 mb-1">Đến ngày</label>
+                            <input
+                                type="date"
+                                value={overallToDate}
+                                onChange={(e) => setOverallToDate(e.target.value)}
+                                className="px-4 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            />
+                        </div>
+                        <button
+                            onClick={loadOverallReport}
+                            disabled={overallLoading}
+                            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {overallLoading ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            )}
+                            Xem báo cáo
+                        </button>
+                        <div className="flex-1"></div>
+                        <button
+                            onClick={exportOverallReportToExcel}
+                            disabled={overallReportData.length === 0}
+                            className="px-6 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Xuất Excel
+                        </button>
+                    </div>
+
+                    
+                    {/* Summary Cards Area */}
+                    {!overallLoading && overallReportData.length > 0 && (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div className="chart-container !p-4 flex flex-col justify-center items-center border-l-4 border-slate-400">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 mb-2">
+                                    <span className="text-lg">📋</span>
+                                </div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng Tồn đầu kỳ</p>
+                                <p className="text-2xl font-bold text-slate-800 mt-1">{overallReportData.reduce((sum, item) => sum + item.ton_dau, 0).toLocaleString('vi-VN')}</p>
+                            </div>
+                            <div className="chart-container !p-4 flex flex-col justify-center items-center border-l-4 border-emerald-500">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 mb-2">
+                                    <span className="text-lg">📥</span>
+                                </div>
+                                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Tổng Nhập trong kỳ</p>
+                                <p className="text-2xl font-bold text-emerald-600 mt-1">+{overallReportData.reduce((sum, item) => sum + item.nhap_trong_ky, 0).toLocaleString('vi-VN')}</p>
+                            </div>
+                            <div className="chart-container !p-4 flex flex-col justify-center items-center border-l-4 border-rose-500">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-50 mb-2">
+                                    <span className="text-lg">📤</span>
+                                </div>
+                                <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">Tổng Xuất trong kỳ</p>
+                                <p className="text-2xl font-bold text-rose-500 mt-1">-{overallReportData.reduce((sum, item) => sum + item.xuat_trong_ky, 0).toLocaleString('vi-VN')}</p>
+                            </div>
+                            <div className="chart-container !p-4 flex flex-col justify-center items-center border-l-4 border-blue-600 bg-blue-50/30">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 mb-2">
+                                    <span className="text-lg">📊</span>
+                                </div>
+                                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Tổng Tồn cuối kỳ</p>
+                                <p className="text-2xl font-bold text-blue-700 mt-1">{overallReportData.reduce((sum, item) => sum + item.ton_cuoi, 0).toLocaleString('vi-VN')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Chart Area */}
+                    {!overallLoading && overallReportData.length > 0 && (
+                        <div className="chart-container mb-6 p-5">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">Top 10 Sản phẩm biến động lớn nhất</h3>
+                            <div className="h-72">
+                                <Line 
+                                    data={{
+                                        labels: overallReportData.sort((a,b) => (b.nhap_trong_ky + b.xuat_trong_ky) - (a.nhap_trong_ky + a.xuat_trong_ky)).slice(0, 10).map(i => i.product_name),
+                                        datasets: [
+                                            {
+                                                label: 'Nhập trong kỳ',
+                                                data: overallReportData.sort((a,b) => (b.nhap_trong_ky + b.xuat_trong_ky) - (a.nhap_trong_ky + a.xuat_trong_ky)).slice(0, 10).map(i => i.nhap_trong_ky),
+                                                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                                                borderColor: 'rgb(16, 185, 129)',
+                                                borderWidth: 2,
+                                                tension: 0.4
+                                            },
+                                            {
+                                                label: 'Xuất trong kỳ',
+                                                data: overallReportData.sort((a,b) => (b.nhap_trong_ky + b.xuat_trong_ky) - (a.nhap_trong_ky + a.xuat_trong_ky)).slice(0, 10).map(i => i.xuat_trong_ky),
+                                                backgroundColor: 'rgba(244, 63, 94, 0.5)',
+                                                borderColor: 'rgb(244, 63, 94)',
+                                                borderWidth: 2,
+                                                tension: 0.4
+                                            }
+                                        ]
+                                    }}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { legend: { position: 'top' } },
+                                        scales: { y: { beginAtZero: true } }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Table Area */}
+                    <div className="chart-container p-0 overflow-hidden">
+                        {overallLoading ? (
+                            <div className="flex items-center justify-center h-64">
+                                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        ) : overallReportData.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-64">
+                                <span className="text-4xl opacity-50 mb-3">📊</span>
+                                <p className="text-slate-500">Không có dữ liệu trong khoảng thời gian này</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                <table className="w-full">
+                                    <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+                                        <tr>
+                                            <th className="text-left py-4 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Sản phẩm</th>
+                                            <th className="text-left py-4 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Kho</th>
+                                            <th className="text-right py-4 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap border-l border-slate-200">Tồn đầu kỳ</th>
+                                            <th className="text-right py-4 px-6 text-xs font-bold text-emerald-700 uppercase tracking-wider whitespace-nowrap bg-emerald-50/50">Nhập trong kỳ</th>
+                                            <th className="text-right py-4 px-6 text-xs font-bold text-rose-700 uppercase tracking-wider whitespace-nowrap bg-rose-50/50">Xuất trong kỳ</th>
+                                            <th className="text-right py-4 px-6 text-xs font-bold text-blue-700 uppercase tracking-wider whitespace-nowrap border-l border-slate-200 bg-blue-50/50">Tồn cuối kỳ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {overallReportData.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                <td className="py-3 px-6">
+                                                    <p className="font-medium text-slate-900">{item.product_name}</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">{item.variant_label || 'Bản tiêu chuẩn'} • {item.sku}</p>
+                                                </td>
+                                                <td className="py-3 px-6 text-sm text-slate-600">{item.warehouse_name}</td>
+                                                <td className="py-3 px-6 text-sm text-right font-medium text-slate-700 border-l border-slate-100">{item.ton_dau.toLocaleString('vi-VN')}</td>
+                                                <td className="py-3 px-6 text-sm text-right font-bold text-emerald-600 bg-emerald-50/10">+{item.nhap_trong_ky.toLocaleString('vi-VN')}</td>
+                                                <td className="py-3 px-6 text-sm text-right font-bold text-rose-600 bg-rose-50/10">-{item.xuat_trong_ky.toLocaleString('vi-VN')}</td>
+                                                <td className="py-3 px-6 text-sm text-right font-bold text-blue-700 border-l border-slate-100 bg-blue-50/10">{item.ton_cuoi.toLocaleString('vi-VN')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* History Modal */}
+
             {showHistoryModal && selectedInventoryForHistory && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden animate-scaleIn">
