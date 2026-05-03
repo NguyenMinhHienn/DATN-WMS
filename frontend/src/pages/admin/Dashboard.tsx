@@ -412,7 +412,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Recent Movements */}
+            {/* Recent Movements - Redesigned */}
             <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -420,51 +420,96 @@ const Dashboard: React.FC = () => {
                             <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm">📋</span>
                             Biến động tồn kho gần đây
                         </h2>
-                        <p className="text-sm text-blue-500/70 mt-1 ml-10">Các giao dịch nhập/xuất kho mới nhất</p>
+                        <p className="text-sm text-blue-500/70 mt-1 ml-10">Lịch sử nhập/xuất kho mới nhất</p>
                     </div>
+                    <button onClick={() => navigate('/admin/reports')} className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-all hover:shadow-sm">
+                        Xem tất cả →
+                    </button>
                 </div>
-                <div className="overflow-x-auto rounded-xl border border-blue-50">
-                    <table className="w-full text-left">
-                        <thead className="bg-blue-50/50 border-b border-blue-100">
-                            <tr>
-                                <th className="py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Sản phẩm</th>
-                                <th className="py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Kho</th>
-                                <th className="py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Loại</th>
-                                <th className="text-right py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Thay đổi</th>
-                                <th className="py-3 px-4 text-xs font-bold text-blue-800 uppercase tracking-wider">Ngày</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {stats?.recentMovements?.map((movement: any, index: number) => (
-                                <tr key={index} className="hover:bg-slate-50 transition-colors">
-                                    <td className="py-3 px-4 text-sm font-medium text-slate-800">{movement.product_name}</td>
-                                    <td className="py-3 px-4 text-sm text-slate-600">{movement.warehouse_name}</td>
-                                    <td className="py-3 px-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-medium ${movement.movement_type.includes('in') || movement.movement_type === 'goods_receipt'
-                                            ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                            {movement.movement_type.replace(/_/g, ' ').toUpperCase()}
+                <div className="space-y-2.5">
+                    {stats?.recentMovements?.map((m: any, index: number) => {
+                        const isIn = m.quantity_change > 0;
+                        const typeMap: Record<string, { label: string; icon: string; color: string }> = {
+                            'goods_receipt': { label: 'Nhập kho', icon: '📥', color: 'emerald' },
+                            'stock_in': { label: 'Nhập kho', icon: '📥', color: 'emerald' },
+                            'stock_out': { label: 'Xuất kho', icon: '📤', color: 'rose' },
+                            'order_deduct': { label: 'Đơn hàng', icon: '🛒', color: 'amber' },
+                            'order_return': { label: 'Hoàn hàng', icon: '↩️', color: 'blue' },
+                            'order_cancel': { label: 'Hủy đơn', icon: '❌', color: 'slate' },
+                            'adjustment': { label: 'Điều chỉnh', icon: '⚙️', color: 'purple' },
+                            'transfer_in': { label: 'Chuyển đến', icon: '🔄', color: 'teal' },
+                            'transfer_out': { label: 'Chuyển đi', icon: '🔄', color: 'orange' },
+                            'reserve': { label: 'Đặt trước', icon: '🔒', color: 'slate' },
+                            'release': { label: 'Mở giữ', icon: '🔓', color: 'slate' },
+                        };
+                        const typeInfo = typeMap[m.movement_type] || { label: m.movement_type, icon: '📦', color: 'slate' };
+                        const timeAgo = (() => {
+                            const diff = Date.now() - new Date(m.created_at).getTime();
+                            const mins = Math.floor(diff / 60000);
+                            if (mins < 1) return 'Vừa xong';
+                            if (mins < 60) return `${mins} phút trước`;
+                            const hours = Math.floor(mins / 60);
+                            if (hours < 24) return `${hours} giờ trước`;
+                            const days = Math.floor(hours / 24);
+                            return `${days} ngày trước`;
+                        })();
+
+                        return (
+                            <div key={index} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-slate-50/80 border border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-sm transition-all group">
+                                {/* Movement type icon */}
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-sm ${
+                                    isIn ? 'bg-emerald-100 shadow-emerald-200/50' : 'bg-rose-100 shadow-rose-200/50'
+                                }`}>
+                                    {typeInfo.icon}
+                                </div>
+
+                                {/* Product info */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-slate-800 text-sm truncate max-w-[250px]">{m.product_name}</span>
+                                        {m.variant_label && (
+                                            <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded font-medium border border-indigo-100 shrink-0">{m.variant_label}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                            isIn ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'
+                                        }`}>
+                                            {typeInfo.label}
                                         </span>
-                                    </td>
-                                    <td className={`py-3 px-4 text-sm text-right font-bold ${movement.quantity_change > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                        {movement.quantity_change > 0 ? '+' : ''}{movement.quantity_change}
-                                    </td>
-                                    <td className="py-3 px-4 text-sm text-slate-500">
-                                        {new Date(movement.created_at).toLocaleDateString('vi-VN')}
-                                    </td>
-                                </tr>
-                            ))}
-                            {(!stats?.recentMovements || stats.recentMovements.length === 0) && (
-                                <tr>
-                                    <td colSpan={5} className="py-12 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <span className="text-4xl opacity-50">📭</span>
-                                            <p className="text-slate-500 font-medium">Chưa có biến động nào</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                        <span className="text-[10px] text-slate-400">🏭 {m.warehouse_name}</span>
+                                        {m.reference_number && (
+                                            <span className="text-[10px] text-indigo-400 font-mono">#{m.reference_number}</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Quantity change */}
+                                <div className="text-right shrink-0">
+                                    <div className={`text-sm font-black ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        {isIn ? '+' : ''}{m.quantity_change}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium">
+                                        {m.quantity_before != null ? `${m.quantity_before} → ${m.quantity_after}` : `Tồn: ${m.quantity_after}`}
+                                    </div>
+                                </div>
+
+                                {/* Time + actor */}
+                                <div className="text-right shrink-0 w-24">
+                                    <div className="text-[11px] text-slate-500 font-medium">{timeAgo}</div>
+                                    {m.performed_by_name && (
+                                        <div className="text-[10px] text-slate-400 truncate">👤 {m.performed_by_name}</div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {(!stats?.recentMovements || stats.recentMovements.length === 0) && (
+                        <div className="flex flex-col items-center gap-3 py-12">
+                            <span className="text-4xl opacity-50">📭</span>
+                            <p className="text-slate-500 font-medium">Chưa có biến động nào</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

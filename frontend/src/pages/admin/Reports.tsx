@@ -1232,6 +1232,8 @@ const Reports: React.FC = () => {
                                     <option value="">Tất cả giao dịch</option>
                                     <option value="payment_receipt">Phiếu Thu (Từ Khách hàng)</option>
                                     <option value="payment_voucher">Phiếu Chi (Trả Nhà cung cấp)</option>
+                                    <option value="receivable">Công nợ Phải thu</option>
+                                    <option value="payable">Công nợ Phải trả</option>
                                 </select>
                             </div>
                             <div className="h-6 w-[1px] bg-slate-200 mx-2 hidden sm:block"></div>
@@ -1265,7 +1267,7 @@ const Reports: React.FC = () => {
                                                 <td className="px-5 py-4">
                                                     <div className="font-black text-indigo-600 tracking-tight">{log.reference_number}</div>
                                                     <div className="text-[10px] text-slate-400 uppercase font-bold">
-                                                        {log.reference_type === 'payment_receipt' ? '🟢 Thu nợ' : log.reference_type === 'payment_voucher' ? '🔵 Chi trả' : log.reference_type}
+                                                        {log.reference_type === 'payment_receipt' ? '🟢 Phiếu thu' : log.reference_type === 'payment_voucher' ? '🔵 Phiếu chi' : log.reference_type === 'receivable' ? '📋 Công nợ thu' : log.reference_type === 'payable' ? '📦 Công nợ trả' : log.reference_type}
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-4">
@@ -1296,25 +1298,38 @@ const Reports: React.FC = () => {
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded border ${
-                                                        log.status_after === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                        log.status_after === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                                        log.status_after === 'approved' || log.status_after === 'paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                        log.status_after === 'rejected' || log.status_after === 'cancelled' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                                         log.status_after === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                        log.status_after === 'draft' ? 'bg-sky-50 text-sky-600 border-sky-200' :
+                                                        log.status_after === 'unpaid' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                        log.status_after === 'partial' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                        log.status_after === 'overdue' || log.status_after === 'bad_debt' ? 'bg-red-50 text-red-600 border-red-200' :
                                                         'bg-slate-50 text-slate-400 border-slate-100'
                                                     }`}>
                                                         {log.status_after === 'approved' ? '✓ Đã duyệt' : 
                                                          log.status_after === 'rejected' ? '✕ Từ chối' :
                                                          log.status_after === 'pending' ? '⏳ Chờ duyệt' :
+                                                         log.status_after === 'draft' ? '📝 Bản nháp' :
+                                                         log.status_after === 'unpaid' ? '○ Chưa thanh toán' :
+                                                         log.status_after === 'partial' ? '◐ Trả một phần' :
+                                                         log.status_after === 'paid' ? '● Đã thanh toán' :
+                                                         log.status_after === 'overdue' ? '⚠ Quá hạn' :
+                                                         log.status_after === 'bad_debt' ? '✕ Nợ xấu' :
+                                                         log.status_after === 'cancelled' ? '✕ Đã hủy' :
                                                          log.status_after || '--'}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-4 text-center">
-                                                    {(log.reference_type === 'payment_receipt' || log.reference_type === 'payment_voucher') && (
+                                                    {(log.reference_type === 'payment_receipt' || log.reference_type === 'payment_voucher') ? (
                                                         <button
                                                             onClick={() => openFinancialDetail(log)}
                                                             className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 border border-indigo-200 transition-all hover:shadow-sm"
                                                         >
                                                             📋 Chi tiết
                                                         </button>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-300">—</span>
                                                     )}
                                                 </td>
                                             </tr>

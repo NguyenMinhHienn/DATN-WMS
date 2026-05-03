@@ -43,12 +43,20 @@ export class ReportRepository {
   `);
 
     const [recentMovements] = await pool.query<RowDataPacket[]>(`
-      SELECT il.*, p.name as product_name, w.name as warehouse_name
+      SELECT il.*, 
+        p.name as product_name, 
+        p.sku as product_sku,
+        w.name as warehouse_name,
+        CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+        u.full_name as performed_by_name
       FROM inventory_logs il
       INNER JOIN products p ON il.product_id = p.id
       INNER JOIN warehouses w ON il.warehouse_id = w.id
+      LEFT JOIN product_variants pv ON il.product_variant_id = pv.id
+      LEFT JOIN users u ON il.performed_by = u.id
+      WHERE il.quantity_after != il.quantity_before
       ORDER BY il.created_at DESC
-      LIMIT 10
+      LIMIT 12
     `);
 
     return {

@@ -241,7 +241,7 @@ class ReceivableService {
             source_type: 'export_transfer',
             source_id: transfer.id,
             source_number: transfer.transfer_number,
-            debtor_type: transfer.user_id ? 'internal' : 'external',
+            debtor_type: transfer.user_id ? 'user' : 'external',
             debtor_name: transfer.receiver_name || 'Khách hàng/Kho nhận',
             debtor_phone: transfer.receiver_phone,
             debtor_address: transfer.receiver_address,
