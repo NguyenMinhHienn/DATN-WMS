@@ -145,6 +145,27 @@ const CustomerLedger: React.FC = () => {
         window.print(); // Đơn giản là in toàn bộ trang hoặc modal
     };
 
+    const handleSendConsolidatedReminder = async (customer: ConsolidatedLedgerEntry) => {
+        if (customer.remaining_debt <= 0) {
+            alert('Khách hàng này không còn nợ!');
+            return;
+        }
+        
+        const email = prompt('Nhập địa chỉ Email nhận thông báo nhắc nợ gộp:', customer.debtor_email || '');
+        if (email === null) return;
+        if (!email.trim()) {
+            alert('Vui lòng cung cấp địa chỉ Email hợp lệ!');
+            return;
+        }
+
+        try {
+            const res = await receivableService.sendConsolidatedReminder(customer.user_id, email.trim());
+            alert(res.message || 'Đã gửi Email Nhắc Nợ tổng hợp thành công!');
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi gửi email');
+        }
+    };
+
     return (
         <div className="animate-fadeIn">
             {/* Header */}
@@ -289,6 +310,15 @@ const CustomerLedger: React.FC = () => {
                                                             className="px-3 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 shadow-md shadow-blue-200 transition-all hover:scale-105 active:scale-95"
                                                         >
                                                             💳 THU NỢ GỘP
+                                                        </button>
+                                                    )}
+                                                    {item.remaining_debt > 0 && (
+                                                        <button 
+                                                            onClick={() => handleSendConsolidatedReminder(item)}
+                                                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-100"
+                                                            title="Gửi email nhắc nợ tổng hợp"
+                                                        >
+                                                            🔔
                                                         </button>
                                                     )}
                                                 </div>
@@ -470,12 +500,20 @@ const CustomerLedger: React.FC = () => {
                             <div className="flex gap-3">
                                 <button className="btn btn-secondary" onClick={() => setIsDetailModalOpen(false)}>Đóng</button>
                                 {selectedCustomer.remaining_debt > 0 && (
-                                    <button 
-                                        className="btn btn-primary shadow-lg shadow-blue-100"
-                                        onClick={() => { setIsDetailModalOpen(false); openBulkPayment(selectedCustomer); }}
-                                    >
-                                        💳 THU TIỀN NGAY
-                                    </button>
+                                    <>
+                                        <button 
+                                            className="btn !bg-orange-100 !text-orange-700 hover:!bg-orange-200 border-none shadow-sm"
+                                            onClick={() => handleSendConsolidatedReminder(selectedCustomer)}
+                                        >
+                                            🔔 GỬI NHẮC NỢ
+                                        </button>
+                                        <button 
+                                            className="btn btn-primary shadow-lg shadow-blue-100"
+                                            onClick={() => { setIsDetailModalOpen(false); openBulkPayment(selectedCustomer); }}
+                                        >
+                                            💳 THU TIỀN NGAY
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>

@@ -110,6 +110,42 @@ class EmailService {
     }
 
     /**
+     * Gửi email nhắc nợ tổng hợp (Sổ nợ gộp)
+     */
+    async sendConsolidatedReminder(to: string, data: {
+        debtorName: string;
+        totalDebt: number;
+        remainingDebt: number;
+        overdueAmount: number;
+    }): Promise<boolean> {
+        if (!this.isConfigured) {
+            console.log(`📧 [MOCK] Gửi nhắc nợ tổng hợp đến ${to}`);
+            return false;
+        }
+
+        try {
+            const html = this.buildConsolidatedReminderHtml(data);
+            const isOverdue = data.overdueAmount > 0;
+            const subject = isOverdue 
+                ? `⚠️ [Nhắc nợ] Tổng hợp dư nợ quá hạn - ${data.debtorName}`
+                : `🗓️ [Nhắc nợ] Bảng kê tổng hợp dư nợ - ${data.debtorName}`;
+
+            await this.getTransporter().sendMail({
+                from: `"${process.env.SMTP_FROM_NAME || 'StockFlow WMS'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+                to,
+                subject,
+                html,
+            });
+
+            console.log(`✅ Email nhắc nợ tổng hợp đã gửi đến ${to}`);
+            return true;
+        } catch (error) {
+            console.error(`❌ Lỗi gửi email nhắc nợ tổng hợp đến ${to}:`, error);
+            return false;
+        }
+    }
+
+    /**
      * Gửi email thông báo công nợ mới
      */
     async sendDebtCreatedNotice(to: string, data: {
@@ -258,6 +294,47 @@ class EmailService {
                 </table>
                 
                 <p style="color: #475569; font-size: 14px;">Vui lòng thanh toán sớm nhất có thể. Xin cảm ơn!</p>
+            </div>
+            <div style="background: #1E293B; color: #94A3B8; padding: 16px; text-align: center; font-size: 12px;">
+                © ${new Date().getFullYear()} StockFlow WMS
+            </div>
+        </div>`;
+    }
+
+    private buildConsolidatedReminderHtml(data: any): string {
+        const isOverdue = data.overdueAmount > 0;
+        const headerBg = isOverdue ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, #F59E0B, #D97706)';
+        const titleText = isOverdue ? '⚠️ Thông Báo Nợ Quá Hạn' : '🗓️ Thông Báo Dư Nợ';
+        const subText = isOverdue ? `Quý khách đang có khoản nợ quá hạn` : `Bảng kê tổng hợp dư nợ`;
+        
+        return `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto; background: #fff;">
+            <div style="background: ${headerBg}; padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">${titleText}</h1>
+                <p style="color: #FEF3C7; margin: 8px 0 0; font-size: 14px;">${subText}</p>
+            </div>
+            <div style="padding: 24px; border: 1px solid #E2E8F0; border-top: none;">
+                <p style="color: #334155;">Kính gửi <strong>${data.debtorName}</strong>,</p>
+                <p style="color: #475569;">Chúng tôi xin gửi thông báo về tổng số dư công nợ của quý khách trên hệ thống:</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                    <tr style="background: #FFFBEB;">
+                        <td style="padding: 12px; border: 1px solid #E2E8F0;">Tổng phải thu</td>
+                        <td style="padding: 12px; border: 1px solid #E2E8F0; font-weight: bold;">${this.formatCurrency(data.totalDebt)} VNĐ</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #E2E8F0;">Tổng còn nợ</td>
+                        <td style="padding: 12px; border: 1px solid #E2E8F0; font-weight: bold; color: #D97706; font-size: 16px;">${this.formatCurrency(data.remainingDebt)} VNĐ</td>
+                    </tr>
+                    ${isOverdue ? `
+                    <tr style="background: #FEF2F2;">
+                        <td style="padding: 12px; border: 1px solid #E2E8F0; color: #DC2626; font-weight: bold;">Trong đó nợ quá hạn</td>
+                        <td style="padding: 12px; border: 1px solid #E2E8F0; font-weight: bold; color: #DC2626; font-size: 16px;">${this.formatCurrency(data.overdueAmount)} VNĐ</td>
+                    </tr>
+                    ` : ''}
+                </table>
+                
+                <p style="color: #475569; font-size: 14px;">Vui lòng thu xếp thanh toán sớm nhất có thể. Xin cảm ơn!</p>
             </div>
             <div style="background: #1E293B; color: #94A3B8; padding: 16px; text-align: center; font-size: 12px;">
                 © ${new Date().getFullYear()} StockFlow WMS

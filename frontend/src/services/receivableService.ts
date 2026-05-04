@@ -131,6 +131,11 @@ export const receivableService = {
         return response.data;
     },
 
+    async sendConsolidatedReminder(user_id: number, email?: string) {
+        const response = await api.post(`/receivables/consolidated-remind`, { user_id, email });
+        return response.data;
+    },
+
     // ==================== CONSOLIDATED LEDGER (SỔ NỢ) ====================
     async getConsolidatedLedger(params: { page?: number; limit?: number; search?: string } = {}) {
         const response = await api.get('/receivables/ledger', { params });
@@ -154,6 +159,12 @@ export const receivableService = {
     // ==================== RECEIVABLES (CLIENT) ====================
     async getClientReceivables() {
         const response = await api.get('/client/receivables');
+        return response.data.data;
+    },
+
+    /** Client: xem chi tiết 1 công nợ của mình */
+    async getClientReceivableById(id: number) {
+        const response = await api.get(`/client/receivables/${id}`);
         return response.data.data;
     },
 

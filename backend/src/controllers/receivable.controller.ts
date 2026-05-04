@@ -75,6 +75,14 @@ export const sendReminder = asyncHandler(async (req: AuthRequest, res: Response)
     res.json({ success: true, message: 'Đã gửi email nhắc nợ thành công!' } as ApiResponse);
 });
 
+/** [POST] /receivables/consolidated-remind - Admin: Gửi email nhắc nợ tổng hợp */
+export const sendConsolidatedReminder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { user_id, email } = req.body;
+    if (!user_id) throw new Error('user_id là bắt buộc');
+    await receivableService.sendConsolidatedReminder(parseInt(user_id as string, 10), email);
+    res.json({ success: true, message: 'Đã gửi email nhắc nợ tổng hợp thành công!' } as ApiResponse);
+});
+
 /** [PUT] /receivables/:id/bad-debt - Admin: đánh dấu nợ xấu */
 export const markBadDebt = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
@@ -89,6 +97,25 @@ export const getClientReceivables = asyncHandler(async (req: AuthRequest, res: R
 
     const data = await receivableService.getByUserId(userId);
     res.json({ success: true, data } as ApiResponse);
+});
+
+/** [GET] /client/receivables/:id - User: xem chi tiết 1 công nợ của mình */
+export const getClientReceivableById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const id = parseInt(req.params.id, 10);
+    const data = await receivableService.getById(id);
+
+    // Bảo mật: chỉ trả về nếu là công nợ của chính user này
+    if (data.user_id !== userId) {
+        return res.status(403).json({ success: false, message: 'Không có quyền xem công nợ này' });
+    }
+
+    // Lấy lịch sử thanh toán
+    const paymentHistory = await paymentReceiptService.getByReceivableId(id);
+
+    res.json({ success: true, data: { ...data, payment_history: paymentHistory } } as ApiResponse);
 });
 
 // ==================== PAYMENT RECEIPT ENDPOINTS ====================

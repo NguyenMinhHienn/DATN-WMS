@@ -3,6 +3,7 @@ import { notificationRepository } from '../repositories/notification.repository'
 import { emailService } from './email.service';
 import { AppError } from '../middlewares/error.middleware';
 import { auditService } from './audit.service';
+import pool from '../config/database';
 
 /**
  * Receivable Service - Business logic công nợ phải thu
@@ -341,6 +342,57 @@ class ReceivableService {
         });
 
         if (!sent) throw new AppError('Gửi email nhắc nợ thất bại. Vui lòng kiểm tra lại cấu hình SMTP.', 500);
+        return true;
+    }
+
+    /** Gửi nhắc nợ tổng hợp cho Khách hàng (Sổ nợ gộp) */
+    async sendConsolidatedReminder(userId: number, emailInput?: string) {
+        const userReceivables = await receivableRepository.getUnpaidByUserId(userId);
+        if (!userReceivables || userReceivables.length === 0) {
+            throw new AppError('Khách hàng này không có công nợ nào chưa thanh toán', 400);
+        }
+
+        // Lấy thông tin khách hàng từ user_id (dùng userReceivables đầu tiên)
+        const firstRec = userReceivables[0];
+        let finalEmail = emailInput || firstRec.debtor_email || firstRec.user_email_account;
+        
+        if (!finalEmail) {
+            // Thử lấy email từ users table nếu không có
+            const [userRows]: any = await pool.query('SELECT email FROM users WHERE id = ?', [userId]);
+            if (userRows.length > 0 && userRows[0].email) {
+                finalEmail = userRows[0].email;
+            }
+        }
+
+        if (!finalEmail) throw new AppError('Không có địa chỉ email nào được gắn với khách hàng này!', 400);
+
+        let totalDebt = 0;
+        let remainingDebt = 0;
+        let overdueAmount = 0;
+
+        for (const rec of userReceivables) {
+            totalDebt += parseFloat(rec.total_amount);
+            const remain = parseFloat(rec.total_amount) - parseFloat(rec.paid_amount);
+            remainingDebt += remain;
+            
+            if (rec.status === 'overdue' || rec.status === 'bad_debt') {
+                overdueAmount += remain;
+            }
+        }
+
+        if (remainingDebt <= 0) {
+            throw new AppError('Khách hàng này đã thanh toán đủ công nợ', 400);
+        }
+
+        const { emailService } = require('./email.service');
+        const sent = await emailService.sendConsolidatedReminder(finalEmail, {
+            debtorName: firstRec.debtor_name,
+            totalDebt: totalDebt,
+            remainingDebt: remainingDebt,
+            overdueAmount: overdueAmount
+        });
+
+        if (!sent) throw new AppError('Gửi email nhắc nợ tổng hợp thất bại.', 500);
         return true;
     }
 

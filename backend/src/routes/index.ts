@@ -259,11 +259,13 @@ router.get('/receivables/ledger', authenticate, isAdmin, receivableController.ge
 router.get('/receivables', authenticate, isStaff, receivableController.getAllReceivables);
 router.get('/receivables/:id', authenticate, isStaff, receivableController.getReceivableById);
 router.put('/receivables/:id/cancel', authenticate, isAdmin, receivableController.cancelReceivable);
+router.post('/receivables/consolidated-remind', authenticate, isAdmin, receivableController.sendConsolidatedReminder);
 router.post('/receivables/:id/remind', authenticate, isAdmin, receivableController.sendReminder);
 router.put('/receivables/:id/bad-debt', authenticate, isAdmin, receivableController.markBadDebt);
 
 // Client routes - user xem công nợ của mình
 router.get('/client/receivables', authenticate, receivableController.getClientReceivables);
+router.get('/client/receivables/:id', authenticate, receivableController.getClientReceivableById);
 router.post('/client/debt-payment', authenticate, createDebtPaymentLink);
 
 // ==================== CREDIT (CÔNG NỢ MUA HÀNG) ROUTES ====================
