@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { stockTransferService } from '../../services/stockTransferService';
 import { StockTransfer } from '../../interface';
+import { receivableService } from '../../services/receivableService';
+import { payableService } from '../../services/payableService';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -39,6 +41,10 @@ const StaffDashboard: React.FC = () => {
         exports: 0,
         transfers: 0
     });
+    const [debtSummary, setDebtSummary] = useState({
+        receivable: 0,
+        payable: 0
+    });
     const [recentTransfers, setRecentTransfers] = useState<StockTransfer[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -48,7 +54,11 @@ const StaffDashboard: React.FC = () => {
 
     const loadStats = async () => {
         try {
-            const result = await stockTransferService.getTransfers(1, 100);
+            const [result, receivableResult, payableResult] = await Promise.all([
+                stockTransferService.getTransfers(1, 100),
+                receivableService.getSummary({}).catch(() => null),
+                payableService.getSummary({}).catch(() => null)
+            ]);
             const transfers = result.data;
 
             setStats({
@@ -63,6 +73,13 @@ const StaffDashboard: React.FC = () => {
 
             // Get 5 recent transfers
             setRecentTransfers(transfers.slice(0, 5));
+
+            if (receivableResult || payableResult) {
+                setDebtSummary({
+                    receivable: receivableResult ? Number(receivableResult.total_remaining) : 0,
+                    payable: payableResult ? Number(payableResult.total_remaining) : 0
+                });
+            }
         } catch (error) {
             console.error('Failed to load stats:', error);
         } finally {
@@ -190,6 +207,10 @@ const StaffDashboard: React.FC = () => {
         });
     };
 
+    const formatMoney = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/60 to-indigo-50/40 flex items-center justify-center">
@@ -244,6 +265,32 @@ const StaffDashboard: React.FC = () => {
                         </div>
                         <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/40 animate-pulse">
                             <span className="text-2xl">⏳</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg shadow-emerald-500/10 p-6 border border-emerald-100 hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-1">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-emerald-600 mb-1">Khách Hàng Còn Nợ</p>
+                            <p className="text-2xl font-bold text-slate-800">{formatMoney(debtSummary.receivable)}</p>
+                            <p className="text-xs text-slate-500 mt-1">Tổng nợ phải thu</p>
+                        </div>
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/40">
+                            <span className="text-2xl">💰</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg shadow-rose-500/10 p-6 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300 hover:-translate-y-1">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-rose-600 mb-1">Còn Nợ NCC</p>
+                            <p className="text-2xl font-bold text-slate-800">{formatMoney(debtSummary.payable)}</p>
+                            <p className="text-xs text-slate-500 mt-1">Tổng nợ phải trả</p>
+                        </div>
+                        <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-red-500 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/40">
+                            <span className="text-2xl">💸</span>
                         </div>
                     </div>
                 </div>

@@ -25,6 +25,15 @@ export const getUserById = asyncHandler(async (req: AuthRequest, res: Response) 
 export const createUser = asyncHandler(async (req: AuthRequest, res: Response) => {
     const dto: CreateUserDto = req.body;
 
+    const isAdmin = req.user?.roles?.includes('admin');
+    if (!isAdmin) {
+        const roles = await userService.getAllRoles();
+        const userRole = roles.find(r => r.name === 'user');
+        if (userRole) {
+            dto.role_ids = [userRole.id];
+        }
+    }
+
     // Validate required fields
     if (!dto.username || dto.username.trim().length === 0) {
         return res.status(400).json({
@@ -75,6 +84,24 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
 export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const dto: UpdateUserDto = req.body;
+
+    const isAdmin = req.user?.roles?.includes('admin');
+    if (!isAdmin) {
+        const targetUser = await userService.getUserById(id);
+        const hasProtectedRole = targetUser.roles.some(r => r.name !== 'user');
+        if (hasProtectedRole) {
+            return res.status(403).json({
+                success: false,
+                message: 'Nhân viên chỉ có thể chỉnh sửa tài khoản khách hàng'
+            } as ApiResponse);
+        }
+        const roles = await userService.getAllRoles();
+        const userRole = roles.find(r => r.name === 'user');
+        if (userRole) {
+            dto.role_ids = [userRole.id];
+        }
+    }
+
     const user = await userService.updateUser(id, dto);
 
     res.json({
@@ -86,6 +113,19 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
 
 export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
+
+    const isAdmin = req.user?.roles?.includes('admin');
+    if (!isAdmin) {
+        const targetUser = await userService.getUserById(id);
+        const hasProtectedRole = targetUser.roles.some(r => r.name !== 'user');
+        if (hasProtectedRole) {
+            return res.status(403).json({
+                success: false,
+                message: 'Nhân viên chỉ có thể xóa tài khoản khách hàng'
+            } as ApiResponse);
+        }
+    }
+
     await userService.deleteUser(id);
 
     res.json({

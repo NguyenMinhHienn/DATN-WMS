@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { receivableService, Receivable } from '../../services/receivableService';
+import { receivableService, Receivable, ReceivableSummary } from '../../services/receivableService';
 import { Modal } from '../../components/Modal';
 import { auditService, FinancialAuditLog } from '../../services/auditService';
 import AuditTimeline from '../../components/AuditTimeline';
 
 const StaffReceivables: React.FC = () => {
     const [receivables, setReceivables] = useState<Receivable[]>([]);
+    const [summary, setSummary] = useState<ReceivableSummary | null>(null);
     const [loading, setLoading] = useState(true);
     
     // Pagination & Filter
@@ -51,14 +52,21 @@ const StaffReceivables: React.FC = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const listData = await receivableService.getAll({ 
-                page, 
-                limit: 10, 
-                status: filterStatus,
-                search: search || undefined,
-                start_date: startDate || undefined,
-                end_date: endDate || undefined
-            });
+            const [statsData, listData] = await Promise.all([
+                receivableService.getSummary({
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined
+                }),
+                receivableService.getAll({ 
+                    page, 
+                    limit: 10, 
+                    status: filterStatus,
+                    search: search || undefined,
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined
+                })
+            ]);
+            setSummary(statsData);
             setReceivables(listData.data);
             setTotalPages(listData.pagination.totalPages);
         } catch (error) {
@@ -139,6 +147,28 @@ const StaffReceivables: React.FC = () => {
                 <h1 className="text-2xl font-bold text-slate-800">Quản lý Công Nợ</h1>
                 <p className="text-slate-600 mt-1">Theo dõi các khoản phải thu từ phiếu xuất, đơn hàng</p>
             </div>
+
+            {/* Stats Cards */}
+            {summary && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <div className="text-slate-500 text-sm font-medium mb-1">Tổng nợ phải thu</div>
+                        <div className="text-2xl font-bold text-slate-800">{formatMoney(summary.total_amount)} đ</div>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <div className="text-slate-500 text-sm font-medium mb-1">Đã thu</div>
+                        <div className="text-2xl font-bold text-emerald-600">{formatMoney(summary.total_paid)} đ</div>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <div className="text-slate-500 text-sm font-medium mb-1">Còn lại</div>
+                        <div className="text-2xl font-bold text-blue-600">{formatMoney(summary.total_remaining)} đ</div>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-red-200 bg-red-50 p-4 cursor-pointer hover:bg-red-100 transition" onClick={() => setFilterStatus('overdue')}>
+                        <div className="text-red-500 text-sm font-medium mb-1">Quá hạn ({summary.total_overdue})</div>
+                        <div className="text-2xl font-bold text-red-600">{formatMoney(summary.overdue_amount)} đ</div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">

@@ -49,9 +49,9 @@ router.post('/auth/avatar', authenticate, uploadController.upload.single('avatar
 // ==================== USER ROUTES ====================
 router.get('/users', authenticate, isStaff, userController.getAllUsers);
 router.get('/users/:id', authenticate, isAdmin, userController.getUserById);
-router.post('/users', authenticate, isAdmin, userController.createUser);
-router.put('/users/:id', authenticate, isAdmin, userController.updateUser);
-router.delete('/users/:id', authenticate, isAdmin, userController.deleteUser);
+router.post('/users', authenticate, isStaff, userController.createUser);
+router.put('/users/:id', authenticate, isStaff, userController.updateUser);
+router.delete('/users/:id', authenticate, isStaff, userController.deleteUser);
 router.get('/roles', authenticate, isAdmin, userController.getAllRoles);
 
 // ==================== PRODUCT ROUTES ====================
@@ -251,7 +251,7 @@ router.delete("/orders/:id/cancel-payment", cancelPaymentOrder);
 
 // ==================== RECEIVABLE (CÔNG NỢ) ROUTES ====================
 // Admin routes
-router.get('/receivables/summary', authenticate, isAdmin, receivableController.getReceivableSummary);
+router.get('/receivables/summary', authenticate, isStaff, receivableController.getReceivableSummary);
 router.get('/receivables/overdue', authenticate, isAdmin, receivableController.getOverdueReceivables);
 router.get('/receivables/monthly-stats', authenticate, isAdmin, receivableController.getMonthlyStats);
 router.post('/receivables/check-overdue', authenticate, isAdmin, receivableController.checkOverdue);
@@ -272,11 +272,11 @@ router.get('/client/credit-info', authenticate, creditController.getClientCredit
 router.post('/client/credit/register', authenticate, creditController.registerCredit);
 
 // Admin routes
-router.get('/admin/users/:id/credit', authenticate, isAdmin, creditController.getAdminUserCredit);
-router.put('/admin/users/:id/credit/enable', authenticate, isAdmin, creditController.enableUserCredit);
-router.put('/admin/users/:id/credit/disable', authenticate, isAdmin, creditController.disableUserCredit);
-router.put('/admin/users/:id/credit/limit', authenticate, isAdmin, creditController.updateUserCreditLimit);
-router.put('/admin/users/:id/credit/payment-terms', authenticate, isAdmin, creditController.updateUserPaymentTerms);
+router.get('/admin/users/:id/credit', authenticate, isStaff, creditController.getAdminUserCredit);
+router.put('/admin/users/:id/credit/enable', authenticate, isStaff, creditController.enableUserCredit);
+router.put('/admin/users/:id/credit/disable', authenticate, isStaff, creditController.disableUserCredit);
+router.put('/admin/users/:id/credit/limit', authenticate, isStaff, creditController.updateUserCreditLimit);
+router.put('/admin/users/:id/credit/payment-terms', authenticate, isStaff, creditController.updateUserPaymentTerms);
 router.get('/admin/credit/settings', authenticate, isAdmin, creditController.getCreditSettings);
 router.put('/admin/credit/settings', authenticate, isAdmin, creditController.updateCreditSettings);
 
@@ -290,7 +290,7 @@ router.put('/payment-receipts/:id/approve', authenticate, isAdmin, receivableCon
 router.put('/payment-receipts/:id/reject', authenticate, isAdmin, receivableController.rejectPaymentReceipt);
 
 // ==================== PAYABLE (CÔNG NỢ NCC) ROUTES ====================
-router.get('/payables/summary', authenticate, isAdmin, payableController.getSummary);
+router.get('/payables/summary', authenticate, isStaff, payableController.getSummary);
 router.get('/payables/monthly-stats', authenticate, isAdmin, payableController.getMonthlyStats);
 router.get('/payables/ledger', authenticate, isAdmin, payableController.getConsolidatedLedger);
 router.get('/payables/upcoming-due', authenticate, isAdmin, payableController.getUpcomingDue);

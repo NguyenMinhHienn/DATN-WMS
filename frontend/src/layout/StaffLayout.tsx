@@ -39,6 +39,7 @@ export const StaffLayout: React.FC = () => {
         { path: '/staff/my-transfers', label: 'Phiếu đã tạo', icon: '📋' },
         { path: '/staff/receivables', label: 'Công Nợ Khách Hàng', icon: '💰' },
         { path: '/staff/payables', label: 'Công Nợ NCC', icon: '🧾' },
+        { path: '/staff/users', label: 'Khách Hàng', icon: '👥' },
     ];
 
     return (

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
 import { DashboardStats, SalesSummary, MonthlyReportItem } from '../../interface';
+import { receivableService } from '../../services/receivableService';
+import { payableService } from '../../services/payableService';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -55,6 +57,10 @@ const Dashboard: React.FC = () => {
     const [monthlyReport, setMonthlyReport] = useState<MonthlyReportItem[]>([]);
     const [categoryData, setCategoryData] = useState<{ name: string; count: number }[]>([]);
     const [topProducts, setTopProducts] = useState<{ name: string; quantity: number }[]>([]);
+    const [debtSummary, setDebtSummary] = useState({
+        receivable: 0,
+        payable: 0
+    });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -64,18 +70,26 @@ const Dashboard: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            const [dashData, salesData, monthlyData, catData, topData] = await Promise.all([
+            const [dashData, salesData, monthlyData, catData, topData, receivableResult, payableResult] = await Promise.all([
                 reportService.getDashboard(),
                 reportService.getSalesSummary().catch(() => null),
                 reportService.getMonthlyReport(new Date().getFullYear()).catch(() => []),
                 reportService.getCategoryDistribution().catch(() => []),
                 reportService.getTopProducts().catch(() => []),
+                receivableService.getSummary({}).catch(() => null),
+                payableService.getSummary({}).catch(() => null)
             ]);
             setStats(dashData);
             setSalesSummary(salesData);
             setMonthlyReport(monthlyData);
             setCategoryData(catData);
             setTopProducts(topData);
+            if (receivableResult || payableResult) {
+                setDebtSummary({
+                    receivable: receivableResult ? Number(receivableResult.total_remaining) : 0,
+                    payable: payableResult ? Number(payableResult.total_remaining) : 0
+                });
+            }
         } catch (error) {
             console.error('Failed to load dashboard:', error);
         } finally {
@@ -334,15 +348,41 @@ const Dashboard: React.FC = () => {
                                 <p className="text-3xl font-bold text-slate-800">{salesSummary.total_orders}</p>
                                 <p className="text-xs text-slate-500 mt-2">Đã giao thành công</p>
                             </div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-purple-500/40 text-white">
-                                ✅
+                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-purple-500/40 text-white">
+                                📦
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg shadow-emerald-500/10 p-6 border border-emerald-100 hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/receivables')}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-emerald-600 mb-1">Khách hàng còn nợ</p>
+                                <p className="text-3xl font-bold text-slate-800">{formatCompact(debtSummary.receivable)}</p>
+                                <p className="text-xs text-emerald-500 mt-2 font-medium">Quản lý công nợ →</p>
+                            </div>
+                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/40 text-white">
+                                💳
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg shadow-rose-500/10 p-6 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/payables')}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-rose-600 mb-1">Còn nợ nhà cung cấp</p>
+                                <p className="text-3xl font-bold text-slate-800">{formatCompact(debtSummary.payable)}</p>
+                                <p className="text-xs text-rose-500 mt-2 font-medium">Quản lý công nợ →</p>
+                            </div>
+                            <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-red-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-rose-500/40 text-white">
+                                💸
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Charts Section */}
+            {/* Main Stats from DashboardStats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Revenue & Profit Line Chart (REAL DATA) */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6 lg:col-span-2">
