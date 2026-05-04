@@ -449,18 +449,18 @@ const Cart: React.FC = () => {
                                                     </div>
                                                 ) : creditInfo?.is_registered ? (
                                                     <label className={`flex items-start gap-2 p-3 border rounded-lg transition-all ${
-                                                        creditInfo.is_eligible && !creditInfo.has_active_debt
+                                                        creditInfo.is_eligible
                                                             ? (checkoutForm.payment_method === 'CREDIT' ? 'border-emerald-500 bg-emerald-50 cursor-pointer' : 'border-slate-200 cursor-pointer hover:border-emerald-300')
                                                             : 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
                                                     }`}>
                                                         <input type="radio" name="payment" value="CREDIT"
                                                             checked={checkoutForm.payment_method === 'CREDIT'}
-                                                            disabled={!creditInfo.is_eligible || creditInfo.has_active_debt}
+                                                            disabled={!creditInfo.is_eligible}
                                                             onChange={() => setCheckoutForm(prev => ({ ...prev, payment_method: 'CREDIT' }))}
                                                             className="text-emerald-600 mt-0.5" />
                                                         <div className="flex-1">
                                                             <span className="text-sm font-medium">🏦 Công nợ (Trả sau)</span>
-                                                            {creditInfo.is_eligible && !creditInfo.has_active_debt ? (
+                                                            {creditInfo.is_eligible ? (
                                                                 <div className="mt-1 space-y-0.5">
                                                                     <p className="text-xs text-emerald-600">✅ Hạn mức: {creditService.formatMoney(creditInfo.credit_limit)} · Hạn {creditInfo.credit_payment_terms} ngày</p>
                                                                 </div>

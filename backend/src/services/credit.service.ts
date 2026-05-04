@@ -25,6 +25,7 @@ export interface CreditInfo {
     has_active_debt: boolean;
     has_overdue: boolean;
     active_debt_count: number;
+    paid_percentage?: number;
     reason_not_eligible?: string;
 }
 
@@ -71,20 +72,33 @@ class CreditService {
     }
 
     /** Kiểm tra user có nợ đang active (chưa trả hết) không */
-    async getActiveDebtInfo(userId: number): Promise<{ count: number; hasOverdue: boolean; totalUsed: number }> {
+    async getActiveDebtInfo(userId: number): Promise<{ count: number; hasOverdue: boolean; totalUsed: number; paidPercentage: number }> {
         const [rows] = await pool.query<RowDataPacket[]>(
             `SELECT 
                 COUNT(*) as active_count,
                 SUM(CASE WHEN status IN ('overdue', 'bad_debt') THEN 1 ELSE 0 END) as overdue_count,
-                COALESCE(SUM(total_amount - paid_amount), 0) as total_remaining
+                COALESCE(SUM(total_amount), 0) as total_active_amount,
+                COALESCE(SUM(paid_amount), 0) as total_active_paid
              FROM receivables 
              WHERE user_id = ? AND status IN ('unpaid', 'partial', 'overdue')`,
             [userId]
         );
+        
+        const count = parseInt(rows[0].active_count) || 0;
+        const totalActiveAmount = parseFloat(rows[0].total_active_amount) || 0;
+        const totalActivePaid = parseFloat(rows[0].total_active_paid) || 0;
+        const totalUsed = totalActiveAmount - totalActivePaid;
+        
+        let paidPercentage = 100; // Nếu không có nợ thì coi như đã trả 100%
+        if (totalActiveAmount > 0) {
+            paidPercentage = (totalActivePaid / totalActiveAmount) * 100;
+        }
+
         return {
-            count: parseInt(rows[0].active_count) || 0,
+            count,
             hasOverdue: (parseInt(rows[0].overdue_count) || 0) > 0,
-            totalUsed: parseFloat(rows[0].total_remaining) || 0,
+            totalUsed,
+            paidPercentage
         };
     }
 
@@ -129,9 +143,12 @@ class CreditService {
             if (debtInfo.hasOverdue) {
                 isEligible = false;
                 reasonNotEligible = 'Tài khoản có nợ quá hạn, vui lòng thanh toán trước';
-            } else if (debtInfo.count > 0) {
+            } else if (debtInfo.count > 0 && debtInfo.paidPercentage < 75) {
                 isEligible = false;
-                reasonNotEligible = 'Bạn đang có khoản công nợ chưa thanh toán. Vui lòng thanh toán xong mới sử dụng tiếp';
+                reasonNotEligible = `Bạn cần thanh toán tối thiểu 75% tổng dư nợ hiện tại để tiếp tục mua (đã thanh toán: ${debtInfo.paidPercentage.toFixed(1)}%)`;
+            } else if (creditAvailable <= 0) {
+                isEligible = false;
+                reasonNotEligible = 'Bạn đã sử dụng hết hạn mức công nợ';
             }
         } else {
             // Chưa được cấp quyền, giải thích lý do:
@@ -154,6 +171,7 @@ class CreditService {
             has_active_debt: debtInfo.count > 0,
             has_overdue: debtInfo.hasOverdue,
             active_debt_count: debtInfo.count,
+            paid_percentage: debtInfo.paidPercentage,
             reason_not_eligible: reasonNotEligible || undefined,
         };
     }
@@ -310,12 +328,12 @@ class CreditService {
             return { valid: false, message: creditInfo.reason_not_eligible || 'Tài khoản không đủ điều kiện mua công nợ', paymentTerms: 0 };
         }
 
-        if (creditInfo.has_active_debt) {
-            return { valid: false, message: 'Bạn đang có khoản công nợ chưa thanh toán. Vui lòng thanh toán xong mới sử dụng tiếp', paymentTerms: 0 };
+        if (creditInfo.has_active_debt && creditInfo.paid_percentage !== undefined && creditInfo.paid_percentage < 75) {
+            return { valid: false, message: `Bạn cần thanh toán tối thiểu 75% tổng dư nợ hiện tại để tiếp tục mua (đã thanh toán: ${creditInfo.paid_percentage.toFixed(1)}%)`, paymentTerms: 0 };
         }
 
-        if (orderAmount > creditInfo.credit_limit) {
-            return { valid: false, message: `Giá trị đơn hàng (${new Intl.NumberFormat('vi-VN').format(orderAmount)}đ) vượt quá hạn mức công nợ (${new Intl.NumberFormat('vi-VN').format(creditInfo.credit_limit)}đ)`, paymentTerms: 0 };
+        if (orderAmount > creditInfo.credit_available) {
+            return { valid: false, message: `Giá trị đơn hàng (${new Intl.NumberFormat('vi-VN').format(orderAmount)}đ) vượt quá hạn mức khả dụng (${new Intl.NumberFormat('vi-VN').format(creditInfo.credit_available)}đ)`, paymentTerms: 0 };
         }
 
         return { valid: true, paymentTerms: creditInfo.credit_payment_terms };

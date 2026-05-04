@@ -12,6 +12,7 @@ export interface CreditInfo {
     has_active_debt: boolean;
     has_overdue: boolean;
     active_debt_count: number;
+    paid_percentage?: number;
     reason_not_eligible?: string;
 }
 
