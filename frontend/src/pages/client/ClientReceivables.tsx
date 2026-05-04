@@ -56,7 +56,7 @@ const ClientReceivables: React.FC = () => {
 
     const handleViewDetail = async (id: number) => {
         try {
-            const data = await receivableService.getById(id);
+            const data = await receivableService.getClientReceivableById(id);
             setDetailData(data);
             setIsDetailModalOpen(true);
         } catch (err) { console.error(err); }

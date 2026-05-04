@@ -317,15 +317,24 @@ const OrdersPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                {order.payment_method === 'CREDIT' ? (
-                                                    <p className="text-xs font-bold text-red-500 mb-0.5">Công nợ (Trả sau)</p>
-                                                ) : (
-                                                    <p className="text-xs text-slate-400 mb-0.5">{orderService.getPaymentMethodText(order.payment_method)}</p>
-                                                )}
-                                                <p className="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                                    {formatCurrency(order.total_amount)}
-                                                </p>
-                                            </div>
+                                                 {order.payment_method === 'CREDIT' ? (
+                                                     <p className="text-xs font-bold text-red-500 mb-0.5">Công nợ (Trả sau)</p>
+                                                 ) : (
+                                                     <p className="text-xs text-slate-400 mb-0.5">{orderService.getPaymentMethodText(order.payment_method)}</p>
+                                                 )}
+                                                 <p className="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                                     {formatCurrency(Number(order.total_amount) + Number(order.vat_amount || 0) + Number(order.shipping_fee || 0))}
+                                                 </p>
+                                                 {(Number(order.vat_amount) > 0 || Number(order.shipping_fee) > 0) ? (
+                                                     <p className="text-[10px] text-slate-400">
+                                                         Hàng: {formatCurrency(order.total_amount)}
+                                                         {Number(order.vat_amount) > 0 && ` + VAT: ${formatCurrency(order.vat_amount)}`}
+                                                         {Number(order.shipping_fee) > 0 && ` + Ship: ${formatCurrency(order.shipping_fee)}`}
+                                                     </p>
+                                                 ) : (['confirmed','shipping','delivered'].includes(order.status) && order.payment_method === 'CREDIT') ? (
+                                                     <p className="text-[10px] text-amber-500 font-medium">⚠️ Chưa gồm VAT + phí ship</p>
+                                                 ) : null}
+                                             </div>
                                         </div>
                                     </div>
 
@@ -407,25 +416,75 @@ const OrdersPage: React.FC = () => {
 
                                                         {/* Order Summary */}
                                                         <div className="px-5 pb-4">
-                                                            <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-4 text-white">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <p className="text-xs text-slate-400 mb-1">Tổng cộng ({selectedOrder.items.length} hàng hóa)</p>
-                                                                        <p className="text-2xl font-extrabold">{formatCurrency(order.total_amount)}</p>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-xs text-slate-400 mb-1">Hình thức</p>
-                                                                        {order.payment_method === 'CREDIT' ? (
-                                                                            <p className="text-sm font-bold text-red-400">Công nợ (Trả sau)</p>
-                                                                        ) : (
-                                                                            <p className="text-sm font-medium text-indigo-300">
-                                                                                {orderService.getPaymentMethodText(order.payment_method)}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                             <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-4 text-white">
+                                                                 <div className="space-y-2">
+                                                                     {/* Subtotal row */}
+                                                                     <div className="flex items-center justify-between text-sm">
+                                                                         <span className="text-slate-400">Giá hàng ({selectedOrder.items.length} mặt hàng)</span>
+                                                                         <span className="font-semibold">{formatCurrency(order.total_amount)}</span>
+                                                                     </div>
+
+                                                                     {/* VAT row - chỉ hiện khi đã có phiếu xuất */}
+                                                                     {Number(order.vat_amount) > 0 ? (
+                                                                         <div className="flex items-center justify-between text-sm">
+                                                                             <span className="text-slate-400">Thuế VAT</span>
+                                                                             <span className="font-semibold text-amber-300">+{formatCurrency(order.vat_amount)}</span>
+                                                                         </div>
+                                                                     ) : ['confirmed','shipping','delivered'].includes(order.status) ? (
+                                                                         <div className="flex items-center justify-between text-sm">
+                                                                             <span className="text-slate-400">Thuế VAT</span>
+                                                                             <span className="text-slate-500 text-xs italic">Xác định khi xuất kho</span>
+                                                                         </div>
+                                                                     ) : null}
+
+                                                                     {/* Shipping row - chỉ hiện khi đã có phiếu xuất */}
+                                                                     {Number(order.shipping_fee) > 0 ? (
+                                                                         <div className="flex items-center justify-between text-sm">
+                                                                             <span className="text-slate-400">Phí vận chuyển</span>
+                                                                             <span className="font-semibold text-amber-300">+{formatCurrency(order.shipping_fee)}</span>
+                                                                         </div>
+                                                                     ) : ['confirmed','shipping','delivered'].includes(order.status) ? (
+                                                                         <div className="flex items-center justify-between text-sm">
+                                                                             <span className="text-slate-400">Phí vận chuyển</span>
+                                                                             <span className="text-slate-500 text-xs italic">Xác định khi xuất kho</span>
+                                                                         </div>
+                                                                     ) : null}
+
+                                                                     {/* Divider + Total */}
+                                                                     <div className="border-t border-slate-600 pt-2 mt-2">
+                                                                         <div className="flex items-center justify-between">
+                                                                             <div>
+                                                                                 <p className="text-xs text-slate-400 mb-0.5">
+                                                                                     {Number(order.vat_amount) > 0 || Number(order.shipping_fee) > 0 ? 'Tổng cộng (đã gồm VAT + ship)' : 'Tổng tiền hàng'}
+                                                                                 </p>
+                                                                                 <p className="text-2xl font-extrabold">
+                                                                                     {formatCurrency(Number(order.total_amount) + Number(order.vat_amount || 0) + Number(order.shipping_fee || 0))}
+                                                                                 </p>
+                                                                             </div>
+                                                                             <div className="text-right">
+                                                                                 <p className="text-xs text-slate-400 mb-1">Hình thức</p>
+                                                                                 {order.payment_method === 'CREDIT' ? (
+                                                                                     <p className="text-sm font-bold text-red-400">Công nợ (Trả sau)</p>
+                                                                                 ) : (
+                                                                                     <p className="text-sm font-medium text-indigo-300">
+                                                                                         {orderService.getPaymentMethodText(order.payment_method)}
+                                                                                     </p>
+                                                                                 )}
+                                                                             </div>
+                                                                         </div>
+                                                                     </div>
+
+                                                                     {/* Cảnh báo CREDIT khi VAT+ship chưa xác định */}
+                                                                     {order.payment_method === 'CREDIT' && !['delivered','failed','cancelled'].includes(order.status) && Number(order.vat_amount) === 0 && (
+                                                                         <div className="mt-2 bg-amber-500/20 border border-amber-400/40 rounded-lg px-3 py-2">
+                                                                             <p className="text-xs text-amber-300 font-medium">
+                                                                                 ⚠️ Giá trên chưa bao gồm thuế VAT và phí vận chuyển. Tổng tiền công nợ thực tế sẽ được xác nhận sau khi nhân viên kho tạo phiếu xuất.
+                                                                             </p>
+                                                                         </div>
+                                                                     )}
+                                                                 </div>
+                                                             </div>
+                                                         </div>
 
                                                         {/* Notes */}
                                                         {order.notes && (

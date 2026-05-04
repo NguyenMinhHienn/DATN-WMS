@@ -10,7 +10,9 @@ import api from './api';
 export interface OrderSummary {
     id: number;
     user_id: number;
-    total_amount: number;
+    total_amount: number;         // subtotal (giá hàng, chưa gồm VAT + ship)
+    vat_amount: number;           // Thuế VAT (từ phiếu xuất kho, 0 nếu chưa xử lý)
+    shipping_fee: number;         // Phí vận chuyển (từ phiếu xuất kho, 0 nếu chưa xử lý)
     payment_method: 'COD' | 'BANKING' | 'CREDIT';
     payment_status: 'unpaid' | 'paid';
     status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';

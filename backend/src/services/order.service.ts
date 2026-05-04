@@ -5,6 +5,8 @@ import { productRepository } from '../repositories/product.repository';
 import { AppError } from '../middlewares/error.middleware';
 import { inventoryCoreService } from './inventory-core.service';
 import { creditService } from './credit.service';
+import pool from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 /**
  * Order Service
@@ -222,15 +224,21 @@ class OrderService {
             await orderRepository.updatePaymentStatus(orderId, 'paid');
         }
 
-        // Tạo công nợ cho đơn COD (nếu chưa thanh toán online)
-        // Note: COD đã được mark paid ở trên, nhưng vẫn tạo receivable + auto-close
-        // để có record cho báo cáo tài chính
+        // Tạo công nợ cho đơn COD (đã thu tiền khi giao) → tạo + auto-close
         if (order.payment_method === 'COD') {
             try {
                 const { receivableService } = require('./receivable.service');
+
+                // Lấy tổng thực tế = subtotal + VAT + shipping từ stock_transfers
+                const [stRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT total_value FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    [orderId]
+                );
+                const grandTotal = stRows.length > 0 ? Number(stRows[0].total_value) : Number(order.total_amount);
+
                 const receivableId = await receivableService.createFromOrder({
                     id: orderId,
-                    total_amount: Number(order.total_amount),
+                    total_amount: grandTotal,
                     shipping_name: order.shipping_name,
                     shipping_phone: order.shipping_phone,
                     shipping_address: order.shipping_address,
@@ -239,10 +247,10 @@ class OrderService {
                 });
                 // Auto-close receivable vì COD đã thu tiền khi giao
                 const { receivableRepository } = require('../repositories/receivable.repository');
-                await receivableRepository.updatePaidAmount(receivableId, Number(order.total_amount));
+                await receivableRepository.updatePaidAmount(receivableId, grandTotal);
             } catch (recErr) {
-                // Log lỗi nhưng KHÔNG throw - đảm bảo đơn hàng vẫn delivered
-                console.error('⚠️ Lỗi tạo công nợ từ đơn COD:', recErr);
+                console.error('⚠️ Lỗi tạo công nợ từ đơn COD:', recErr instanceof Error ? recErr.message : recErr);
+                if (recErr instanceof Error) console.error(recErr.stack);
             }
         }
 
@@ -252,22 +260,17 @@ class OrderService {
                 const { receivableService } = require('./receivable.service');
                 const { receivableRepository } = require('../repositories/receivable.repository');
 
-                // Kiểm tra xem đã có receivable từ export_transfer chưa (tránh duplicate)
+                // Kiểm tra xem đã có receivable cho đơn này chưa (tránh duplicate)
                 const existingFromTransfer = await receivableRepository.findBySource('order', orderId);
                 if (existingFromTransfer) {
                     console.log(`ℹ️ Đã có công nợ ${existingFromTransfer.receivable_number} cho đơn #${orderId}, bỏ qua tạo mới`);
                 } else {
-                    // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
-                    const pool = require('../config/database').default;
-                    const [stRows] = await pool.query(
-                        `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
-                         FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    // Lấy tổng thực tế = subtotal + VAT + shipping từ stock_transfers
+                    const [stRows] = await pool.query<RowDataPacket[]>(
+                        `SELECT total_value FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
                         [orderId]
                     );
-                    let grandTotal = Number(order.total_amount);
-                    if (stRows.length > 0) {
-                        grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
-                    }
+                    const grandTotal = stRows.length > 0 ? Number(stRows[0].total_value) : Number(order.total_amount);
 
                     const creditInfo = await creditService.getCreditInfo(order.user_id);
                     await receivableService.createFromCreditOrder({
@@ -284,7 +287,8 @@ class OrderService {
                     await creditService.syncCreditUsed(order.user_id);
                 }
             } catch (recErr) {
-                console.error('⚠️ Lỗi tạo công nợ từ đơn CREDIT:', recErr);
+                console.error('⚠️ Lỗi tạo công nợ từ đơn CREDIT:', recErr instanceof Error ? recErr.message : recErr);
+                if (recErr instanceof Error) console.error(recErr.stack);
             }
         }
 

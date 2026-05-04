@@ -1,6 +1,5 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { PoolConnection } from 'mysql2/promise';
 
 /**
  * Receivable Repository - CRUD cho bảng receivables (Công nợ phải thu)
@@ -8,15 +7,16 @@ import { PoolConnection } from 'mysql2/promise';
 class ReceivableRepository {
 
     /** Tạo mã công nợ tự động: CN-2026-000001 (concurrent-safe using document_sequences) */
-    async generateNumber(connection?: PoolConnection): Promise<string> {
+    async generateNumber(): Promise<string> {
         const year = new Date().getFullYear();
-        const conn = connection || await pool.getConnection();
-        const shouldRelease = !connection;
+        const conn = await pool.getConnection();
         try {
-            // Lock row in document_sequences to prevent concurrent duplicates
+            // Phải mở transaction riêng trước khi dùng FOR UPDATE
+            await conn.beginTransaction();
+
             const [seqRows] = await conn.query<RowDataPacket[]>(
                 `SELECT current_number FROM document_sequences 
-                 WHERE document_type = 'receivable' FOR UPDATE`,
+                 WHERE document_type = 'receivable' FOR UPDATE`
             );
 
             let nextNum: number;
@@ -27,16 +27,28 @@ class ReceivableRepository {
                     [nextNum]
                 );
             } else {
-                // Fallback: nếu chưa có row trong document_sequences
+                // Fallback: chưa có row → đếm số lượng hiện tại + insert row mới
                 const [countRows] = await conn.query<RowDataPacket[]>(
                     'SELECT COUNT(*) as count FROM receivables WHERE YEAR(created_at) = ?',
                     [year]
                 );
-                nextNum = countRows[0].count + 1;
+                nextNum = (countRows[0].count as number) + 1;
+                // Insert row sequence để các lần sau dùng đúng cách
+                await conn.query(
+                    `INSERT INTO document_sequences (document_type, prefix, current_number, number_length, reset_period)
+                     VALUES ('receivable', 'CN-', ?, 6, 'yearly')
+                     ON DUPLICATE KEY UPDATE current_number = ?`,
+                    [nextNum, nextNum]
+                );
             }
+
+            await conn.commit();
             return `CN-${year}-${nextNum.toString().padStart(6, '0')}`;
+        } catch (err) {
+            await conn.rollback();
+            throw err;
         } finally {
-            if (shouldRelease) conn.release();
+            conn.release();
         }
     }
 

@@ -13,9 +13,13 @@ class PaymentReceiptRepository {
         const conn = connection || await pool.getConnection();
         const shouldRelease = !connection;
         try {
+            if (shouldRelease) {
+                await conn.beginTransaction();
+            }
+
             const [seqRows] = await conn.query<RowDataPacket[]>(
                 `SELECT current_number FROM document_sequences 
-                 WHERE document_type = 'payment_receipt' FOR UPDATE`,
+                 WHERE document_type = 'payment_receipt' FOR UPDATE`
             );
 
             let nextNum: number;
@@ -26,13 +30,30 @@ class PaymentReceiptRepository {
                     [nextNum]
                 );
             } else {
-                const [countRows] = await conn.query<RowDataPacket[]>(
-                    'SELECT COUNT(*) as count FROM payment_receipts WHERE YEAR(created_at) = ?',
+                // Fallback: chưa có row → đếm số lớn nhất hiện tại + insert row mới
+                const [maxRows] = await conn.query<RowDataPacket[]>(
+                    "SELECT MAX(CAST(SUBSTRING_INDEX(receipt_number, '-', -1) AS UNSIGNED)) as max_num FROM payment_receipts WHERE YEAR(created_at) = ?",
                     [year]
                 );
-                nextNum = countRows[0].count + 1;
+                nextNum = (maxRows[0].max_num || 0) + 1;
+                // Insert row sequence để các lần sau dùng đúng cách
+                await conn.query(
+                    `INSERT INTO document_sequences (document_type, prefix, current_number, number_length, reset_period)
+                     VALUES ('payment_receipt', 'PT-', ?, 6, 'yearly')
+                     ON DUPLICATE KEY UPDATE current_number = ?`,
+                    [nextNum, nextNum]
+                );
+            }
+
+            if (shouldRelease) {
+                await conn.commit();
             }
             return `PT-${year}-${nextNum.toString().padStart(6, '0')}`;
+        } catch (err) {
+            if (shouldRelease) {
+                await conn.rollback();
+            }
+            throw err;
         } finally {
             if (shouldRelease) conn.release();
         }

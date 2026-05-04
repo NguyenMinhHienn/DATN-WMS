@@ -321,9 +321,12 @@ export class StockTransferService {
                         const existingOrderReceivable = await receivableRepository.findBySource('order', orderId);
                         
                         if (!existingOrderReceivable) {
-                            const grandTotal = parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0) + 
-                                               parseFloat((transfer as any).vat_amount || 0) + 
-                                               parseFloat((transfer as any).shipping_fee || 0);
+                            // total_value = subtotal + VAT + shipping (đã bao gồm tất cả)
+                            // KHÔNG cộng thêm vat_amount + shipping_fee nữa (tránh tính 2 lần)
+                            const grandTotal = parseFloat((transfer as any).total_value) ||
+                                (parseFloat((transfer as any).subtotal || 0) + 
+                                 parseFloat((transfer as any).vat_amount || 0) + 
+                                 parseFloat((transfer as any).shipping_fee || 0));
 
                             if (order.payment_method === 'CREDIT') {
                                 const { creditService } = require('./credit.service');
