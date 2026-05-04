@@ -164,7 +164,7 @@ export class UserRepository {
 
     async delete(id: number): Promise<boolean> {
         const [result] = await pool.query<ResultSetHeader>(`
-      UPDATE users SET deleted_at = NOW() WHERE id = ?
+      UPDATE users SET deleted_at = NOW(), email = CONCAT(email, '_deleted_', id), username = CONCAT(username, '_deleted_', id) WHERE id = ?
     `, [id]);
 
         return result.affectedRows > 0;
