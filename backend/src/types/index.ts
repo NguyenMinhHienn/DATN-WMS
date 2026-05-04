@@ -549,6 +549,10 @@ export interface CreateUserDto {
     enable_credit?: boolean;
     credit_limit?: number;
     credit_payment_terms?: number;
+    credit_id_number?: string;
+    credit_address?: string;
+    credit_company?: string;
+    credit_tax_code?: string;
 }
 
 export interface UpdateUserDto {

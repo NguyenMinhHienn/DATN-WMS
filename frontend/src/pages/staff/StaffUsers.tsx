@@ -365,33 +365,59 @@ const StaffUsers: React.FC = () => {
                                 </label>
                                 
                                 {formData.enable_credit && (
-                                    <div className="grid grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
-                                        <div>
-                                            <label className="block text-xs font-semibold text-emerald-800 mb-1">Hạn mức công nợ (VNĐ)</label>
-                                            <input 
-                                                type="number" 
-                                                value={formData.credit_limit} 
-                                                onChange={(e) => setFormData(prev => ({ ...prev, credit_limit: Number(e.target.value) }))}
-                                                className="input w-full text-sm font-medium" 
-                                            />
+                                    <div className="space-y-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 mt-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-emerald-800 mb-1">Số CMND/CCCD *</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={formData.credit_id_number || ''} 
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, credit_id_number: e.target.value }))}
+                                                    className="input w-full text-sm" 
+                                                    required={formData.enable_credit}
+                                                    placeholder="Nhập tối thiểu 9 số..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-emerald-800 mb-1">Địa chỉ thường trú *</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={formData.credit_address || ''} 
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, credit_address: e.target.value }))}
+                                                    className="input w-full text-sm" 
+                                                    required={formData.enable_credit}
+                                                    placeholder="Nhập địa chỉ hợp lệ..."
+                                                />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-emerald-800 mb-1">Kỳ hạn thanh toán (Ngày)</label>
-                                            <div className="flex gap-2">
-                                                {[15, 30, 45].map(days => (
-                                                    <button 
-                                                        type="button"
-                                                        key={days} 
-                                                        onClick={() => setFormData(prev => ({ ...prev, credit_payment_terms: days }))}
-                                                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                                            formData.credit_payment_terms === days 
-                                                                ? 'bg-emerald-500 text-white shadow-md' 
-                                                                : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                                                        }`}
-                                                    >
-                                                        {days}
-                                                    </button>
-                                                ))}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-emerald-800 mb-1">Hạn mức công nợ (VNĐ)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={formData.credit_limit} 
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, credit_limit: Number(e.target.value) }))}
+                                                    className="input w-full text-sm font-medium" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-emerald-800 mb-1">Kỳ hạn thanh toán (Ngày)</label>
+                                                <div className="flex gap-2">
+                                                    {[15, 30, 45].map(days => (
+                                                        <button 
+                                                            type="button"
+                                                            key={days} 
+                                                            onClick={() => setFormData(prev => ({ ...prev, credit_payment_terms: days }))}
+                                                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                                formData.credit_payment_terms === days 
+                                                                    ? 'bg-emerald-500 text-white shadow-md' 
+                                                                    : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                                            }`}
+                                                        >
+                                                            {days}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

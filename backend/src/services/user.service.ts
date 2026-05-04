@@ -44,15 +44,35 @@ export class UserService {
 
         // Handle instant credit activation
         if (dto.enable_credit) {
+            if (!dto.credit_id_number || dto.credit_id_number.trim().length < 9) {
+                throw new AppError('Bắt buộc cung cấp Số CMND/CCCD hợp lệ (tối thiểu 9 ký tự) khi kích hoạt công nợ', 400);
+            }
+            if (!dto.credit_address || dto.credit_address.trim().length < 10) {
+                throw new AppError('Bắt buộc cung cấp Địa chỉ hợp lệ (tối thiểu 10 ký tự) khi kích hoạt công nợ', 400);
+            }
+
             await pool.query(
                 `UPDATE users SET 
                     credit_registered = 1,
+                    credit_registered_at = NOW(),
                     credit_eligible = 1, 
                     credit_enabled_at = NOW(),
                     credit_limit = ?,
-                    credit_payment_terms = ?
+                    credit_payment_terms = ?,
+                    credit_id_number = ?,
+                    credit_address = ?,
+                    credit_company = ?,
+                    credit_tax_code = ?
                  WHERE id = ?`,
-                [dto.credit_limit || 50000000, dto.credit_payment_terms || 30, userId]
+                [
+                    dto.credit_limit || 50000000, 
+                    dto.credit_payment_terms || 30, 
+                    dto.credit_id_number.trim(),
+                    dto.credit_address.trim(),
+                    dto.credit_company?.trim() || null,
+                    dto.credit_tax_code?.trim() || null,
+                    userId
+                ]
             );
         }
 
