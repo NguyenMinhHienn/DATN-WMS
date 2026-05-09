@@ -33,15 +33,32 @@ export class InventoryService {
         return inventoryRepository.getLowStockItems();
     }
 
+    async getUnderTenStockItems() {
+        return inventoryRepository.getUnderTenStockItems();
+    }
+
     async getMovementLogs(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
         endDate?: string
     ) {
-        return inventoryRepository.getMovementLogs(page, limit, productId, warehouseId, startDate, endDate);
+        return inventoryRepository.getMovementLogs(page, limit, inventoryId, productId, warehouseId, startDate, endDate);
+    }
+
+    async getInventoryReport(inventoryId: number, fromDate: string, toDate: string) {
+        return inventoryRepository.getInventoryReport(inventoryId, fromDate, toDate);
+    }
+
+    async getPerformanceMetrics(inventoryId: number) {
+        return inventoryRepository.getProductPerformanceMetrics(inventoryId);
+    }
+
+    async getOverallInventoryReport(fromDate: string, toDate: string, warehouseId?: number) {
+        return inventoryRepository.getOverallInventoryReport(fromDate, toDate, warehouseId);
     }
 }
 

@@ -45,9 +45,15 @@ export const inventoryService = {
         return response.data.data || [];
     },
 
+    async getUnderTenStock(): Promise<any[]> {
+        const response = await api.get<ApiResponse<any[]>>('/inventory/under-ten-stock');
+        return response.data.data || [];
+    },
+
     async getMovements(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
@@ -56,6 +62,7 @@ export const inventoryService = {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('limit', limit.toString());
+        if (inventoryId) params.append('inventory_id', inventoryId.toString());
         if (productId) params.append('product_id', productId.toString());
         if (warehouseId) params.append('warehouse_id', warehouseId.toString());
         if (startDate) params.append('start_date', startDate);
@@ -67,4 +74,24 @@ export const inventoryService = {
             pagination: response.data.pagination!,
         };
     },
+
+    async getMetrics(id: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
+        const response = await api.get<ApiResponse<any>>(`/inventory/${id}/metrics`);
+        return response.data.data;
+    },
+
+    async getReport(id: number, fromDate: string, toDate: string): Promise<{ ton_dau: number, nhap_trong_ky: number, xuat_trong_ky: number, ton_cuoi: number }> {
+        const response = await api.get<ApiResponse<any>>(`/inventory/${id}/report?from_date=${fromDate}&to_date=${toDate}`);
+        return response.data.data;
+    },
+
+    async getOverallReport(fromDate: string, toDate: string, warehouseId?: number): Promise<any[]> {
+        const params = new URLSearchParams();
+        params.append('from_date', fromDate);
+        params.append('to_date', toDate);
+        if (warehouseId) params.append('warehouse_id', warehouseId.toString());
+        
+        const response = await api.get<ApiResponse<any[]>>(`/inventory/report/overall?${params.toString()}`);
+        return response.data.data || [];
+    }
 };

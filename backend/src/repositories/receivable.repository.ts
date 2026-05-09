@@ -1,0 +1,508 @@
+import pool from '../config/database';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { PoolConnection } from 'mysql2/promise';
+
+/**
+ * Receivable Repository - CRUD cho bảng receivables (Công nợ phải thu)
+ */
+class ReceivableRepository {
+
+    /** Tạo mã công nợ tự động: CN-2026-000001 (concurrent-safe using document_sequences) */
+    async generateNumber(connection?: PoolConnection): Promise<string> {
+        const year = new Date().getFullYear();
+        const conn = connection || await pool.getConnection();
+        const shouldRelease = !connection;
+        try {
+            // Lock row in document_sequences to prevent concurrent duplicates
+            const [seqRows] = await conn.query<RowDataPacket[]>(
+                `SELECT current_number FROM document_sequences 
+                 WHERE document_type = 'receivable' FOR UPDATE`,
+            );
+
+            let nextNum: number;
+            if (seqRows.length > 0) {
+                nextNum = seqRows[0].current_number + 1;
+                await conn.query(
+                    `UPDATE document_sequences SET current_number = ? WHERE document_type = 'receivable'`,
+                    [nextNum]
+                );
+            } else {
+                // Fallback: nếu chưa có row trong document_sequences
+                const [countRows] = await conn.query<RowDataPacket[]>(
+                    'SELECT COUNT(*) as count FROM receivables WHERE YEAR(created_at) = ?',
+                    [year]
+                );
+                nextNum = countRows[0].count + 1;
+            }
+            return `CN-${year}-${nextNum.toString().padStart(6, '0')}`;
+        } finally {
+            if (shouldRelease) conn.release();
+        }
+    }
+
+    /** Tạo công nợ mới */
+    async create(data: {
+        source_type: 'order' | 'export_receipt' | 'export_transfer';
+        source_id: number;
+        source_number?: string;
+        debtor_type?: 'user' | 'customer' | 'external';
+        user_id?: number;
+        debtor_name: string;
+        debtor_phone?: string;
+        debtor_email?: string;
+        debtor_address?: string;
+        total_amount: number;
+        issue_date: string;
+        payment_terms?: number;
+        notes?: string;
+        created_by?: number;
+    }): Promise<number> {
+        const receivableNumber = await this.generateNumber();
+
+        // Tính due_date từ payment_terms
+        let dueDate: string | null = null;
+        const paymentTerms = data.payment_terms || 0;
+        if (paymentTerms > 0) {
+            const date = new Date(data.issue_date);
+            date.setDate(date.getDate() + paymentTerms);
+            dueDate = date.toISOString().split('T')[0];
+        }
+
+        const [result] = await pool.query<ResultSetHeader>(`
+            INSERT INTO receivables (
+                receivable_number, source_type, source_id, source_number,
+                debtor_type, user_id, debtor_name, debtor_phone, debtor_email, debtor_address,
+                total_amount, issue_date, due_date, payment_terms,
+                status, notes, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, ?)
+        `, [
+            receivableNumber, data.source_type, data.source_id, data.source_number || null,
+            data.debtor_type || 'external', data.user_id || null,
+            data.debtor_name, data.debtor_phone || null, data.debtor_email || null, data.debtor_address || null,
+            data.total_amount, data.issue_date, dueDate, paymentTerms,
+            data.notes || null, data.created_by || null,
+        ]);
+
+        return result.insertId;
+    }
+
+    /** Lấy chi tiết theo ID */
+    async findById(id: number): Promise<any | null> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, 
+                   u.full_name as user_full_name, u.email as user_email_account,
+                   cu.full_name as created_by_name
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            LEFT JOIN users cu ON r.created_by = cu.id
+            WHERE r.id = ?
+        `, [id]);
+
+        if (rows.length === 0) return null;
+        
+        const receivable = rows[0];
+        // Fetch items from source
+        receivable.items = await this.getSourceItems(receivable.source_type, receivable.source_id);
+        
+        return receivable;
+    }
+
+    /** Lấy danh sách công nợ theo user_id (Client) */
+    async findByUserId(userId: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, u.full_name as user_full_name, u.email as user_email_account
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.user_id = ?
+            ORDER BY r.created_at DESC
+        `, [userId]);
+
+        // Attach payment history for each receivable
+        for (const r of rows) {
+            const [receipts] = await pool.query<RowDataPacket[]>(`
+                SELECT pr.*, cu.full_name as created_by_name
+                FROM payment_receipts pr
+                LEFT JOIN users cu ON pr.created_by = cu.id
+                WHERE pr.receivable_id = ? AND pr.status != 'rejected'
+                ORDER BY pr.payment_date DESC
+            `, [r.id]);
+            r.payment_history = receipts;
+        }
+
+        return rows;
+    }
+
+    /** 
+     * Lấy danh sách sản phẩm từ nguồn (Source) của công nợ
+     */
+    async getSourceItems(sourceType: string, sourceId: number): Promise<any[]> {
+        if (!sourceType || !sourceId) return [];
+        
+        let query = '';
+        let type = sourceType.toLowerCase();
+        
+        // Fallback: If it's TR-... (Transfer) but labeled as export_receipt, fix it locally
+        const [numCheck] = await pool.query<RowDataPacket[]>(
+            'SELECT source_number FROM receivables WHERE source_type = ? AND source_id = ?',
+            [sourceType, sourceId]
+        );
+        if (numCheck.length > 0 && numCheck[0].source_number?.startsWith('TR-') && type === 'export_receipt') {
+            type = 'export_transfer';
+        }
+
+        switch (type) {
+            case 'export_receipt':
+                query = `
+                    SELECT 
+                        eri.product_id, p.sku, eri.quantity_actual as quantity, 
+                        eri.unit_price as unit_cost, eri.line_total,
+                        p.name as product_name
+                    FROM export_receipt_items eri
+                    JOIN products p ON eri.product_id = p.id
+                    WHERE eri.export_receipt_id = ?
+                `;
+                break;
+            case 'order':
+                query = `
+                    SELECT 
+                        oi.product_id, 
+                        oi.variant_sku as sku, oi.quantity, oi.unit_price as unit_cost, 
+                        (oi.quantity * oi.unit_price) as line_total,
+                        oi.product_name
+                    FROM order_items oi
+                    WHERE oi.order_id = ?
+                `;
+                break;
+            case 'export_transfer':
+                query = `
+                    SELECT 
+                        sti.product_id, p.sku, sti.quantity_requested as quantity, 
+                        sti.unit_cost, (sti.quantity_requested * sti.unit_cost) as line_total,
+                        p.name as product_name
+                    FROM stock_transfer_items sti
+                    JOIN products p ON sti.product_id = p.id
+                    WHERE sti.stock_transfer_id = ?
+                `;
+                break;
+            default:
+                return [];
+        }
+
+        const [rows] = await pool.query<RowDataPacket[]>(query, [sourceId]);
+        return rows;
+    }
+
+    /** Lấy theo source */
+    async findBySource(sourceType: string, sourceId: number): Promise<any | null> {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            'SELECT * FROM receivables WHERE source_type = ? AND source_id = ?',
+            [sourceType, sourceId]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    }
+
+    /** Lấy danh sách với filter + pagination */
+    async findAll(filters: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        source_type?: string;
+        search?: string;
+        start_date?: string;
+        end_date?: string;
+        user_id?: number;
+    }): Promise<{ data: any[]; pagination: any }> {
+        const page = filters.page || 1;
+        const limit = filters.limit || 20;
+        const offset = (page - 1) * limit;
+
+        let where = '1=1';
+        const params: any[] = [];
+
+        if (filters.status) {
+            if (filters.status === 'has_pending') {
+                where += " AND r.id IN (SELECT receivable_id FROM payment_receipts WHERE status = 'pending')";
+            } else {
+                where += ' AND r.status = ?';
+                params.push(filters.status);
+            }
+        }
+        if (filters.source_type) {
+            where += ' AND r.source_type = ?';
+            params.push(filters.source_type);
+        }
+        if (filters.search) {
+            where += ' AND (r.debtor_name LIKE ? OR r.debtor_phone LIKE ? OR r.receivable_number LIKE ?)';
+            const searchTerm = `%${filters.search}%`;
+            params.push(searchTerm, searchTerm, searchTerm);
+        }
+        if (filters.start_date) {
+            where += ' AND r.issue_date >= ?';
+            params.push(filters.start_date);
+        }
+        if (filters.end_date) {
+            where += ' AND r.issue_date <= ?';
+            params.push(filters.end_date);
+        }
+        if (filters.user_id !== undefined) {
+            where += ' AND r.user_id = ?';
+            params.push(filters.user_id);
+        }
+
+        const [countRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as total FROM receivables r WHERE ${where}`, params
+        );
+        const total = countRows[0].total;
+
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, u.full_name as user_full_name, cu.full_name as created_by_name
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            LEFT JOIN users cu ON r.created_by = cu.id
+            WHERE ${where}
+            ORDER BY r.created_at DESC
+            LIMIT ? OFFSET ?
+        `, [...params, limit, offset]);
+
+        return {
+            data: rows,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
+
+    /** Cập nhật paid_amount và status sau khi duyệt phiếu thu */
+    async updatePaidAmount(id: number, additionalAmount: number): Promise<void> {
+        const conn = await pool.getConnection();
+        try {
+            await conn.beginTransaction();
+
+            // Lấy thông tin hiện tại  
+            const [rows] = await conn.query<RowDataPacket[]>(
+                'SELECT total_amount, paid_amount FROM receivables WHERE id = ? FOR UPDATE', [id]
+            );
+            if (rows.length === 0) throw new Error('Không tìm thấy công nợ');
+
+            const { total_amount, paid_amount } = rows[0];
+            const newPaid = parseFloat(paid_amount) + additionalAmount;
+
+            let newStatus: string;
+            if (newPaid >= parseFloat(total_amount)) {
+                newStatus = 'paid';
+            } else if (newPaid > 0) {
+                newStatus = 'partial';
+            } else {
+                newStatus = 'unpaid';
+            }
+
+            await conn.query(`
+                UPDATE receivables 
+                SET paid_amount = ?, status = ?, last_payment_at = NOW(),
+                    closed_at = CASE WHEN ? >= total_amount THEN NOW() ELSE NULL END
+                WHERE id = ?
+            `, [newPaid, newStatus, newPaid, id]);
+
+            await conn.commit();
+        } catch (error) {
+            await conn.rollback();
+            throw error;
+        } finally {
+            conn.release();
+        }
+    }
+
+    /** Lấy thống kê tổng quan (Dashboard) */
+    async getSummaryStats(startDate?: string, endDate?: string): Promise<{
+        total_receivables: number;
+        total_amount: number;
+        total_paid: number;
+        total_remaining: number;
+        total_overdue: number;
+        overdue_amount: number;
+        count_by_status: Record<string, number>;
+    }> {
+        let where = "status NOT IN ('cancelled')";
+        const params: any[] = [];
+        
+        if (startDate) {
+            where += " AND issue_date >= ?";
+            params.push(startDate);
+        }
+        if (endDate) {
+            where += " AND issue_date <= ?";
+            params.push(endDate);
+        }
+
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                COUNT(*) as total_receivables,
+                COALESCE(SUM(total_amount), 0) as total_amount,
+                COALESCE(SUM(paid_amount), 0) as total_paid,
+                COALESCE(SUM(total_amount - paid_amount), 0) as total_remaining,
+                SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as total_overdue,
+                COALESCE(SUM(CASE WHEN status = 'overdue' THEN (total_amount - paid_amount) ELSE 0 END), 0) as overdue_amount
+            FROM receivables
+            WHERE ${where}
+        `, params);
+
+        const [statusRows] = await pool.query<RowDataPacket[]>(`
+            SELECT status, COUNT(*) as count FROM receivables 
+            WHERE ${where}
+            GROUP BY status
+        `, params);
+
+        const count_by_status: Record<string, number> = {};
+        for (const row of statusRows) {
+            count_by_status[row.status] = row.count;
+        }
+
+        return {
+            total_receivables: rows[0].total_receivables,
+            total_amount: parseFloat(rows[0].total_amount),
+            total_paid: parseFloat(rows[0].total_paid),
+            total_remaining: parseFloat(rows[0].total_remaining),
+            total_overdue: rows[0].total_overdue,
+            overdue_amount: parseFloat(rows[0].overdue_amount),
+            count_by_status,
+        };
+    }
+
+    /** Lấy danh sách quá hạn */
+    async getOverdueReceivables(): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT r.*, u.full_name as user_full_name
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.status = 'overdue'
+            ORDER BY r.due_date ASC
+        `);
+        return rows;
+    }
+
+    /** Cập nhật trạng thái quá hạn (gọi từ cron job hoặc thủ công) */
+    async markOverdue(): Promise<number> {
+        const [result] = await pool.query<ResultSetHeader>(`
+            UPDATE receivables 
+            SET status = 'overdue'
+            WHERE status IN ('unpaid', 'partial') 
+              AND due_date IS NOT NULL 
+              AND due_date < CURDATE()
+        `);
+        return result.affectedRows;
+    }
+
+    /** Hủy công nợ */
+    async cancel(id: number): Promise<boolean> {
+        const [result] = await pool.query<ResultSetHeader>(
+            "UPDATE receivables SET status = 'cancelled' WHERE id = ? AND status NOT IN ('paid')",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
+    /** Đánh dấu nợ xấu */
+    async markBadDebt(id: number): Promise<boolean> {
+        const [result] = await pool.query<ResultSetHeader>(
+            "UPDATE receivables SET status = 'bad_debt' WHERE id = ? AND status IN ('overdue')",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
+    /** Cập nhật email của người nợ */
+    async updateEmail(id: number, email: string): Promise<boolean> {
+        const [result] = await pool.query<ResultSetHeader>(
+            `UPDATE receivables SET debtor_email = ? WHERE id = ?`,
+            [email, id]
+        );
+        return result.affectedRows > 0;
+    }
+
+    /** Thống kê công nợ theo tháng cho báo cáo tài chính */
+    async getMonthlyStats(year: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                MONTH(r.issue_date) as month,
+                COALESCE(SUM(r.total_amount), 0) as total_issued,
+                COALESCE(SUM(r.paid_amount), 0) as total_collected,
+                COALESCE(SUM(r.total_amount - r.paid_amount), 0) as total_outstanding,
+                COUNT(*) as count
+            FROM receivables r
+            WHERE YEAR(r.issue_date) = ? AND r.status != 'cancelled'
+            GROUP BY MONTH(r.issue_date)
+            ORDER BY month
+        `, [year]);
+        return rows;
+    }
+
+    /** 
+     * Lấy sổ nợ tổng hợp theo khách hàng (user_id) 
+     * Gộp tất cả các phiếu nợ theo tài khoản người dùng
+     */
+    async getConsolidatedLedger(filters: {
+        page?: number;
+        limit?: number;
+        search?: string;
+    }): Promise<{ data: any[]; pagination: any }> {
+        const page = filters.page || 1;
+        const limit = filters.limit || 20;
+        const offset = (page - 1) * limit;
+
+        let where = 'r.status != "cancelled" AND r.user_id IS NOT NULL';
+        const params: any[] = [];
+
+        if (filters.search) {
+            where += ' AND (u.phone LIKE ? OR u.full_name LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        // Đếm tổng số khách hàng duy nhất
+        const [countRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(DISTINCT r.user_id) as total FROM receivables r LEFT JOIN users u ON r.user_id = u.id WHERE ${where}`, params
+        );
+        const total = countRows[0].total || 0;
+
+        // Lấy danh sách gộp
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT 
+                r.user_id,
+                u.full_name as debtor_name,
+                u.phone as debtor_phone,
+                u.email as debtor_email,
+                COUNT(r.id) as total_slips,
+                SUM(CASE WHEN r.status IN ("unpaid", "partial", "overdue") THEN 1 ELSE 0 END) as unpaid_slips,
+                SUM(r.total_amount) as total_debt,
+                SUM(r.paid_amount) as total_paid,
+                SUM(r.total_amount - r.paid_amount) as remaining_debt,
+                MAX(r.last_payment_at) as last_payment_at,
+                MAX(r.created_at) as last_activity_at
+            FROM receivables r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE ${where}
+            GROUP BY r.user_id
+            ORDER BY remaining_debt DESC, last_activity_at DESC
+            LIMIT ? OFFSET ?
+        `, [...params, limit, offset]);
+
+        return {
+            data: rows,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
+    /** 
+     * Lấy danh sách các phiếu chưa trả hết của 1 SĐT khách hàng
+     * Phục vụ logic "Gạch nợ" FIFO
+     */
+    async getUnpaidByUserId(userId: number): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT * FROM receivables 
+            WHERE user_id = ? 
+            AND status IN ('unpaid', 'partial', 'overdue')
+            ORDER BY issue_date ASC, created_at ASC
+        `, [userId]);
+        return rows;
+    }
+}
+
+export const receivableRepository = new ReceivableRepository();

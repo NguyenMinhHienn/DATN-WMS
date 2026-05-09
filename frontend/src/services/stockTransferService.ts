@@ -83,8 +83,22 @@ export interface CreateStockTransferData {
     destination_warehouse_id?: number;
     transfer_date?: string;
     expected_arrival_date?: string;
+    supplier_id?: number;
+    delivery_person?: string;
+    storekeeper?: string;
+    receiver_name?: string;
+    receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
+    user_id?: number;
+    order_id?: number;
     reason?: string;
     notes?: string;
+    subtotal?: number;
+    vat_percent?: number;
+    vat_amount?: number;
+    shipping_fee?: number;
+    payment_terms?: number;
     items: CreateStockTransferItemData[];
 }
 

@@ -10,6 +10,8 @@ export interface User {
     created_at: string;
     updated_at: string;
     roles: Role[];
+    total_orders?: number;
+    total_spent?: number;
 }
 
 export interface Role {
@@ -414,6 +416,9 @@ export interface UserFormData {
     full_name: string;
     phone?: string;
     role_ids: number[];
+    enable_credit?: boolean;
+    credit_limit?: number;
+    credit_payment_terms?: number;
 }
 
 // Stock Transfer types
@@ -430,9 +435,23 @@ export interface StockTransfer {
     total_items: number;
     total_quantity: number;
     total_value: number;
+    subtotal?: number;
+    vat_percent?: number;
+    vat_amount?: number;
+    shipping_fee?: number;
     status: 'draft' | 'pending' | 'approved' | 'rejected' | 'in_transit' | 'completed' | 'cancelled';
     reason?: string;
+    payment_terms?: number;
+    order_id?: number;
     notes?: string;
+    supplier_id?: number;
+    supplier_name?: string;
+    delivery_person?: string;
+    storekeeper?: string;
+    receiver_name?: string;
+    receiver_department?: string;
+    receiver_address?: string;
+    receiver_phone?: string;
     rejection_reason?: string;
     approved_by_name?: string;
     approved_at?: string;
@@ -452,9 +471,12 @@ export interface StockTransferItem {
     sku?: string;
     quantity_requested: number;
     quantity_received: number;
+    quantity?: number; // Added for display in StockOut
     unit_cost: number;
     line_total: number;
     batch_number?: string;
     expiry_date?: string;
     status: string;
+    variant_name?: string; // Added for display in StockOut
+    notes?: string; // Added for display in StockOut
 }

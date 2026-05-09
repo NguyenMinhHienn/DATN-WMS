@@ -6,6 +6,7 @@ import {
     PaginatedResult
 } from '../types';
 import { RowDataPacket, ResultSetHeader, PoolConnection } from 'mysql2/promise';
+import { inventoryCoreService } from '../services/inventory-core.service';
 
 /**
  * Stock Transfer Repository
@@ -108,12 +109,14 @@ export class StockTransferRepository {
                    sw.name as source_warehouse_name,
                    dw.name as destination_warehouse_name,
                    u.full_name as created_by_name,
-                   au.full_name as approved_by_name
+                   au.full_name as approved_by_name,
+                   s.name as supplier_name
             FROM stock_transfers st
             LEFT JOIN warehouses sw ON st.source_warehouse_id = sw.id
             LEFT JOIN warehouses dw ON st.destination_warehouse_id = dw.id
             LEFT JOIN users u ON st.created_by = u.id
             LEFT JOIN users au ON st.approved_by = au.id
+            LEFT JOIN suppliers s ON st.supplier_id = s.id
             WHERE st.deleted_at IS NULL AND st.created_by = ?
         `;
         const params: any[] = [creatorId];
@@ -156,13 +159,15 @@ export class StockTransferRepository {
                    dw.name as destination_warehouse_name,
                    u.full_name as created_by_name,
                    au.full_name as approved_by_name,
-                   ru.full_name as rejected_by_name
+                   ru.full_name as rejected_by_name,
+                   s.name as supplier_name
             FROM stock_transfers st
             LEFT JOIN warehouses sw ON st.source_warehouse_id = sw.id
             LEFT JOIN warehouses dw ON st.destination_warehouse_id = dw.id
             LEFT JOIN users u ON st.created_by = u.id
             LEFT JOIN users au ON st.approved_by = au.id
             LEFT JOIN users ru ON st.rejected_by = ru.id
+            LEFT JOIN suppliers s ON st.supplier_id = s.id
             WHERE st.id = ? AND st.deleted_at IS NULL
         `, [id]);
 
@@ -221,33 +226,33 @@ export class StockTransferRepository {
             // Tính tổng
             let totalItems = dto.items.length;
             let totalQuantity = 0;
-            let totalValue = 0;
+            let calculatedSubtotal = 0;
 
             for (const item of dto.items) {
                 const qty = item.quantity_requested ?? 0;
                 const cost = item.unit_cost ?? 0;
                 totalQuantity += qty;
-                totalValue += qty * cost;
+                calculatedSubtotal += qty * cost;
             }
+
+            const subtotal = dto.subtotal ?? calculatedSubtotal;
+            const vatPercent = dto.vat_percent ?? 0;
+            const vatAmount = dto.vat_amount ?? 0;
+            const shippingFee = dto.shipping_fee ?? 0;
+            const totalValue = subtotal + vatAmount + shippingFee;
 
             // Xử lý warehouse IDs - schema yêu cầu cả 2
             // Với IMPORT: source và dest giống nhau (nhập vào cùng 1 kho)
             const sourceWarehouseId = dto.source_warehouse_id || dto.destination_warehouse_id;
             const destWarehouseId = dto.destination_warehouse_id || dto.source_warehouse_id;
 
-            // Insert phiếu với trạng thái PENDING
-            // Bao gồm transfer_type để xác định loại phiếu
-            const [result] = await connection.query<ResultSetHeader>(`
-                INSERT INTO stock_transfers (
-                    transfer_number, transfer_type,
-                    source_warehouse_id, destination_warehouse_id,
-                    transfer_date, expected_arrival_date,
-                    total_items, total_quantity, total_value,
-                    status, reason, notes, requested_by, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-            `, [
+            console.log('[StockTransferRepository] order_id:', dto.order_id);
+            console.log('[StockTransferRepository] dto:', JSON.stringify(dto, null, 2));
+
+            const params = [
                 transferNumber,
-                dto.transfer_type || 'IMPORT', // Mặc định là IMPORT
+                dto.transfer_type || 'IMPORT',
+                dto.supplier_id || null,
                 sourceWarehouseId,
                 destWarehouseId,
                 dto.transfer_date || new Date().toISOString().split('T')[0],
@@ -255,11 +260,44 @@ export class StockTransferRepository {
                 totalItems,
                 totalQuantity,
                 totalValue,
+                subtotal,
+                vatPercent,
+                vatAmount,
+                shippingFee,
+                'pending', // status
                 dto.reason || null,
+                dto.order_id || null,
                 dto.notes || null,
+                dto.delivery_person || null,
+                dto.storekeeper || null,
+                dto.receiver_name || null,
+                dto.receiver_department || null,
+                dto.receiver_address || null,
+                dto.receiver_phone || null,
+                dto.receiver_latitude || null,
+                dto.receiver_longitude || null,
+                dto.payment_terms || 0,
                 userId,
                 userId,
-            ]);
+            ];
+
+            console.log('[StockTransferRepository] Executing INSERT with order_id:', dto.order_id);
+            console.log('[StockTransferRepository] Params array index 12 (order_id):', params[17]);
+
+            const [result] = await connection.query<ResultSetHeader>(`
+                INSERT INTO stock_transfers (
+                    transfer_number, transfer_type, supplier_id,
+                    source_warehouse_id, destination_warehouse_id,
+                    transfer_date, expected_arrival_date,
+                    total_items, total_quantity, total_value,
+                    subtotal, vat_percent, vat_amount, shipping_fee,
+                    status, reason, order_id, notes,
+                    delivery_person, storekeeper, receiver_name, receiver_department,
+                    receiver_address, receiver_phone, receiver_latitude, receiver_longitude,
+                    payment_terms,
+                    requested_by, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, params);
 
             const transferId = result.insertId;
 
@@ -361,20 +399,31 @@ export class StockTransferRepository {
     }
 
     /**
-     * Kiểm tra tồn kho đủ để xuất
+     * Kiểm tra tồn kho đủ để xuất (dùng variant-aware query)
      */
     async checkSufficientStock(
         warehouseId: number,
         productId: number,
-        quantity: number
+        quantity: number,
+        variantId?: number
     ): Promise<{ sufficient: boolean; available: number }> {
-        const [rows] = await pool.query<RowDataPacket[]>(`
-            SELECT COALESCE(SUM(quantity_on_hand - quantity_reserved), 0) as available
-            FROM inventories
-            WHERE warehouse_id = ? AND product_id = ? AND status = 'available'
-        `, [warehouseId, productId]);
+        let query: string;
+        let params: any[];
 
-        const available = rows[0]?.available || 0;
+        if (variantId) {
+            query = `SELECT COALESCE(SUM(quantity_on_hand - quantity_reserved), 0) as available
+                     FROM inventories
+                     WHERE warehouse_id = ? AND product_variant_id = ? AND status = 'available'`;
+            params = [warehouseId, variantId];
+        } else {
+            query = `SELECT COALESCE(SUM(quantity_on_hand - quantity_reserved), 0) as available
+                     FROM inventories
+                     WHERE warehouse_id = ? AND product_id = ? AND status = 'available'`;
+            params = [warehouseId, productId];
+        }
+
+        const [rows] = await pool.query<RowDataPacket[]>(query, params);
+        const available = Number(rows[0]?.available) || 0;
         return {
             sufficient: available >= quantity,
             available
@@ -384,12 +433,10 @@ export class StockTransferRepository {
     /**
      * DUYỆT PHIẾU - Chỉ ADMIN mới được gọi hàm này
      * 
-     * Logic cập nhật tồn kho:
-     * - IMPORT: Cộng vào kho đích (destination_warehouse_id)
-     * - EXPORT: Trừ từ kho nguồn (source_warehouse_id), kiểm tra đủ tồn
-     * - TRANSFER: Trừ kho nguồn + Cộng kho đích
-     * 
-     * Sử dụng transaction để đảm bảo atomic operation
+     * Sử dụng inventoryCoreService cho mọi thay đổi tồn kho:
+     * - IMPORT: inventoryCoreService.importStock() + cập nhật MWA
+     * - EXPORT: inventoryCoreService.exportStock() + lưu COGS
+     * - TRANSFER: exportStock() từ kho nguồn + importStock() vào kho đích
      */
     async approve(id: number, adminUserId: number): Promise<boolean> {
         const connection = await pool.getConnection();
@@ -411,151 +458,97 @@ export class StockTransferRepository {
 
             // Xử lý theo loại phiếu
             for (const item of items) {
+                const baseParams = {
+                    connection,
+                    productId: item.product_id,
+                    variantId: item.product_variant_id || 0,
+                    referenceType: 'stock_transfer',
+                    referenceId: id,
+                    referenceNumber: transfer.transfer_number,
+                    userId: adminUserId,
+                    unitCost: item.unit_cost,
+                };
+
                 switch (transfer.transfer_type) {
                     case 'IMPORT':
-                        // Nhập kho: Cộng vào kho đích
-                        await this.addToInventory(
-                            connection,
-                            transfer.destination_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested,
-                            item.unit_cost,
-                            id,
-                            transfer.transfer_number,
-                            adminUserId
-                        );
-
-                        // Cập nhật product_variants.stock + tính MWA (giá bình quân gia quyền)
                         if (item.product_variant_id) {
+                            // Tính MWA (giá bình quân gia quyền) trước khi import
                             const [variantRows] = await connection.query<RowDataPacket[]>(
                                 'SELECT stock, average_cost FROM product_variants WHERE id = ?',
                                 [item.product_variant_id]
                             );
-                            if (variantRows.length > 0) {
-                                const oldStock = Number(variantRows[0].stock) || 0;
-                                const oldAvgCost = Number(variantRows[0].average_cost) || 0;
-                                const newQty = item.quantity_requested;
-                                const newCost = item.unit_cost;
-                                const totalStock = oldStock + newQty;
-                                // MWA: (old_stock * old_avg + new_qty * new_cost) / (old_stock + new_qty)
-                                const newAvgCost = totalStock > 0
-                                    ? Math.round(((oldStock * oldAvgCost) + (newQty * newCost)) / totalStock)
-                                    : newCost;
+                            const oldStock = variantRows.length > 0 ? Number(variantRows[0].stock) || 0 : 0;
+                            const oldAvgCost = variantRows.length > 0 ? Number(variantRows[0].average_cost) || 0 : 0;
+                            const newQty = item.quantity_requested;
+                            const newCost = item.unit_cost;
+                            const totalStock = oldStock + newQty;
+                            const newAvgCost = totalStock > 0
+                                ? Math.round(((oldStock * oldAvgCost) + (newQty * newCost)) / totalStock)
+                                : newCost;
 
-                                await connection.query(
-                                    'UPDATE product_variants SET stock = ?, average_cost = ?, updated_at = NOW() WHERE id = ?',
-                                    [totalStock, newAvgCost, item.product_variant_id]
-                                );
-                                console.log(`[Approve IMPORT] Variant ${item.product_variant_id}: stock ${oldStock} -> ${totalStock}, avg_cost ${oldAvgCost} -> ${newAvgCost}`);
-                            }
+                            // Import stock qua core service
+                            await inventoryCoreService.importStock({
+                                ...baseParams,
+                                warehouseId: transfer.destination_warehouse_id!,
+                                quantity: item.quantity_requested,
+                            });
+
+                            // Cập nhật MWA (average_cost) cho variant
+                            await connection.query(
+                                'UPDATE product_variants SET average_cost = ?, updated_at = NOW() WHERE id = ?',
+                                [newAvgCost, item.product_variant_id]
+                            );
+                            console.log(`[Approve IMPORT] Variant ${item.product_variant_id}: avg_cost ${oldAvgCost} → ${newAvgCost}`);
+                        } else {
+                            // Fallback for products without variants
+                            await inventoryCoreService.importStock({
+                                ...baseParams,
+                                warehouseId: transfer.destination_warehouse_id!,
+                                quantity: item.quantity_requested,
+                            });
                         }
                         break;
 
                     case 'EXPORT':
-                        // Kiểm tra tồn kho variant trước
                         if (item.product_variant_id) {
+                            // Lấy average_cost để lưu COGS
                             const [vRows] = await connection.query<RowDataPacket[]>(
-                                'SELECT stock, average_cost FROM product_variants WHERE id = ?',
+                                'SELECT average_cost FROM product_variants WHERE id = ?',
                                 [item.product_variant_id]
                             );
-                            const variantStock = vRows.length > 0 ? Number(vRows[0].stock) : 0;
-                            const avgCost = vRows.length > 0 ? Number(vRows[0].average_cost) : 0;
-
-                            if (variantStock < item.quantity_requested) {
-                                throw new Error(
-                                    `Không đủ tồn kho variant ID ${item.product_variant_id}. ` +
-                                    `Yêu cầu: ${item.quantity_requested}, Tồn: ${variantStock}`
-                                );
-                            }
-
-                            // Lưu giá vốn hàng bán (COGS)
+                            const avgCost = vRows.length > 0 ? Number(vRows[0].average_cost) || 0 : 0;
                             const cogs = item.quantity_requested * avgCost;
+
+                            // Lưu COGS vào stock_transfer_items
                             await connection.query(
                                 'UPDATE stock_transfer_items SET cost_of_goods_sold = ? WHERE id = ?',
                                 [cogs, item.id]
                             );
-
-                            // Trừ stock variant
-                            await connection.query(
-                                'UPDATE product_variants SET stock = stock - ?, updated_at = NOW() WHERE id = ?',
-                                [item.quantity_requested, item.product_variant_id]
-                            );
-                            console.log(`[Approve EXPORT] Variant ${item.product_variant_id}: stock -= ${item.quantity_requested}, COGS = ${cogs}`);
-                        } else {
-                            // Fallback: kiểm tra kho cũ
-                            const exportCheck = await this.checkSufficientStock(
-                                transfer.source_warehouse_id!,
-                                item.product_id,
-                                item.quantity_requested
-                            );
-                            if (!exportCheck.sufficient) {
-                                throw new Error(
-                                    `Insufficient stock for product ID ${item.product_id}. ` +
-                                    `Required: ${item.quantity_requested}, Available: ${exportCheck.available}`
-                                );
-                            }
                         }
-                        // Trừ inventories table
-                        await this.subtractFromInventory(
-                            connection,
-                            transfer.source_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested,
-                            id,
-                            transfer.transfer_number,
-                            adminUserId
-                        );
+
+                        // Export stock qua core service (handles both variant and non-variant)
+                        await inventoryCoreService.exportStock({
+                            ...baseParams,
+                            warehouseId: transfer.source_warehouse_id!,
+                            quantity: item.quantity_requested,
+                        });
                         break;
 
                     case 'TRANSFER':
-                        // Kiểm tra tồn kho variant
-                        if (item.product_variant_id) {
-                            const [tvRows] = await connection.query<RowDataPacket[]>(
-                                'SELECT stock FROM product_variants WHERE id = ?',
-                                [item.product_variant_id]
-                            );
-                            const tvStock = tvRows.length > 0 ? Number(tvRows[0].stock) : 0;
-                            if (tvStock < item.quantity_requested) {
-                                throw new Error(
-                                    `Không đủ tồn kho variant ID ${item.product_variant_id}. ` +
-                                    `Yêu cầu: ${item.quantity_requested}, Tồn: ${tvStock}`
-                                );
-                            }
-                            // Transfer không đổi tổng stock variant, chỉ đổi kho
-                        } else {
-                            const transferCheck = await this.checkSufficientStock(
-                                transfer.source_warehouse_id!,
-                                item.product_id,
-                                item.quantity_requested
-                            );
-                            if (!transferCheck.sufficient) {
-                                throw new Error(
-                                    `Insufficient stock for product ID ${item.product_id}. ` +
-                                    `Required: ${item.quantity_requested}, Available: ${transferCheck.available}`
-                                );
-                            }
-                        }
-                        // Trừ kho nguồn
-                        await this.subtractFromInventory(
-                            connection,
-                            transfer.source_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested,
-                            id,
-                            transfer.transfer_number,
-                            adminUserId
-                        );
-                        // Cộng kho đích
-                        await this.addToInventory(
-                            connection,
-                            transfer.destination_warehouse_id!,
-                            item.product_id,
-                            item.quantity_requested,
-                            item.unit_cost,
-                            id,
-                            transfer.transfer_number,
-                            adminUserId
-                        );
+                        // Xuất kho nguồn
+                        await inventoryCoreService.exportStock({
+                            ...baseParams,
+                            warehouseId: transfer.source_warehouse_id!,
+                            quantity: item.quantity_requested,
+                            reason: 'Transfer out',
+                        });
+                        // Nhập kho đích
+                        await inventoryCoreService.importStock({
+                            ...baseParams,
+                            warehouseId: transfer.destination_warehouse_id!,
+                            quantity: item.quantity_requested,
+                            reason: 'Transfer in',
+                        });
                         break;
                 }
 
@@ -627,125 +620,8 @@ export class StockTransferRepository {
         }
     }
 
-    /**
-     * Helper: Cộng tồn kho (dùng cho IMPORT và TRANSFER vào)
-     */
-    private async addToInventory(
-        connection: PoolConnection,
-        warehouseId: number,
-        productId: number,
-        quantity: number,
-        unitCost: number,
-        transferId: number,
-        transferNumber: string,
-        userId: number
-    ): Promise<void> {
-        // Tìm inventory record hiện có
-        const [existing] = await connection.query<RowDataPacket[]>(`
-            SELECT * FROM inventories 
-            WHERE product_id = ? AND warehouse_id = ? AND status = 'available'
-            LIMIT 1
-        `, [productId, warehouseId]);
-
-        if (existing.length > 0) {
-            const inv = existing[0];
-            // Cập nhật số lượng
-            await connection.query(`
-                UPDATE inventories 
-                SET quantity_on_hand = quantity_on_hand + ?, 
-                    last_movement_date = NOW()
-                WHERE id = ?
-            `, [quantity, inv.id]);
-
-            // Ghi log
-            await connection.query(`
-                INSERT INTO inventory_logs (
-                    inventory_id, product_id, warehouse_id,
-                    movement_type, reference_type, reference_id, reference_number,
-                    quantity_before, quantity_change, quantity_after,
-                    unit_cost, total_cost, performed_by
-                ) VALUES (?, ?, ?, 'transfer_in', 'stock_transfer', ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                inv.id, productId, warehouseId,
-                transferId, transferNumber,
-                inv.quantity_on_hand, quantity, inv.quantity_on_hand + quantity,
-                unitCost, quantity * unitCost, userId
-            ]);
-        } else {
-            // Tạo inventory record mới
-            const [newInv] = await connection.query<ResultSetHeader>(`
-                INSERT INTO inventories (
-                    product_id, warehouse_id, quantity_on_hand,
-                    unit_cost, status, last_movement_date
-                ) VALUES (?, ?, ?, ?, 'available', NOW())
-            `, [productId, warehouseId, quantity, unitCost]);
-
-            // Ghi log
-            await connection.query(`
-                INSERT INTO inventory_logs (
-                    inventory_id, product_id, warehouse_id,
-                    movement_type, reference_type, reference_id, reference_number,
-                    quantity_before, quantity_change, quantity_after,
-                    unit_cost, total_cost, performed_by
-                ) VALUES (?, ?, ?, 'transfer_in', 'stock_transfer', ?, ?, 0, ?, ?, ?, ?, ?)
-            `, [
-                newInv.insertId, productId, warehouseId,
-                transferId, transferNumber,
-                quantity, quantity,
-                unitCost, quantity * unitCost, userId
-            ]);
-        }
-    }
-
-    /**
-     * Helper: Trừ tồn kho (dùng cho EXPORT và TRANSFER ra)
-     */
-    private async subtractFromInventory(
-        connection: PoolConnection,
-        warehouseId: number,
-        productId: number,
-        quantity: number,
-        transferId: number,
-        transferNumber: string,
-        userId: number
-    ): Promise<void> {
-        // Tìm inventory record có đủ số lượng
-        const [existing] = await connection.query<RowDataPacket[]>(`
-            SELECT * FROM inventories 
-            WHERE product_id = ? AND warehouse_id = ? 
-            AND status = 'available' AND quantity_on_hand >= ?
-            LIMIT 1
-        `, [productId, warehouseId, quantity]);
-
-        if (existing.length === 0) {
-            throw new Error(`Insufficient inventory for product ${productId} in warehouse ${warehouseId}`);
-        }
-
-        const inv = existing[0];
-
-        // Trừ số lượng
-        await connection.query(`
-            UPDATE inventories 
-            SET quantity_on_hand = quantity_on_hand - ?, 
-                last_movement_date = NOW()
-            WHERE id = ?
-        `, [quantity, inv.id]);
-
-        // Ghi log
-        await connection.query(`
-            INSERT INTO inventory_logs (
-                inventory_id, product_id, warehouse_id,
-                movement_type, reference_type, reference_id, reference_number,
-                quantity_before, quantity_change, quantity_after,
-                unit_cost, total_cost, performed_by
-            ) VALUES (?, ?, ?, 'transfer_out', 'stock_transfer', ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            inv.id, productId, warehouseId,
-            transferId, transferNumber,
-            inv.quantity_on_hand, -quantity, inv.quantity_on_hand - quantity,
-            inv.unit_cost || 0, quantity * (inv.unit_cost || 0), userId
-        ]);
-    }
+    // Legacy helpers addToInventory() and subtractFromInventory() have been removed.
+    // All inventory operations now go through inventoryCoreService.
 
     /**
      * Xóa phiếu (chỉ cho phiếu draft hoặc pending)

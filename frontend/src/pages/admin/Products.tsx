@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { productService } from '../../services/productService';
 import { productVariantService } from '../../services/productVariantService';
 import { attributeService } from '../../services/attributeService';
 import {
-    Product, Category, Unit, ProductFormData, PaginationInfo,
+    Product, Category, ProductFormData, PaginationInfo,
     ProductVariant, ProductVariantFormData,
-    Attribute, AttributeValue, VARIANT_TYPES_CONFIG
+    Attribute
 } from '../../interface';
 import { Modal } from '../../components/Modal';
 import { Pagination } from '../../components/Pagination';
@@ -32,7 +32,6 @@ const Products: React.FC = () => {
     // State
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
     const [attributes, setAttributes] = useState<Attribute[]>([]); // Flexible attributes from API
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 1, limit: 10, total: 0, totalPages: 0
@@ -63,7 +62,6 @@ const Products: React.FC = () => {
     const [formError, setFormError] = useState('');
 
     // === NEW: 2-Step Form State ===
-    const [formStep, setFormStep] = useState(1); // 1 = Product Info, 2 = Variant Setup
     const [hasVariants, setHasVariants] = useState(false); // Toggle: Sản phẩm có biến thể?
     const [selectedAttributes, setSelectedAttributes] = useState<{
         attribute_id: number;
@@ -71,18 +69,10 @@ const Products: React.FC = () => {
         attribute_display_name: string;
         value_ids: number[];
     }[]>([]);
-    const [generatedVariants, setGeneratedVariants] = useState<ProductVariant[]>([]);
-    const [variantPrices, setVariantPrices] = useState<{ [sku: string]: number }>({});
-    const [variantStocks, setVariantStocks] = useState<{ [sku: string]: number }>({});
-    const [generatingVariants, setGeneratingVariants] = useState(false);
     const [customValues, setCustomValues] = useState<{ [attr_id: number]: string }>({});
-    const [initialStock, setInitialStock] = useState(0); // Initial stock for new variants
 
     // Variants in form state (legacy - kept for existing form)
     const [formVariants, setFormVariants] = useState<TempVariant[]>([]);
-    const [newVariantData, setNewVariantData] = useState<Partial<TempVariant>>({});
-    const [newVariantPrice, setNewVariantPrice] = useState(0);
-    const [newVariantStock, setNewVariantStock] = useState(0);
 
     // Separate Variant Modal
     const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
@@ -101,53 +91,6 @@ const Products: React.FC = () => {
     const canEdit = hasAnyRole(['admin', 'warehouse_manager']);
     const canDelete = hasAnyRole(['admin']);
 
-    // Get active variant types based on selected category
-    // Default: show color variant if category has no specific variant_types configured
-    const activeVariantTypes = useMemo(() => {
-        if (!formData.category_id) {
-            // If no category selected, default to color only
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        // Convert to number for comparison (form select values are strings)
-        const categoryId = Number(formData.category_id);
-        const category = categories.find(c => c.id === categoryId);
-
-        console.log('Category lookup:', { categoryId, category, variant_types: category?.variant_types });
-
-        // If category not found or has no variant_types, default to color
-        if (!category) {
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        // Get variant_types - could be JSON string, array, or null
-        let types: string[] = [];
-        const vt = category.variant_types;
-
-        if (!vt) {
-            // No variant types configured
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        if (typeof vt === 'string') {
-            try {
-                types = JSON.parse(vt);
-            } catch {
-                return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-            }
-        } else if (Array.isArray(vt)) {
-            types = vt;
-        }
-
-        // If parsed types is empty, default to color
-        if (!types || types.length === 0) {
-            return VARIANT_TYPES_CONFIG.filter(vt => vt.key === 'color');
-        }
-
-        console.log('Parsed variant types:', types);
-        return VARIANT_TYPES_CONFIG.filter(vtConfig => types.includes(vtConfig.key));
-    }, [formData.category_id, categories]);
-
     // Debounce search: chờ 400ms sau lần gõ cuối mới gọi API
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -160,7 +103,6 @@ const Products: React.FC = () => {
     useEffect(() => {
         loadProducts();
         loadCategories();
-        loadUnits();
         loadAttributes(); // Load flexible attributes from API
     }, [pagination.page, debouncedSearch, selectedCategory, selectedStatus]);
 
@@ -189,15 +131,6 @@ const Products: React.FC = () => {
             setCategories(data);
         } catch (error) {
             console.error('Failed to load categories:', error);
-        }
-    };
-
-    const loadUnits = async () => {
-        try {
-            const data = await productService.getUnits();
-            setUnits(data);
-        } catch (error) {
-            console.error('Failed to load units:', error);
         }
     };
 
@@ -276,18 +209,10 @@ const Products: React.FC = () => {
             status: 'draft',
         });
         // Reset 2-step form state
-        setFormStep(1);
         setHasVariants(false);
         setSelectedAttributes([]);
-        setGeneratedVariants([]);
-        setVariantPrices({});
-        setVariantStocks({});
-        setInitialStock(0);
         // Legacy reset
         setFormVariants([]);
-        setNewVariantData({});
-        setNewVariantPrice(0);
-        setNewVariantStock(0);
         setFormError('');
         setIsModalOpen(true);
     };
@@ -298,12 +223,7 @@ const Products: React.FC = () => {
         setFormVariants([]);
         setSelectedAttributes([]);
         setCustomValues({});
-        setGeneratedVariants([]);
-        setVariantPrices({});
-        setVariantStocks({});
-        setInitialStock(0);
         setHasVariants(false);
-        setFormStep(1);
         setFormError('');
 
         // Now set the new product data
@@ -349,65 +269,8 @@ const Products: React.FC = () => {
             setFormVariants([]);
         }
 
-        setNewVariantData({});
-        setNewVariantPrice(product.selling_price);
-        setNewVariantStock(0);
-        setIsModalOpen(true);
-    };
-
-    // Generate SKU for variant based on selected attributes
-    const generateVariantSku = (attrs: Partial<TempVariant>) => {
-        const parts = [formData.sku];
-        if (attrs.color) parts.push(attrs.color.toUpperCase());
-        if (attrs.size) parts.push(attrs.size);
-        if (attrs.storage) parts.push(attrs.storage);
-        if (attrs.ram) parts.push(attrs.ram);
-        if (attrs.material) parts.push(attrs.material.toUpperCase().slice(0, 3));
-        if (attrs.capacity) parts.push(attrs.capacity);
-        return parts.join('-');
-    };
-
-    // Add variant to form
-    const handleAddVariant = () => {
-        // Check all required variant types are selected
-        const missingTypes = activeVariantTypes.filter(vt => !newVariantData[vt.key]);
-        if (missingTypes.length > 0) {
-            setFormError(`Vui lòng chọn: ${missingTypes.map(t => t.label).join(', ')}`);
-            return;
-        }
-
-        // Check duplicate combination
-        const isDuplicate = formVariants.some(v => {
-            return activeVariantTypes.every(vt => v[vt.key] === newVariantData[vt.key]);
-        });
-        if (isDuplicate) {
-            setFormError('Tổ hợp này đã tồn tại!');
-            return;
-        }
-
-        const newVariant: TempVariant = {
-            ...newVariantData,
-            sku: generateVariantSku(newVariantData),
-            price: newVariantPrice || formData.selling_price,
-            stock: newVariantStock,
-            isNew: true
-        };
-
-        setFormVariants([...formVariants, newVariant]);
-        setNewVariantData({});
-        setNewVariantPrice(formData.selling_price);
-        setNewVariantStock(0);
         setFormError('');
-    };
-
-    const handleRemoveVariant = (index: number) => {
-        setFormVariants(formVariants.filter((_, i) => i !== index));
-    };
-
-    const handleUpdateVariantField = (index: number, field: keyof TempVariant, value: any) => {
-        const updated = [...formVariants];
-        (updated[index] as any)[field] = value;
-        setFormVariants(updated);
+        setIsModalOpen(true);
     };
 
     // Validate product form before submit
@@ -489,7 +352,7 @@ const Products: React.FC = () => {
                                 value_ids: sa.value_ids
                             })),
                             base_price: formData.selling_price,
-                            base_stock: initialStock
+                            base_stock: 0
                         });
                         console.log('Generated variants:', generatedVariants);
                     } catch (genError) {
@@ -501,7 +364,16 @@ const Products: React.FC = () => {
                 // Auto-generate unique SKU
                 const categoryId = Number(formData.category_id);
                 const category = categories.find(c => c.id === categoryId);
-                const categoryCode = category?.code?.toUpperCase() || 'PROD';
+                let categoryCode = (category?.code || 'PROD').toUpperCase();
+                
+                // Loại bỏ dấu tiếng Việt và ký tự đặc biệt cho SKU
+                categoryCode = categoryCode
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/Đ/g, 'D').replace(/đ/g, 'd')
+                    .replace(/\s+/g, '') // Xóa khoảng trắng
+                    .replace(/[^A-Z0-9-]/gi, ''); // Chỉ giữ lại chữ, số và gạch ngang
+                    
                 const timestamp = Date.now().toString(36).toUpperCase();
                 const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
                 const autoSku = `${categoryCode}-${timestamp}-${randomSuffix}`;
@@ -534,7 +406,7 @@ const Products: React.FC = () => {
                                 value_ids: sa.value_ids
                             })),
                             base_price: formData.selling_price,
-                            base_stock: initialStock
+                            base_stock: 0
                         });
                         console.log('Generated variants:', generatedVariants);
                     } catch (genError: any) {
@@ -566,11 +438,11 @@ const Products: React.FC = () => {
                 } else if (!hasVariants) {
                     // No variants selected - create default variant with initial stock
                     try {
-                        console.log('Creating default variant with stock:', initialStock);
+                        console.log('Creating default variant with stock: 0');
                         await productVariantService.create(productId, {
                             sku: `${autoSku}-DEFAULT`,
                             price: formData.selling_price,
-                            stock: initialStock
+                            stock: 0
                         });
                         console.log('Default variant created successfully');
                     } catch (defaultVariantError: any) {
@@ -664,14 +536,9 @@ const Products: React.FC = () => {
         const newValue = type === 'number' ? parseFloat(value) || 0 : value;
         setFormData(prev => ({ ...prev, [name]: newValue }));
 
-        if (name === 'selling_price') {
-            setNewVariantPrice(parseFloat(value) || 0);
-        }
-
         // Reset variants when category changes (different variant types)
         if (name === 'category_id') {
             setFormVariants([]);
-            setNewVariantData({});
         }
     };
 
@@ -685,25 +552,6 @@ const Products: React.FC = () => {
         }));
     };
 
-    // Get display label for variant attributes
-    const getVariantLabel = (variant: TempVariant): string => {
-        const parts: string[] = [];
-        activeVariantTypes.forEach(vt => {
-            const val = variant[vt.key];
-            if (val) {
-                const opt = vt.options.find(o => o.value === val);
-                parts.push(opt?.label || val);
-            }
-        });
-        return parts.join(' / ') || 'Default';
-    };
-
-    const getColorHex = (colorValue: string): string => {
-        const colorConfig = VARIANT_TYPES_CONFIG.find(c => c.key === 'color');
-        const opt = colorConfig?.options.find(o => o.value === colorValue);
-        return opt?.hex || '#6B7280';
-    };
-
     return (
         <div className="animate-fadeIn">
             {/* Header */}
@@ -712,7 +560,7 @@ const Products: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">📦 Quản lý sản phẩm</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Quản lý sản phẩm và biến thể theo danh mục</p>
+                    <p className="text-slate-600 mt-1">Quản lý sản phẩm và biến thể theo danh mục</p>
                 </div>
                 {canEdit && (
                     <button onClick={handleCreate} className="btn btn-primary">
@@ -770,40 +618,40 @@ const Products: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Sản phẩm</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã SKU</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Danh mục</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Giá bán</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Sản phẩm</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Mã SKU</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Danh mục</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Giá bán</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {products.map(product => (
-                                        <tr key={product.id} className="border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors">
+                                        <tr key={product.id} className="border-b border-slate-100 hover:bg-blue-50 transition-colors">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-400 overflow-hidden">
+                                                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 overflow-hidden">
                                                         {product.image_url ? (
                                                             <img src={uploadService.getImageUrl(product.image_url)} alt="" className="w-full h-full object-cover rounded-lg" />
                                                         ) : '📦'}
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium text-white">{product.name}</p>
+                                                        <p className="font-medium text-blue-900">{product.name}</p>
                                                         <p className="text-xs text-slate-500">{product.brand}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-6 text-sm text-indigo-400 font-mono">{product.sku}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{product.category_name || '-'}</td>
-                                            <td className="py-4 px-6 text-sm font-medium text-emerald-400 text-right">
+                                            <td className="py-4 px-6 text-sm text-blue-600 font-mono">{product.sku}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{product.category_name || '-'}</td>
+                                            <td className="py-4 px-6 text-sm font-medium text-emerald-600 font-bold text-right">
                                                 {new Intl.NumberFormat('vi-VN').format(product.selling_price)}₫
                                             </td>
                                             <td className="py-4 px-6 text-center">
-                                                <span className={`text-xs px-3 py-1 rounded-full border ${product.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                                                    product.status === 'inactive' ? 'bg-slate-500/20 text-slate-400 border-slate-500/30' :
+                                                <span className={`text-xs px-3 py-1 rounded-full border ${product.status === 'active' ? 'bg-emerald-500/20 text-emerald-600 font-bold border-emerald-500/30' :
+                                                    product.status === 'inactive' ? 'bg-slate-500/20 text-slate-600 border-slate-500/30' :
                                                         product.status === 'draft' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
                                                             'bg-red-500/20 text-red-400 border-red-500/30'
                                                     }`}>
@@ -818,12 +666,12 @@ const Products: React.FC = () => {
                                                         <>
                                                             <button
                                                                 onClick={() => handleManageVariants(product)}
-                                                                className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"
+                                                                className="p-2 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors"
                                                                 title="Quản lý biến thể"
                                                             >🎨</button>
                                                             <button
                                                                 onClick={() => handleEdit(product)}
-                                                                className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-blue-900 transition-colors"
                                                                 title="Sửa"
                                                             >✏️</button>
                                                         </>
@@ -831,7 +679,7 @@ const Products: React.FC = () => {
                                                     {canDelete && (
                                                         <button
                                                             onClick={() => handleDelete(product)}
-                                                            className="p-2 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                                                            className="p-2 hover:bg-red-500/20 rounded-lg text-slate-600 hover:text-red-400 transition-colors"
                                                             title="Xóa"
                                                         >🗑️</button>
                                                     )}
@@ -852,7 +700,7 @@ const Products: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination
                                 pagination={pagination}
                                 onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
@@ -879,7 +727,7 @@ const Products: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Danh mục - ở đầu tiên */}
                         <div>
-                            <label className="label text-slate-300">Danh mục *</label>
+                            <label className="label text-slate-700 font-medium">Danh mục *</label>
                             <select name="category_id" value={formData.category_id || ''} onChange={handleInputChange} className="input" required>
                                 <option value="">Chọn danh mục</option>
                                 {categories.map(cat => (
@@ -888,7 +736,7 @@ const Products: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="label text-slate-300">Trạng thái *</label>
+                            <label className="label text-slate-700 font-medium">Trạng thái *</label>
                             <select name="status" value={formData.status} onChange={handleInputChange} className="input" required>
                                 <option value="draft">Nháp</option>
                                 <option value="active">Đang bán</option>
@@ -897,30 +745,30 @@ const Products: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="label text-slate-300">Tên sản phẩm *</label>
+                            <label className="label text-slate-700 font-medium">Tên sản phẩm *</label>
                             <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="input" required />
                         </div>
                         <div>
-                            <label className="label text-slate-300">Mã SKU (tự động)</label>
+                            <label className="label text-slate-700 font-medium">Mã SKU (tự động)</label>
                             <input
                                 type="text"
                                 name="sku"
                                 value={formData.sku}
-                                className="input bg-slate-700/50 text-slate-400 cursor-not-allowed border-slate-600"
+                                className="input bg-slate-100 text-slate-600 cursor-not-allowed border-slate-300"
                                 readOnly
                                 placeholder="Tự động tạo khi lưu..."
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="label text-slate-300">Mô tả</label>
+                            <label className="label text-slate-700 font-medium">Mô tả</label>
                             <textarea name="description" value={formData.description} onChange={handleInputChange} className="input" rows={2} />
                         </div>
                         <div>
-                            <label className="label text-slate-300">Thương hiệu</label>
+                            <label className="label text-slate-700 font-medium">Thương hiệu</label>
                             <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="input" />
                         </div>
                         <div>
-                            <label className="label text-slate-300">Hình ảnh sản phẩm</label>
+                            <label className="label text-slate-700 font-medium">Hình ảnh sản phẩm</label>
                             <ImageCropper
                                 value={formData.image_url}
                                 onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
@@ -930,16 +778,18 @@ const Products: React.FC = () => {
                             <p className="text-xs text-slate-500 mt-1">Kích thước tối đa: 5MB. Định dạng: JPG, PNG, WebP</p>
                         </div>
                         <div>
-                            <label className="label text-slate-300">Giá nhập *</label>
+                            <label className="label text-slate-700 font-medium">Giá nhập *</label>
                             <input
-                                type="number"
+                                type="text"
                                 name="cost_price"
-                                value={formData.cost_price}
-                                onChange={handleInputChange}
-                                className={`input ${editingProduct ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed border-slate-600' : ''}`}
+                                value={formData.cost_price ? Number(formData.cost_price).toLocaleString('vi-VN') : ''}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    // Simulated event to pass to handleInputChange
+                                    handleInputChange({ target: { name: 'cost_price', value: val ? Number(val) : 0 } } as any);
+                                }}
+                                className={`input ${editingProduct ? 'bg-slate-100 text-slate-600 cursor-not-allowed border-slate-300' : ''}`}
                                 readOnly={!!editingProduct}
-                                min="0"
-                                step="1000"
                                 required
                             />
                             {editingProduct && (
@@ -949,234 +799,258 @@ const Products: React.FC = () => {
                             )}
                         </div>
                         <div>
-                            <label className="label text-slate-300">Giá bán cơ bản *</label>
-                            <input type="number" name="selling_price" value={formData.selling_price} onChange={handleInputChange} className="input" min="0" step="1000" required />
+                            <label className="label text-slate-700 font-medium">Giá bán cơ bản *</label>
+                            <input 
+                                type="text" 
+                                name="selling_price" 
+                                value={formData.selling_price ? Number(formData.selling_price).toLocaleString('vi-VN') : ''} 
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    handleInputChange({ target: { name: 'selling_price', value: val ? Number(val) : 0 } } as any);
+                                }} 
+                                className="input" 
+                                required 
+                            />
                         </div>
                     </div>
 
-                    {/* === NEW: 2-Step Variant Section with Flexible Attributes === */}
-                    <div className="mt-6 pt-4 border-t border-slate-700/50">
-                        <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                            🎨 Thiết lập biến thể sản phẩm
+                    <div className="mt-5 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                        <span className="text-xl">ℹ️</span>
+                        <div>
+                            <p className="text-sm text-blue-600 font-medium">Lưu ý về tồn kho</p>
+                            <p className="text-xs text-indigo-200/70 mt-1">Sản phẩm mới luôn được tạo với số lượng tồn kho ban đầu bằng 0. Để cập nhật số lượng và bắt đầu bán, vui lòng sử dụng tính năng <strong>Nhập kho</strong>.</p>
+                        </div>
+                    </div>
+
+                    {/* === Variant Section - Simplified for Clothing === */}
+                    <div className="mt-6 pt-4 border-t border-blue-100">
+                        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                            🎨 Biến thể sản phẩm
                         </h3>
 
-                        {/* Step 1: Toggle has variants */}
-                        <div className="mb-4 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                        {/* Toggle has variants */}
+                        <div className="mb-4 p-3 hover:bg-blue-50 rounded-lg border border-slate-300/50">
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={hasVariants}
                                     onChange={(e) => setHasVariants(e.target.checked)}
-                                    className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                                    className="w-5 h-5 rounded border-slate-500 bg-slate-100 text-indigo-500 focus:ring-indigo-500"
                                 />
-                                <span className="text-sm font-medium text-slate-300">
-                                    Sản phẩm này có nhiều biến thể (màu sắc, kích thước, dung lượng...)
+                                <span className="text-sm font-medium text-slate-700 font-medium">
+                                    Sản phẩm có nhiều biến thể (kích cỡ, màu sắc...)
                                 </span>
                             </label>
                         </div>
 
-                        {/* Step 2: Attribute Selection (only if hasVariants) */}
+                        {/* Attribute Selection - Direct display */}
                         {hasVariants && (
                             <div className="space-y-4">
-                                {/* Attribute Selection */}
-                                <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
-                                    <h4 className="font-medium text-indigo-300 mb-3">📋 Chọn loại thuộc tính</h4>
-
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                                        {attributes.map(attr => {
-                                            const isSelected = selectedAttributes.some(sa => sa.attribute_id === attr.id);
-                                            return (
-                                                <button
-                                                    key={attr.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (isSelected) {
-                                                            setSelectedAttributes(prev =>
-                                                                prev.filter(sa => sa.attribute_id !== attr.id)
-                                                            );
-                                                        } else {
-                                                            setSelectedAttributes(prev => [...prev, {
-                                                                attribute_id: attr.id,
-                                                                attribute_name: attr.name,
-                                                                attribute_display_name: attr.display_name,
-                                                                value_ids: []
-                                                            }]);
-                                                        }
-                                                    }}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${isSelected
-                                                        ? 'bg-indigo-600 text-white border-indigo-500'
-                                                        : 'bg-slate-700/50 text-slate-300 border-slate-600 hover:border-indigo-400'
-                                                        }`}
-                                                >
-                                                    {isSelected ? '✓ ' : ''}{attr.display_name}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Value Selection for Each Selected Attribute */}
-                                    {selectedAttributes.length > 0 && (
-                                        <div className="space-y-4 mt-4">
-                                            {selectedAttributes.map(selAttr => {
-                                                const attr = attributes.find(a => a.id === selAttr.attribute_id);
-                                                if (!attr || !attr.values) return null;
-
-                                                return (
-                                                    <div key={selAttr.attribute_id} className="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
-                                                        <label className="text-sm font-medium text-slate-300 mb-2 block">
-                                                            {selAttr.attribute_display_name}
-                                                        </label>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {attr.values.map(val => {
-                                                                const isValSelected = selAttr.value_ids.includes(val.id);
-                                                                return (
-                                                                    <button
-                                                                        key={val.id}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setSelectedAttributes(prev =>
-                                                                                prev.map(sa => {
-                                                                                    if (sa.attribute_id !== selAttr.attribute_id) return sa;
-                                                                                    const newIds = isValSelected
-                                                                                        ? sa.value_ids.filter(id => id !== val.id)
-                                                                                        : [...sa.value_ids, val.id];
-                                                                                    return { ...sa, value_ids: newIds };
-                                                                                })
-                                                                            );
-                                                                        }}
-                                                                        className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-1 ${isValSelected
-                                                                            ? 'bg-emerald-600 text-white'
-                                                                            : 'bg-slate-600/50 text-slate-300 hover:bg-slate-500/50'
-                                                                            }`}
-                                                                    >
-                                                                        {attr.type === 'color' && val.color_code && (
-                                                                            <span
-                                                                                className="w-4 h-4 rounded-full border border-slate-400"
-                                                                                style={{ backgroundColor: val.color_code }}
-                                                                            />
-                                                                        )}
-                                                                        {val.display_value}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        {/* Input for custom value */}
-                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-600">
-                                                            <input
-                                                                type="text"
-                                                                placeholder={`Nhập ${selAttr.attribute_display_name} mới...`}
-                                                                value={customValues[selAttr.attribute_id] || ''}
-                                                                onChange={(e) => setCustomValues(prev => ({
-                                                                    ...prev,
-                                                                    [selAttr.attribute_id]: e.target.value
-                                                                }))}
-                                                                className="input text-sm flex-1"
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                        handleAddCustomValue(selAttr.attribute_id);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleAddCustomValue(selAttr.attribute_id)}
-                                                                className="btn btn-secondary text-sm whitespace-nowrap"
-                                                            >
-                                                                + Thêm
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {/* Initial Stock Input */}
-                                    {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
-                                        <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                                            <label className="block text-sm font-medium text-emerald-400 mb-2">
-                                                📦 Số lượng tồn kho ban đầu (cho mỗi biến thể)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={initialStock}
-                                                onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
-                                                className="input w-full"
-                                                min="0"
-                                                placeholder="Nhập số lượng..."
-                                            />
-                                            <p className="text-xs text-emerald-400/70 mt-1">
-                                                Mỗi biến thể sẽ có số lượng này. Bạn có thể chỉnh sửa riêng từng biến thể sau.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Generate Variants Button */}
-                                    {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
-                                        <div className="mt-4">
+                                {/* Quick attribute toggles */}
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {attributes.map(attr => {
+                                        const isSelected = selectedAttributes.some(sa => sa.attribute_id === attr.id);
+                                        return (
                                             <button
+                                                key={attr.id}
                                                 type="button"
-                                                onClick={async () => {
-                                                    if (!editingProduct && !formData.name) {
-                                                        setFormError('Vui lòng nhập tên sản phẩm trước');
-                                                        return;
-                                                    }
-                                                    setGeneratingVariants(true);
-                                                    try {
-                                                        // Calculate number of variants
-                                                        const count = selectedAttributes.reduce((acc, sa) => acc * sa.value_ids.length, 1);
-                                                        setFormError('');
-                                                        alert(`Sẽ tạo ${count} biến thể với ${initialStock} sản phẩm mỗi biến thể khi lưu.`);
-                                                    } finally {
-                                                        setGeneratingVariants(false);
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedAttributes(prev =>
+                                                            prev.filter(sa => sa.attribute_id !== attr.id)
+                                                        );
+                                                    } else {
+                                                        setSelectedAttributes(prev => [...prev, {
+                                                            attribute_id: attr.id,
+                                                            attribute_name: attr.name,
+                                                            attribute_display_name: attr.display_name,
+                                                            value_ids: []
+                                                        }]);
                                                     }
                                                 }}
-                                                disabled={generatingVariants}
-                                                className="btn btn-primary w-full"
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${isSelected
+                                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
+                                                    : 'bg-slate-100 text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-slate-700 font-medium'
+                                                    }`}
                                             >
-                                                {generatingVariants ? '⏳ Đang xử lý...' : `🚀 Xem trước biến thể (${selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)
-                                                    } tổ hợp x ${initialStock} SP)`}
+                                                {isSelected ? '✓ ' : '+ '}{attr.display_name}
                                             </button>
-                                            <p className="text-xs text-slate-500 mt-2 text-center">
-                                                Biến thể sẽ được tạo khi bạn bấm "Thêm mới" hoặc "Cập nhật"
-                                            </p>
-                                        </div>
-                                    )}
+                                        );
+                                    })}
                                 </div>
 
-                                {/* Empty State */}
+                                {/* Value pickers for selected attributes */}
+                                {selectedAttributes.map(selAttr => {
+                                    const attr = attributes.find(a => a.id === selAttr.attribute_id);
+                                    if (!attr || !attr.values) return null;
+                                    const isColorType = attr.type === 'color';
+
+                                    return (
+                                        <div key={selAttr.attribute_id} className="p-4 hover:bg-blue-50 rounded-xl border border-slate-300/50">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                                                    {isColorType ? '🎨' : '📐'} {selAttr.attribute_display_name}
+                                                    {selAttr.value_ids.length > 0 && (
+                                                        <span className="text-xs bg-indigo-500/30 text-blue-600 px-2 py-0.5 rounded-full">
+                                                            {selAttr.value_ids.length} đã chọn
+                                                        </span>
+                                                    )}
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // Select all / deselect all
+                                                        const allSelected = attr.values!.every(v => selAttr.value_ids.includes(v.id));
+                                                        setSelectedAttributes(prev =>
+                                                            prev.map(sa => {
+                                                                if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                return {
+                                                                    ...sa,
+                                                                    value_ids: allSelected ? [] : attr.values!.map(v => v.id)
+                                                                };
+                                                            })
+                                                        );
+                                                    }}
+                                                    className="text-xs text-blue-600 hover:text-blue-600 transition-colors"
+                                                >
+                                                    {attr.values.every(v => selAttr.value_ids.includes(v.id)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                                </button>
+                                            </div>
+
+                                            {isColorType ? (
+                                                /* Color chips with color dots */
+                                                <div className="flex flex-wrap gap-2">
+                                                    {attr.values.map(val => {
+                                                        const isValSelected = selAttr.value_ids.includes(val.id);
+                                                        return (
+                                                            <button
+                                                                key={val.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedAttributes(prev =>
+                                                                        prev.map(sa => {
+                                                                            if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                            const newIds = isValSelected
+                                                                                ? sa.value_ids.filter(id => id !== val.id)
+                                                                                : [...sa.value_ids, val.id];
+                                                                            return { ...sa, value_ids: newIds };
+                                                                        })
+                                                                    );
+                                                                }}
+                                                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border-2 transition-all ${isValSelected
+                                                                    ? 'bg-indigo-600/20 text-white border-indigo-500 shadow-md'
+                                                                    : 'bg-slate-600/30 text-slate-700 font-medium border-slate-300 hover:border-slate-500'
+                                                                    }`}
+                                                            >
+                                                                <span
+                                                                    className={`w-5 h-5 rounded-full border-2 ${isValSelected ? 'border-white' : 'border-slate-400'}`}
+                                                                    style={{ backgroundColor: val.color_code || '#666' }}
+                                                                />
+                                                                {val.display_value}
+                                                                {isValSelected && <span className="text-emerald-600 font-bold">✓</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                /* Size / text chips */
+                                                <div className="flex flex-wrap gap-2">
+                                                    {attr.values.map(val => {
+                                                        const isValSelected = selAttr.value_ids.includes(val.id);
+                                                        return (
+                                                            <button
+                                                                key={val.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedAttributes(prev =>
+                                                                        prev.map(sa => {
+                                                                            if (sa.attribute_id !== selAttr.attribute_id) return sa;
+                                                                            const newIds = isValSelected
+                                                                                ? sa.value_ids.filter(id => id !== val.id)
+                                                                                : [...sa.value_ids, val.id];
+                                                                            return { ...sa, value_ids: newIds };
+                                                                        })
+                                                                    );
+                                                                }}
+                                                                className={`min-w-[48px] px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all text-center ${isValSelected
+                                                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                                                                    : 'bg-slate-600/30 text-slate-700 font-medium border-slate-300 hover:border-slate-500'
+                                                                    }`}
+                                                            >
+                                                                {val.display_value}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Add custom value */}
+                                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-300/50">
+                                                <input
+                                                    type="text"
+                                                    placeholder={`Thêm ${selAttr.attribute_display_name.toLowerCase()} mới...`}
+                                                    value={customValues[selAttr.attribute_id] || ''}
+                                                    onChange={(e) => setCustomValues(prev => ({
+                                                        ...prev,
+                                                        [selAttr.attribute_id]: e.target.value
+                                                    }))}
+                                                    className="input text-sm flex-1"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddCustomValue(selAttr.attribute_id);
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAddCustomValue(selAttr.attribute_id)}
+                                                    className="btn btn-secondary text-sm whitespace-nowrap"
+                                                >
+                                                    + Thêm
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Summary & Generate button */}
+                                {selectedAttributes.length > 0 && selectedAttributes.every(sa => sa.value_ids.length > 0) && (
+                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="text-sm text-emerald-300">
+                                                <span className="font-semibold">Tổng biến thể: </span>
+                                                <span className="text-lg font-bold text-emerald-600 font-bold">
+                                                    {selectedAttributes.reduce((acc, sa) => acc * Math.max(sa.value_ids.length, 1), 1)}
+                                                </span>
+                                                <span className="text-emerald-300/70 ml-1">tổ hợp</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-emerald-300/60 flex flex-wrap gap-1">
+                                            {selectedAttributes.map((sa, i) => (
+                                                <span key={sa.attribute_id}>
+                                                    {sa.attribute_display_name} ({sa.value_ids.length})
+                                                    {i < selectedAttributes.length - 1 && ' × '}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-emerald-300/50 mt-2">
+                                            Biến thể sẽ tự động tạo khi bạn lưu sản phẩm
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Empty state */}
                                 {selectedAttributes.length === 0 && (
-                                    <div className="text-center py-6 text-slate-500 text-sm">
-                                        👆 Chọn ít nhất một loại thuộc tính để bắt đầu tạo biến thể
+                                    <div className="text-center py-4 text-slate-500 text-sm">
+                                        Chọn thuộc tính phía trên để thiết lập biến thể
                                     </div>
                                 )}
                             </div>
                         )}
-
-                        {/* No variants - show initial stock input */}
-                        {!hasVariants && (
-                            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                                <h4 className="font-medium text-amber-400 mb-3">📦 Số lượng sản phẩm ban đầu</h4>
-                                <p className="text-sm text-amber-400/70 mb-3">
-                                    Sản phẩm này không có biến thể. Nhập số lượng tồn kho ban đầu:
-                                </p>
-                                <input
-                                    type="number"
-                                    value={initialStock}
-                                    onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="input w-full"
-                                    min="0"
-                                    placeholder="Nhập số lượng..."
-                                />
-                                <p className="text-xs text-amber-400/60 mt-2">
-                                    💡 Bạn có thể cập nhật số lượng sau bằng cách quản lý biến thể.
-                                </p>
-                            </div>
-                        )}
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700/50">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-blue-100">
                         <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>
                         <button type="submit" disabled={formLoading} className="btn btn-primary">
                             {formLoading ? 'Đang lưu...' : (editingProduct ? 'Cập nhật' : 'Thêm mới')}
@@ -1197,7 +1071,7 @@ const Products: React.FC = () => {
                         {variantFormError && (
                             <div className="mb-3 p-2 bg-red-100 text-red-700 rounded text-sm">{variantFormError}</div>
                         )}
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs text-slate-600">SKU</label>
                                 <input name="sku" value={variantFormData.sku} onChange={handleVariantInputChange} className="input text-sm" required />
@@ -1205,10 +1079,6 @@ const Products: React.FC = () => {
                             <div>
                                 <label className="text-xs text-slate-600">Giá</label>
                                 <input type="number" name="price" value={variantFormData.price} onChange={handleVariantInputChange} className="input text-sm" min="0" required />
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-600">Tồn kho</label>
-                                <input type="number" name="stock" value={variantFormData.stock} onChange={handleVariantInputChange} className="input text-sm" min="0" />
                             </div>
                         </div>
                         <div className="flex justify-end mt-3">

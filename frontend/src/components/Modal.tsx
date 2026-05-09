@@ -5,7 +5,7 @@ interface ModalProps {
     onClose: () => void;
     title: string;
     children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -22,6 +22,9 @@ export const Modal: React.FC<ModalProps> = ({
         md: 'max-w-lg',
         lg: 'max-w-2xl',
         xl: 'max-w-4xl',
+        '2xl': 'max-w-5xl',
+        '3xl': 'max-w-6xl',
+        'full': 'max-w-[95vw]',
     };
 
     return (
@@ -35,15 +38,15 @@ export const Modal: React.FC<ModalProps> = ({
             {/* Modal */}
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
-                    className={`relative w-full ${sizeClasses[size]} bg-slate-800 rounded-2xl shadow-2xl shadow-indigo-500/10 border border-slate-700/50 animate-fadeIn`}
+                    className={`relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl shadow-blue-900/10 border border-blue-100 animate-fadeIn`}
                     onClick={e => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
-                        <h2 className="text-xl font-semibold text-white">{title}</h2>
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-blue-50 bg-blue-50/30 rounded-t-2xl">
+                        <h2 className="text-xl font-bold text-blue-900">{title}</h2>
                         <button
                             onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
                         >
                             ✕
                         </button>

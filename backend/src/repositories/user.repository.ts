@@ -7,7 +7,9 @@ export class UserRepository {
         const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT u.id, u.username, u.email, u.full_name, u.phone, u.avatar_url, 
              u.status, u.email_verified_at, u.last_login_at, u.last_login_ip,
-             u.created_at, u.updated_at
+             u.created_at, u.updated_at,
+             (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as total_orders,
+             (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.user_id = u.id AND o.status IN ('delivered', 'completed')) as total_spent
       FROM users u
       WHERE u.deleted_at IS NULL
       ORDER BY u.created_at DESC
@@ -25,7 +27,9 @@ export class UserRepository {
         const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT u.id, u.username, u.email, u.full_name, u.phone, u.avatar_url, 
              u.status, u.email_verified_at, u.last_login_at, u.last_login_ip,
-             u.created_at, u.updated_at
+             u.created_at, u.updated_at,
+             (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as total_orders,
+             (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.user_id = u.id AND o.status IN ('delivered', 'completed')) as total_spent
       FROM users u
       WHERE u.id = ? AND u.deleted_at IS NULL
     `, [id]);

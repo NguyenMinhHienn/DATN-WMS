@@ -11,7 +11,7 @@ export interface OrderSummary {
     id: number;
     user_id: number;
     total_amount: number;
-    payment_method: 'COD' | 'BANKING';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
     payment_status: 'unpaid' | 'paid';
     status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';
     shipping_name: string;
@@ -45,8 +45,10 @@ export interface CreateOrderDto {
     shipping_name: string;
     shipping_phone: string;
     shipping_address: string;
-    payment_method: 'COD' | 'BANKING';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
     notes?: string;
+    shipping_latitude?: number;
+    shipping_longitude?: number;
 }
 
 export interface Pagination {
@@ -152,7 +154,9 @@ export const orderService = {
     },
 
     getPaymentMethodText(method: string): string {
-        return method === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản ngân hàng';
+        if (method === 'COD') return 'Thanh toán khi nhận hàng (COD)';
+        if (method === 'CREDIT') return 'Công nợ (Trả sau)';
+        return 'Chuyển khoản ngân hàng';
     },
 
     formatCurrency(amount: number): string {
@@ -163,9 +167,11 @@ export const orderService = {
 
 
 
-/** Staff: Xem tất cả đơn hàng */
-async getStaffOrders(page = 1, limit = 10): Promise<{ data: OrderSummary[], pagination: Pagination }> {
-    const response = await api.get('/staff/orders', { params: { page, limit } });
+/** Staff: Xem tất cả đơn hàng (có filter status) */
+async getStaffOrders(page = 1, limit = 15, status?: string): Promise<{ data: OrderSummary[], pagination: Pagination }> {
+    const params: any = { page, limit };
+    if (status) params.status = status;
+    const response = await api.get('/staff/orders', { params });
     return { data: response.data.data, pagination: response.data.pagination };
 },
 };

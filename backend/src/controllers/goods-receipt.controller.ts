@@ -37,7 +37,7 @@ export const createReceipt = asyncHandler(async (req: AuthRequest, res: Response
 
     res.status(201).json({
         success: true,
-        message: 'Goods receipt created successfully',
+        message: 'Tạo phiếu nhập kho thành công',
         data: receipt,
     } as ApiResponse);
 });
@@ -49,18 +49,18 @@ export const updateReceiptStatus = asyncHandler(async (req: AuthRequest, res: Re
 
     res.json({
         success: true,
-        message: 'Receipt status updated successfully',
+        message: 'Cập nhật trạng thái thành công',
     } as ApiResponse);
 });
 
-export const completeReceipt = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const approveReceipt = asyncHandler(async (req: AuthRequest, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const userId = req.user?.userId;
-    await goodsReceiptService.completeReceipt(id, userId);
+    await goodsReceiptService.approveReceipt(id, userId);
 
     res.json({
         success: true,
-        message: 'Goods receipt completed successfully',
+        message: 'Duyệt phiếu nhập kho thành công. Tồn kho đã được cập nhật.',
     } as ApiResponse);
 });
 
@@ -70,6 +70,6 @@ export const deleteReceipt = asyncHandler(async (req: AuthRequest, res: Response
 
     res.json({
         success: true,
-        message: 'Goods receipt deleted successfully',
+        message: 'Xóa phiếu nhập kho thành công',
     } as ApiResponse);
 });

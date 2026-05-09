@@ -3,6 +3,8 @@ import * as cartRepository from '../repositories/cart.repository';
 import * as variantRepository from '../repositories/variant.repository';
 import { productRepository } from '../repositories/product.repository';
 import { AppError } from '../middlewares/error.middleware';
+import { inventoryCoreService } from './inventory-core.service';
+import { creditService } from './credit.service';
 
 /**
  * Order Service
@@ -29,8 +31,10 @@ class OrderService {
         shippingName: string,
         shippingPhone: string,
         shippingAddress: string,
-        paymentMethod: 'COD' | 'BANKING' = 'COD',
-        notes?: string
+        paymentMethod: 'COD' | 'BANKING' | 'CREDIT' = 'COD',
+        notes?: string,
+        shippingLatitude?: number,
+        shippingLongitude?: number
     ): Promise<number> {
         // Validate shipping info
         if (!shippingName || !shippingName.trim()) {
@@ -43,10 +47,13 @@ class OrderService {
             throw new AppError('Vui lòng nhập địa chỉ giao hàng', 400);
         }
 
-        // Chỉ hỗ trợ COD
-        // if (paymentMethod !== 'COD') {
-        //     throw new AppError('Hiện tại chỉ hỗ trợ thanh toán COD', 400);
-        // }
+        // Validate CREDIT trước khi tạo đơn
+        if (paymentMethod === 'CREDIT') {
+            const creditValidation = await creditService.validateCreditOrder(userId, 0); // amount sẽ validate sau
+            if (!creditValidation.valid) {
+                throw new AppError(creditValidation.message || 'Tài khoản không đủ điều kiện mua công nợ', 400);
+            }
+        }
 
         // Lấy giỏ hàng
         const { cart, items: cartItems } = await cartRepository.getCartWithItems(userId);
@@ -59,14 +66,17 @@ class OrderService {
         let totalAmount = 0;
 
         for (const cartItem of cartItems) {
-            // Check stock
+            // Check stock - dùng available (on_hand - reserved) thay vì variant.stock
             const variant = await variantRepository.findById(cartItem.product_variant_id);
             if (!variant) {
                 throw new AppError(`Biến thể sản phẩm "${cartItem.product_name}" không tồn tại`, 400);
             }
-            if (variant.stock < cartItem.quantity) {
+
+            // Kiểm tra available stock (on_hand - reserved) qua inventory core service
+            const available = await inventoryCoreService.getTotalAvailableStock(cartItem.product_variant_id);
+            if (available < cartItem.quantity) {
                 throw new AppError(
-                    `Sản phẩm "${cartItem.product_name}" không đủ tồn kho. Còn lại: ${variant.stock}`,
+                    `Sản phẩm "${cartItem.product_name}" không đủ tồn kho. Có sẵn: ${available}`,
                     400
                 );
             }
@@ -95,6 +105,14 @@ class OrderService {
             });
         }
 
+        // Validate CREDIT amount sau khi tính tổng
+        if (paymentMethod === 'CREDIT') {
+            const creditValidation = await creditService.validateCreditOrder(userId, totalAmount);
+            if (!creditValidation.valid) {
+                throw new AppError(creditValidation.message || 'Tài khoản không đủ điều kiện mua công nợ', 400);
+            }
+        }
+
         // Tạo đơn hàng
         const orderId = await orderRepository.createOrder(
             userId,
@@ -104,7 +122,9 @@ class OrderService {
             paymentMethod,
             totalAmount,
             orderItems,
-            notes
+            notes,
+            shippingLatitude,
+            shippingLongitude
         );
 
         // Xóa giỏ hàng sau khi tạo đơn thành công
@@ -156,6 +176,18 @@ class OrderService {
 
         // Hủy đơn và restore stock
         await orderRepository.cancelOrderAndRestoreStock(orderId, order.items);
+
+        // [FIX 1.2] Hủy công nợ liên quan nếu tồn tại
+        try {
+            const { receivableRepository } = require('../repositories/receivable.repository');
+            const existing = await receivableRepository.findBySource('order', orderId);
+            if (existing && existing.status !== 'paid') {
+                await receivableRepository.cancel(existing.id);
+                console.log(`✅ Đã hủy công nợ ${existing.receivable_number} do hủy đơn hàng #${orderId}`);
+            }
+        } catch (recErr) {
+            console.error('⚠️ Lỗi hủy công nợ khi cancel đơn hàng:', recErr);
+        }
     }
 
     /**
@@ -189,10 +221,86 @@ class OrderService {
         if (order.payment_method === 'COD') {
             await orderRepository.updatePaymentStatus(orderId, 'paid');
         }
+
+        // Tạo công nợ cho đơn COD (nếu chưa thanh toán online)
+        // Note: COD đã được mark paid ở trên, nhưng vẫn tạo receivable + auto-close
+        // để có record cho báo cáo tài chính
+        if (order.payment_method === 'COD') {
+            try {
+                const { receivableService } = require('./receivable.service');
+                const receivableId = await receivableService.createFromOrder({
+                    id: orderId,
+                    total_amount: Number(order.total_amount),
+                    shipping_name: order.shipping_name,
+                    shipping_phone: order.shipping_phone,
+                    shipping_address: order.shipping_address,
+                    user_id: order.user_id,
+                    created_at: order.created_at,
+                });
+                // Auto-close receivable vì COD đã thu tiền khi giao
+                const { receivableRepository } = require('../repositories/receivable.repository');
+                await receivableRepository.updatePaidAmount(receivableId, Number(order.total_amount));
+            } catch (recErr) {
+                // Log lỗi nhưng KHÔNG throw - đảm bảo đơn hàng vẫn delivered
+                console.error('⚠️ Lỗi tạo công nợ từ đơn COD:', recErr);
+            }
+        }
+
+        // Tạo công nợ cho đơn CREDIT (trả sau) - KHÔNG auto-close
+        if (order.payment_method === 'CREDIT') {
+            try {
+                const { receivableService } = require('./receivable.service');
+                const { receivableRepository } = require('../repositories/receivable.repository');
+
+                // Kiểm tra xem đã có receivable từ export_transfer chưa (tránh duplicate)
+                const existingFromTransfer = await receivableRepository.findBySource('order', orderId);
+                if (existingFromTransfer) {
+                    console.log(`ℹ️ Đã có công nợ ${existingFromTransfer.receivable_number} cho đơn #${orderId}, bỏ qua tạo mới`);
+                } else {
+                    // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                    const pool = require('../config/database').default;
+                    const [stRows] = await pool.query(
+                        `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                         FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                        [orderId]
+                    );
+                    let grandTotal = Number(order.total_amount);
+                    if (stRows.length > 0) {
+                        grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                    }
+
+                    const creditInfo = await creditService.getCreditInfo(order.user_id);
+                    await receivableService.createFromCreditOrder({
+                        id: orderId,
+                        total_amount: grandTotal,
+                        shipping_name: order.shipping_name,
+                        shipping_phone: order.shipping_phone,
+                        shipping_address: order.shipping_address,
+                        user_id: order.user_id,
+                        created_at: order.created_at,
+                        payment_terms: creditInfo.credit_payment_terms,
+                    });
+                    // Cập nhật credit_used
+                    await creditService.syncCreditUsed(order.user_id);
+                }
+            } catch (recErr) {
+                console.error('⚠️ Lỗi tạo công nợ từ đơn CREDIT:', recErr);
+            }
+        }
+
+        // Auto-check credit eligibility sau khi giao hàng (COD/BANKING)
+        if (order.payment_method !== 'CREDIT') {
+            try {
+                await creditService.autoCheckAndEnable(order.user_id);
+            } catch (err) {
+                console.error('⚠️ Lỗi auto-check credit:', err);
+            }
+        }
     }
 
     /**
      * Admin đánh dấu giao thất bại: shipping → failed
+     * Hoàn trả reserved stock qua inventoryCoreService
      */
     async markFailed(orderId: number): Promise<void> {
         const order = await orderRepository.getOrderById(orderId);
@@ -202,7 +310,24 @@ class OrderService {
         if (order.status !== 'shipping') {
             throw new AppError(`Không thể đánh dấu "Giao thất bại" từ trạng thái "${order.status}". Chỉ áp dụng cho đơn đang giao.`, 400);
         }
+
+        // Hoàn trả reserved stock (sử dụng cùng logic với cancelOrder)
+        // cancelOrderAndRestoreStock sẽ: update status → failed + releaseStock cho từng item
+        await orderRepository.cancelOrderAndRestoreStock(orderId, order.items);
+        // cancelOrderAndRestoreStock set status = 'cancelled', cần đổi lại thành 'failed'
         await orderRepository.updateOrderStatus(orderId, 'failed');
+
+        // Hủy công nợ liên quan nếu tồn tại
+        try {
+            const { receivableRepository } = require('../repositories/receivable.repository');
+            const existing = await receivableRepository.findBySource('order', orderId);
+            if (existing && existing.status !== 'paid') {
+                await receivableRepository.cancel(existing.id);
+                console.log(`✅ Đã hủy công nợ ${existing.receivable_number} do giao thất bại đơn #${orderId}`);
+            }
+        } catch (recErr) {
+            console.error('⚠️ Lỗi hủy công nợ khi mark failed:', recErr);
+        }
     }
 
     /**

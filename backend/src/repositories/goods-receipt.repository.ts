@@ -14,11 +14,12 @@ export class GoodsReceiptRepository {
         let countQuery = 'SELECT COUNT(*) as total FROM goods_receipts WHERE deleted_at IS NULL';
         let dataQuery = `
       SELECT gr.*, w.name as warehouse_name, s.name as supplier_name,
-             u.full_name as created_by_name
+             u.full_name as created_by_name, ua.full_name as approved_by_name
       FROM goods_receipts gr
       INNER JOIN warehouses w ON gr.warehouse_id = w.id
       LEFT JOIN suppliers s ON gr.supplier_id = s.id
       LEFT JOIN users u ON gr.created_by = u.id
+      LEFT JOIN users ua ON gr.approved_by = ua.id
       WHERE gr.deleted_at IS NULL
     `;
         const params: any[] = [];
@@ -74,10 +75,13 @@ export class GoodsReceiptRepository {
 
     async findById(id: number): Promise<GoodsReceipt | null> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-      SELECT gr.*, w.name as warehouse_name, s.name as supplier_name
+      SELECT gr.*, w.name as warehouse_name, s.name as supplier_name,
+             u.full_name as created_by_name, ua.full_name as approved_by_name
       FROM goods_receipts gr
       INNER JOIN warehouses w ON gr.warehouse_id = w.id
       LEFT JOIN suppliers s ON gr.supplier_id = s.id
+      LEFT JOIN users u ON gr.created_by = u.id
+      LEFT JOIN users ua ON gr.approved_by = ua.id
       WHERE gr.id = ? AND gr.deleted_at IS NULL
     `, [id]);
 
@@ -86,9 +90,14 @@ export class GoodsReceiptRepository {
 
     async getItems(receiptId: number): Promise<GoodsReceiptItem[]> {
         const [rows] = await pool.query<RowDataPacket[]>(`
-      SELECT gri.*, p.name as product_name, p.sku, sl.code as location_code
+      SELECT gri.*, p.name as product_name, p.sku,
+             pv.sku as variant_sku, pv.stock as current_stock,
+             un.name as unit_name,
+             sl.code as location_code
       FROM goods_receipt_items gri
       INNER JOIN products p ON gri.product_id = p.id
+      LEFT JOIN product_variants pv ON gri.product_variant_id = pv.id
+      LEFT JOIN units un ON p.unit_id = un.id
       LEFT JOIN storage_locations sl ON gri.location_id = sl.id
       WHERE gri.goods_receipt_id = ?
     `, [receiptId]);
@@ -104,7 +113,7 @@ export class GoodsReceiptRepository {
     `, [year]);
 
         const count = rows[0].count + 1;
-        return `GR-${year}-${count.toString().padStart(6, '0')}`;
+        return `PN-${year}-${count.toString().padStart(4, '0')}`;
     }
 
     async create(dto: CreateGoodsReceiptDto, userId?: number): Promise<number> {
@@ -124,13 +133,20 @@ export class GoodsReceiptRepository {
                 subtotal += item.quantity_expected * item.unit_cost;
             }
 
+            // === Tính VAT và phí vận chuyển ===
+            const vatPercent = dto.vat_percent !== undefined ? dto.vat_percent : 0.1; // Mặc định 10%
+            const vatAmount = Math.round(subtotal * vatPercent); // Tiền VAT
+            const shippingFee = dto.shipping_fee !== undefined ? dto.shipping_fee : 0; // Phí ship nhập thủ công
+            const totalAmount = subtotal + vatAmount + shippingFee; // Tổng cuối cùng
+
             const [result] = await connection.query<ResultSetHeader>(`
         INSERT INTO goods_receipts (
           receipt_number, receipt_type, supplier_id, source_warehouse_id,
           purchase_order_number, warehouse_id, receipt_date, expected_date,
-          total_items, total_quantity, subtotal, total_amount, status,
-          shipping_method, notes, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)
+          total_items, total_quantity, subtotal, vat_percent, tax_amount, shipping_cost, total_amount, status,
+          shipping_method, notes, delivery_person, storekeeper, reference_document,
+          created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
       `, [
                 receiptNumber,
                 dto.receipt_type,
@@ -143,9 +159,15 @@ export class GoodsReceiptRepository {
                 totalItems,
                 totalQuantity,
                 subtotal,
-                subtotal,
+                vatPercent,
+                vatAmount,
+                shippingFee,
+                totalAmount,
                 dto.shipping_method || null,
                 dto.notes || null,
+                dto.delivery_person || null,
+                dto.storekeeper || null,
+                dto.reference_document || null,
                 userId || null,
             ]);
 
@@ -156,15 +178,18 @@ export class GoodsReceiptRepository {
                 const lineTotal = item.quantity_expected * item.unit_cost;
                 await connection.query(`
           INSERT INTO goods_receipt_items (
-            goods_receipt_id, product_id, product_variant_id, location_id, quantity_expected,
+            goods_receipt_id, product_id, product_variant_id, location_id, 
+            quantity_expected, quantity_document, quantity_actual,
             unit_cost, line_total, batch_number, manufacturing_date, expiry_date
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
                     receiptId,
                     item.product_id,
-                    item.product_variant_id || null, // Thêm variant_id
+                    item.product_variant_id || null,
                     item.location_id || null,
                     item.quantity_expected,
+                    item.quantity_document || item.quantity_expected,
+                    item.quantity_actual || item.quantity_expected,
                     item.unit_cost,
                     lineTotal,
                     item.batch_number || null,
@@ -183,15 +208,7 @@ export class GoodsReceiptRepository {
         }
     }
 
-    async updateStatus(id: number, status: string): Promise<boolean> {
-        const [result] = await pool.query<ResultSetHeader>(`
-      UPDATE goods_receipts SET status = ? WHERE id = ?
-    `, [status, id]);
-
-        return result.affectedRows > 0;
-    }
-
-    async completeReceipt(id: number, userId?: number): Promise<boolean> {
+    async approveReceipt(id: number, userId?: number): Promise<boolean> {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
@@ -206,6 +223,8 @@ export class GoodsReceiptRepository {
 
             // Update inventory for each item
             for (const item of items) {
+                const actualQty = item.quantity_actual || item.quantity_expected;
+
                 // Find existing inventory or create new
                 const [existing] = await connection.query<RowDataPacket[]>(`
           SELECT * FROM inventories 
@@ -217,7 +236,7 @@ export class GoodsReceiptRepository {
             UPDATE inventories 
             SET quantity_on_hand = quantity_on_hand + ?, last_movement_date = NOW()
             WHERE id = ?
-          `, [item.quantity_expected, existing[0].id]);
+          `, [actualQty, existing[0].id]);
 
                     // Log movement
                     await connection.query(`
@@ -235,10 +254,10 @@ export class GoodsReceiptRepository {
                         id,
                         receipt.receipt_number,
                         existing[0].quantity_on_hand,
-                        item.quantity_expected,
-                        existing[0].quantity_on_hand + item.quantity_expected,
+                        actualQty,
+                        existing[0].quantity_on_hand + actualQty,
                         item.unit_cost,
-                        item.quantity_expected * item.unit_cost,
+                        actualQty * item.unit_cost,
                         userId,
                     ]);
                 } else {
@@ -247,7 +266,7 @@ export class GoodsReceiptRepository {
               product_id, warehouse_id, location_id, quantity_on_hand,
               unit_cost, status, last_movement_date
             ) VALUES (?, ?, ?, ?, ?, 'available', NOW())
-          `, [item.product_id, receipt.warehouse_id, item.location_id, item.quantity_expected, item.unit_cost]);
+          `, [item.product_id, receipt.warehouse_id, item.location_id, actualQty, item.unit_cost]);
 
                     await connection.query(`
             INSERT INTO inventory_logs (
@@ -263,10 +282,10 @@ export class GoodsReceiptRepository {
                         item.location_id,
                         id,
                         receipt.receipt_number,
-                        item.quantity_expected,
-                        item.quantity_expected,
+                        actualQty,
+                        actualQty,
                         item.unit_cost,
-                        item.quantity_expected * item.unit_cost,
+                        actualQty * item.unit_cost,
                         userId,
                     ]);
                 }
@@ -274,11 +293,11 @@ export class GoodsReceiptRepository {
                 // Update item as received
                 await connection.query(`
           UPDATE goods_receipt_items 
-          SET quantity_received = quantity_expected, quality_status = 'passed'
+          SET quantity_received = ?, quality_status = 'passed'
           WHERE id = ?
-        `, [item.id]);
+        `, [actualQty, item.id]);
 
-                // === THÊM MỚI: Update variant stock + MWA ===
+                // Update variant stock + MWA
                 if (item.product_variant_id) {
                     const [vr] = await connection.query<RowDataPacket[]>(
                         'SELECT stock, average_cost FROM product_variants WHERE id = ?',
@@ -288,7 +307,7 @@ export class GoodsReceiptRepository {
                     if (vr.length > 0) {
                         const oldStock = Number(vr[0].stock) || 0;
                         const oldAvg = Number(vr[0].average_cost) || 0;
-                        const newQty = item.quantity_expected;
+                        const newQty = actualQty;
                         const totalStock = oldStock + newQty;
 
                         // Tính MWA
@@ -300,15 +319,46 @@ export class GoodsReceiptRepository {
                             'UPDATE product_variants SET stock = ?, average_cost = ?, updated_at = NOW() WHERE id = ?',
                             [totalStock, newAvg, item.product_variant_id]
                         );
+
+                        // Đồng thời cập nhật cost_price cho sản phẩm cha dựa trên MWA của variant này
+                        await connection.query(
+                            'UPDATE products SET cost_price = ?, updated_at = NOW() WHERE id = ?',
+                            [newAvg, item.product_id]
+                        );
                     }
+                } else {
+                    // Nếu không có variant, cập nhật trực tiếp cho product (trường hợp sản phẩm đơn giản)
+                    const [pr] = await connection.query<RowDataPacket[]>(
+                        'SELECT cost_price FROM products WHERE id = ?',
+                        [item.product_id]
+                    );
+                    
+                    const [stockRows] = await connection.query<RowDataPacket[]>(
+                        'SELECT SUM(quantity_on_hand) as total_stock FROM inventories WHERE product_id = ?',
+                        [item.product_id]
+                    );
+                    
+                    const currentTotalStock = Number(stockRows[0].total_stock) || 0;
+                    const oldStock = currentTotalStock - actualQty; // Tồn trước khi nhập
+                    const oldAvg = pr.length > 0 ? Number(pr[0].cost_price) || 0 : 0;
+                    const newQty = actualQty;
+                    const totalStock = currentTotalStock;
+
+                    const newAvg = totalStock > 0
+                        ? Math.round(((oldStock * oldAvg) + (newQty * item.unit_cost)) / totalStock)
+                        : item.unit_cost;
+
+                    await connection.query(
+                        'UPDATE products SET cost_price = ?, updated_at = NOW() WHERE id = ?',
+                        [newAvg, item.product_id]
+                    );
                 }
-                // === KẾT THÚC THÊM MỚI ===
             }
 
             // Update receipt status
             await connection.query(`
         UPDATE goods_receipts 
-        SET status = 'completed', received_by = ?, approved_by = ?, approved_at = NOW()
+        SET status = 'APPROVED', received_by = ?, approved_by = ?, approved_at = NOW()
         WHERE id = ?
       `, [userId, userId, id]);
 
@@ -322,9 +372,17 @@ export class GoodsReceiptRepository {
         }
     }
 
+    async updateStatus(id: number, status: string): Promise<boolean> {
+        const [result] = await pool.query<ResultSetHeader>(`
+      UPDATE goods_receipts SET status = ? WHERE id = ?
+    `, [status, id]);
+
+        return result.affectedRows > 0;
+    }
+
     async delete(id: number): Promise<boolean> {
         const [result] = await pool.query<ResultSetHeader>(`
-      UPDATE goods_receipts SET deleted_at = NOW() WHERE id = ? AND status = 'draft'
+      UPDATE goods_receipts SET deleted_at = NOW() WHERE id = ? AND status = 'PENDING'
     `, [id]);
 
         return result.affectedRows > 0;

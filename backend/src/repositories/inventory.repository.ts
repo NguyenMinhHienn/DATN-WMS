@@ -10,40 +10,49 @@ export class InventoryRepository {
         productId?: number,
         status?: string
     ): Promise<PaginatedResult<Inventory & { product_name: string; warehouse_name: string }>> {
-        let countQuery = 'SELECT COUNT(*) as total FROM inventories i WHERE 1=1';
+        let countQuery = `
+            SELECT COUNT(*) as total FROM inventories i 
+            INNER JOIN products p ON i.product_id = p.id
+            LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+            WHERE p.deleted_at IS NULL AND (pv.id IS NULL OR pv.is_active = 1)
+        `;
         let dataQuery = `
-      SELECT i.*, p.name as product_name, p.sku, w.name as warehouse_name, sl.code as location_code
+      SELECT i.*, p.name as product_name, p.sku, w.name as warehouse_name, sl.code as location_code,
+             pv.sku as variant_sku, pv.price as variant_price,
+             CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+             (i.quantity_on_hand - i.quantity_reserved) as quantity_available
       FROM inventories i
       INNER JOIN products p ON i.product_id = p.id
       INNER JOIN warehouses w ON i.warehouse_id = w.id
       LEFT JOIN storage_locations sl ON i.location_id = sl.id
-      WHERE 1=1
+      LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+      WHERE p.deleted_at IS NULL AND (pv.id IS NULL OR pv.is_active = 1)
     `;
         const params: any[] = [];
         const countParams: any[] = [];
 
         if (warehouseId) {
             dataQuery += ' AND i.warehouse_id = ?';
-            countQuery += ' AND warehouse_id = ?';
+            countQuery += ' AND i.warehouse_id = ?';
             params.push(warehouseId);
             countParams.push(warehouseId);
         }
 
         if (productId) {
             dataQuery += ' AND i.product_id = ?';
-            countQuery += ' AND product_id = ?';
+            countQuery += ' AND i.product_id = ?';
             params.push(productId);
             countParams.push(productId);
         }
 
         if (status) {
             dataQuery += ' AND i.status = ?';
-            countQuery += ' AND status = ?';
+            countQuery += ' AND i.status = ?';
             params.push(status);
             countParams.push(status);
         }
 
-        dataQuery += ' ORDER BY i.updated_at DESC LIMIT ? OFFSET ?';
+        dataQuery += ' ORDER BY p.id DESC, i.product_variant_id ASC LIMIT ? OFFSET ?';
         const offset = (page - 1) * limit;
         params.push(limit, offset);
 
@@ -107,6 +116,21 @@ export class InventoryRepository {
       GROUP BY p.id
       HAVING total_quantity <= p.reorder_point OR total_quantity <= p.min_stock_level
       ORDER BY total_quantity ASC
+    `);
+        return rows;
+    }
+
+    async getUnderTenStockItems(): Promise<any[]> {
+        const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT i.id, p.name, COALESCE(pv.sku, p.sku) as sku, 
+             CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+             i.quantity_on_hand as total_quantity
+      FROM inventories i
+      INNER JOIN products p ON i.product_id = p.id
+      LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+      WHERE p.deleted_at IS NULL AND p.status = 'active'
+      AND i.quantity_on_hand < 10
+      ORDER BY i.quantity_on_hand ASC
     `);
         return rows;
     }
@@ -207,6 +231,7 @@ export class InventoryRepository {
     async getMovementLogs(
         page: number = 1,
         limit: number = 20,
+        inventoryId?: number,
         productId?: number,
         warehouseId?: number,
         startDate?: string,
@@ -223,6 +248,13 @@ export class InventoryRepository {
     `;
         const params: any[] = [];
         const countParams: any[] = [];
+
+        if (inventoryId) {
+            dataQuery += ' AND il.inventory_id = ?';
+            countQuery += ' AND inventory_id = ?';
+            params.push(inventoryId);
+            countParams.push(inventoryId);
+        }
 
         if (productId) {
             dataQuery += ' AND il.product_id = ?';
@@ -271,6 +303,194 @@ export class InventoryRepository {
             },
         };
     }
-}
+    /**
+     * Báo cáo Nhập – Xuất – Tồn theo khoảng thời gian cho 1 inventory record
+     * - ton_dau: tổng biến động trước from_date (mọi nghiệp vụ làm thay đổi tồn thực tế)
+     * - nhap_trong_ky: tổng biến động dương trong khoảng
+     * - xuat_trong_ky: tổng trị tuyệt đối biến động âm trong khoảng
+     * - ton_cuoi = ton_dau + nhap - xuat
+     */
+    async getInventoryReport(
+        inventoryId: number,
+        fromDate: string,
+        toDate: string
+    ): Promise<{ ton_dau: number; nhap_trong_ky: number; xuat_trong_ky: number; ton_cuoi: number }> {
+        // Lọc các movement thực sự thay đổi on_hand (quantity_after != quantity_before)
+        // Điều này giúp bao quát mọi loại nghiệp vụ thực tế trong DB và loại trừ RESERVE/RELEASE
 
+        // 1. Tồn đầu kỳ: tổng quantity_change trước from_date
+        const [tonDauRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(quantity_change), 0) AS ton_dau
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND created_at < ?`,
+            [inventoryId, fromDate]
+        );
+        const ton_dau = Number(tonDauRows[0].ton_dau) || 0;
+
+        // 2. Nhập trong kỳ: tổng quantity_change > 0 trong khoảng
+        const [nhapRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(quantity_change), 0) AS nhap
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND quantity_change > 0
+               AND created_at >= ? AND created_at <= ?`,
+            [inventoryId, fromDate, toDate]
+        );
+        const nhap_trong_ky = Number(nhapRows[0].nhap) || 0;
+
+        // 3. Xuất trong kỳ: tổng trị tuyệt đối quantity_change < 0 trong khoảng
+        const [xuatRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(ABS(quantity_change)), 0) AS xuat
+             FROM inventory_logs
+             WHERE inventory_id = ?
+               AND quantity_after != quantity_before
+               AND quantity_change < 0
+               AND created_at >= ? AND created_at <= ?`,
+            [inventoryId, fromDate, toDate]
+        );
+        const xuat_trong_ky = Number(xuatRows[0].xuat) || 0;
+
+        // 4. Tồn cuối kỳ
+        const ton_cuoi = ton_dau + nhap_trong_ky - xuat_trong_ky;
+
+        return { ton_dau, nhap_trong_ky, xuat_trong_ky, ton_cuoi };
+    }
+
+    async getProductPerformanceMetrics(inventoryId: number): Promise<{ totalCompletedOrders: number, totalRevenue: number, totalCost: number, totalProfit: number }> {
+        // Find the variant_id for this inventory item
+        const [invRows] = await pool.query<RowDataPacket[]>(
+            `SELECT product_variant_id FROM inventories WHERE id = ?`,
+            [inventoryId]
+        );
+
+        if (invRows.length === 0 || !invRows[0].product_variant_id) {
+            return { totalCompletedOrders: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0 };
+        }
+
+        const variantId = invRows[0].product_variant_id;
+
+        // 1. Get metrics from Customer Orders
+        const [orderMetricsRows] = await pool.query<RowDataPacket[]>(
+            `SELECT 
+                COUNT(DISTINCT o.id) as total_completed_orders,
+                COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total_revenue,
+                COALESCE(SUM(oi.quantity * oi.cost_price_snapshot), 0) as total_cost
+             FROM order_items oi
+             JOIN orders o ON oi.order_id = o.id
+             WHERE oi.variant_id = ? AND o.status = 'delivered'`,
+            [variantId]
+        );
+
+        // 2. Get metrics from Export Slips
+        const [exportMetricsRows] = await pool.query<RowDataPacket[]>(
+            `SELECT 
+                COUNT(DISTINCT st.id) as export_completed_orders,
+                COALESCE(SUM(sti.line_total), 0) as export_revenue,
+                COALESCE(SUM(sti.cost_of_goods_sold), 0) as export_cost
+             FROM stock_transfer_items sti
+             JOIN stock_transfers st ON sti.stock_transfer_id = st.id
+             WHERE sti.product_variant_id = ? AND st.transfer_type = 'EXPORT' AND st.status = 'approved'`,
+            [variantId]
+        );
+
+        const orderMetrics = orderMetricsRows[0];
+        const exportMetrics = exportMetricsRows[0];
+
+        const totalOrders = Number(orderMetrics.total_completed_orders) + Number(exportMetrics.export_completed_orders);
+        const revenue = Number(orderMetrics.total_revenue) + Number(exportMetrics.export_revenue);
+        const cost = Number(orderMetrics.total_cost) + Number(exportMetrics.export_cost);
+
+        return {
+            totalCompletedOrders: totalOrders,
+            totalRevenue: revenue,
+            totalCost: cost,
+            totalProfit: revenue - cost
+        };
+    }
+
+    /**
+     * Báo cáo Tổng hợp Nhập – Xuất – Tồn cho toàn bộ sản phẩm
+     */
+    async getOverallInventoryReport(
+        fromDate: string,
+        toDate: string,
+        warehouseId?: number
+    ): Promise<any[]> {
+        const warehouseFilter = warehouseId ? `AND i.warehouse_id = ${pool.escape(warehouseId)}` : '';
+
+        // 1. Lấy thông tin cơ bản của tất cả các biến thể đang có trong kho
+        const query = `
+            SELECT 
+                i.id as inventory_id,
+                p.id as product_id,
+                p.name as product_name,
+                COALESCE(pv.sku, p.sku) as sku,
+                CONCAT_WS(' / ', pv.color, pv.size, pv.storage, pv.ram, pv.material, pv.capacity) as variant_label,
+                w.name as warehouse_name,
+                
+                -- Tồn đầu kỳ: Tổng số lượng thay đổi trước fromDate
+                COALESCE((
+                    SELECT SUM(il.quantity_change)
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.created_at < ?
+                ), 0) AS ton_dau,
+                
+                -- Nhập trong kỳ: Tổng số lượng thay đổi dương trong khoảng thời gian
+                COALESCE((
+                    SELECT SUM(il.quantity_change)
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.quantity_change > 0
+                    AND il.created_at >= ? AND il.created_at <= ?
+                ), 0) AS nhap_trong_ky,
+                
+                -- Xuất trong kỳ: Tổng trị tuyệt đối số lượng thay đổi âm trong khoảng thời gian
+                COALESCE((
+                    SELECT SUM(ABS(il.quantity_change))
+                    FROM inventory_logs il
+                    WHERE il.inventory_id = i.id
+                    AND il.quantity_after != il.quantity_before
+                    AND il.quantity_change < 0
+                    AND il.created_at >= ? AND il.created_at <= ?
+                ), 0) AS xuat_trong_ky
+                
+            FROM inventories i
+            INNER JOIN products p ON i.product_id = p.id
+            INNER JOIN warehouses w ON i.warehouse_id = w.id
+            LEFT JOIN product_variants pv ON i.product_variant_id = pv.id
+            WHERE p.deleted_at IS NULL 
+            AND (pv.id IS NULL OR pv.is_active = 1)
+            ${warehouseFilter}
+            ORDER BY p.name ASC, pv.sku ASC
+        `;
+
+        const [rows] = await pool.query<RowDataPacket[]>(query, [
+            fromDate, 
+            fromDate, toDate, 
+            fromDate, toDate
+        ]);
+
+        // Tính tồn cuối kỳ cho mỗi dòng
+        const reportData = rows.map(row => {
+            const ton_dau = Number(row.ton_dau) || 0;
+            const nhap_trong_ky = Number(row.nhap_trong_ky) || 0;
+            const xuat_trong_ky = Number(row.xuat_trong_ky) || 0;
+            return {
+                ...row,
+                ton_dau,
+                nhap_trong_ky,
+                xuat_trong_ky,
+                ton_cuoi: ton_dau + nhap_trong_ky - xuat_trong_ky
+            };
+        });
+
+        return reportData;
+    }
+}
 export const inventoryRepository = new InventoryRepository();

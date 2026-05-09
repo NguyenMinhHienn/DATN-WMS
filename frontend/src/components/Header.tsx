@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { cartService } from '../services/cartService';
+import { NotificationBell } from './NotificationBell';
 
 export const Header: React.FC = () => {
     const { isAuthenticated, user, logout, hasAnyRole } = useAuth();
@@ -59,11 +60,16 @@ export const Header: React.FC = () => {
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                            Home
+                            Trang chủ
                         </Link>
                         <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                            Products
+                            Hàng hóa
                         </Link>
+                        {isAuthenticated && (
+                            <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
+                                <span className="text-sm">💳</span> Công nợ
+                            </Link>
+                        )}
                     </nav>
 
                     {/* Auth buttons */}
@@ -89,6 +95,10 @@ export const Header: React.FC = () => {
                                         )}
                                     </div>
                                 </button>
+                                
+                                {/* Notification Bell */}
+                                <NotificationBell />
+
                                 <div className="relative" ref={dropdownRef}>
                                     {/* Clickable User Info */}
                                     <button
@@ -122,13 +132,31 @@ export const Header: React.FC = () => {
                                                 className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-primary-50 hover:text-primary-600 transition-colors text-sm"
                                             >
                                                 <span className="flex items-center gap-3">
-                                                    <span>🛒</span> Giỏ hàng
+                                                    <span>📋</span> Phiếu nhập tạm
                                                 </span>
                                                 {cartItemCount > 0 && (
                                                     <span className="bg-primary-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                                                         {cartItemCount}
                                                     </span>
                                                 )}
+                                            </button>
+
+                                            <button
+                                                onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span>📦</span> Đơn hàng của tôi
+                                                </span>
+                                            </button>
+                                            
+                                            <button
+                                                onClick={() => { navigate('/my-receivables'); setDropdownOpen(false); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-sm"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span>🧾</span> Công nợ của tôi
+                                                </span>
                                             </button>
 
                                             <div className="border-t border-slate-200"></div>

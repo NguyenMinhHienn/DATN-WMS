@@ -1,7 +1,9 @@
 import { exportSlipRepository, CreateExportSlipItemInput } from '../repositories/export-slip.repository';
 import { orderRepository } from '../repositories/order.repository';
 import { AppError } from '../middlewares/error.middleware';
+import { inventoryCoreService } from './inventory-core.service';
 import pool from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 /**
  * ExportSlip Service
@@ -131,6 +133,9 @@ class ExportSlipService {
      * - ExportSlip → completed
      * - Order → delivered
      * - COD → payment_status = paid
+     * - Xuất kho qua inventoryCoreService (giảm on_hand + reserved)
+     * - Tạo công nợ phải thu (COD auto-close, CREDIT để mở)
+     * - Auto-check credit eligibility
      */
     async completeDelivery(slipId: number): Promise<void> {
         const slip = await exportSlipRepository.getExportSlipById(slipId);
@@ -150,19 +155,36 @@ class ExportSlipService {
         try {
             await connection.beginTransaction();
 
-            // ExportSlip → completed
+            // 1. Xuất kho qua inventoryCoreService (giảm on_hand + giảm reserved)
+            // Khi createOrder đã reserveStock, giờ giao thành công → exportStock chính thức xuất
+            for (const detail of slip.details) {
+                if (detail.variant_id) {
+                    await inventoryCoreService.exportStock({
+                        connection,
+                        productId: detail.product_id,
+                        variantId: detail.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: detail.quantity,
+                        referenceType: 'export_slip',
+                        referenceId: slipId,
+                        reason: `Giao hàng thành công - Đơn #${slip.order_id}`,
+                    });
+                }
+            }
+
+            // 2. ExportSlip → completed
             await connection.execute(
                 'UPDATE export_slips SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 ['completed', slipId]
             );
 
-            // Order → delivered
+            // 3. Order → delivered
             await connection.execute(
                 'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 ['delivered', slip.order_id]
             );
 
-            // COD → paid
+            // 4. COD → paid
             if (order.payment_method === 'COD') {
                 await connection.execute(
                     'UPDATE orders SET payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -177,13 +199,94 @@ class ExportSlipService {
         } finally {
             connection.release();
         }
+
+        // ===== SAU TRANSACTION: Tạo công nợ (không nằm trong transaction để đảm bảo delivery luôn thành công) =====
+
+        // 5. Tạo công nợ cho đơn COD (đã thu tiền khi giao → auto-close receivable)
+        if (order.payment_method === 'COD') {
+            try {
+                const { receivableService } = require('./receivable.service');
+
+                // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                const [stRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                     FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    [slip.order_id]
+                );
+                let grandTotal = Number(order.total_amount);
+                if (stRows.length > 0) {
+                    grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                }
+
+                const receivableId = await receivableService.createFromOrder({
+                    id: slip.order_id,
+                    total_amount: grandTotal,
+                    shipping_name: order.shipping_name,
+                    shipping_phone: order.shipping_phone,
+                    shipping_address: order.shipping_address,
+                    user_id: order.user_id,
+                    created_at: order.created_at,
+                });
+                // Auto-close receivable vì COD đã thu tiền khi giao
+                const { receivableRepository } = require('../repositories/receivable.repository');
+                await receivableRepository.updatePaidAmount(receivableId, grandTotal);
+            } catch (recErr) {
+                // Log lỗi nhưng KHÔNG throw - đảm bảo delivery vẫn thành công
+                console.error('⚠️ [ExportSlip] Lỗi tạo công nợ từ đơn COD:', recErr);
+            }
+        }
+
+        // 6. Tạo công nợ cho đơn CREDIT (trả sau) - KHÔNG auto-close
+        if (order.payment_method === 'CREDIT') {
+            try {
+                const { receivableService } = require('./receivable.service');
+                const { creditService } = require('./credit.service');
+
+                // Lấy tổng thực tế từ stock_transfer (subtotal + VAT + shipping)
+                const [stRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT subtotal, COALESCE(vat_amount, 0) as vat_amount, COALESCE(shipping_fee, 0) as shipping_fee 
+                     FROM stock_transfers WHERE order_id = ? AND transfer_type = 'EXPORT' LIMIT 1`,
+                    [slip.order_id]
+                );
+                let grandTotal = Number(order.total_amount);
+                if (stRows.length > 0) {
+                    grandTotal = Number(stRows[0].subtotal) + Number(stRows[0].vat_amount) + Number(stRows[0].shipping_fee);
+                }
+
+                const creditInfo = await creditService.getCreditInfo(order.user_id);
+                await receivableService.createFromCreditOrder({
+                    id: slip.order_id,
+                    total_amount: grandTotal,
+                    shipping_name: order.shipping_name,
+                    shipping_phone: order.shipping_phone,
+                    shipping_address: order.shipping_address,
+                    user_id: order.user_id,
+                    created_at: order.created_at,
+                    payment_terms: creditInfo.credit_payment_terms,
+                });
+                // Cập nhật credit_used
+                await creditService.syncCreditUsed(order.user_id);
+            } catch (recErr) {
+                console.error('⚠️ [ExportSlip] Lỗi tạo công nợ từ đơn CREDIT:', recErr);
+            }
+        }
+
+        // 7. Auto-check credit eligibility sau khi giao hàng (COD/BANKING)
+        if (order.payment_method !== 'CREDIT') {
+            try {
+                const { creditService } = require('./credit.service');
+                await creditService.autoCheckAndEnable(order.user_id);
+            } catch (err) {
+                console.error('⚠️ [ExportSlip] Lỗi auto-check credit:', err);
+            }
+        }
     }
 
     /**
      * Giao hàng thất bại
      * - ExportSlip → returned
      * - Order → failed
-     * - Cộng lại tồn kho
+     * - Hoàn trả tồn kho qua inventoryCoreService.releaseStock (hủy reserved)
      */
     async failDelivery(slipId: number): Promise<void> {
         const slip = await exportSlipRepository.getExportSlipById(slipId);
@@ -198,13 +301,21 @@ class ExportSlipService {
         try {
             await connection.beginTransaction();
 
-            // Cộng lại tồn kho
+            // Hoàn trả tồn kho qua inventoryCoreService
+            // Khi createOrder đã gọi reserveStock (tăng reserved), giờ giao thất bại → releaseStock (giảm reserved)
+            // Điều này giữ đồng bộ cả inventories table và product_variants.stock (qua syncVariantStock)
             for (const detail of slip.details) {
                 if (detail.variant_id) {
-                    await connection.execute(
-                        'UPDATE product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [detail.quantity, detail.variant_id]
-                    );
+                    await inventoryCoreService.releaseStock({
+                        connection,
+                        productId: detail.product_id,
+                        variantId: detail.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: detail.quantity,
+                        referenceType: 'export_slip',
+                        referenceId: slipId,
+                        reason: `Giao hàng thất bại - Đơn #${slip.order_id}`,
+                    });
                 }
             }
 

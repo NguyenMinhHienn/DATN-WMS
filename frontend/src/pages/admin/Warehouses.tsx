@@ -90,7 +90,7 @@ const Warehouses: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">Quản lý kho</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Quản lý các vị trí kho hàng</p>
+                    <p className="text-slate-600 mt-1">Quản lý các vị trí kho hàng</p>
                 </div>
                 {isAdmin && <button onClick={handleCreate} className="btn btn-primary">+ Thêm kho</button>}
             </div>
@@ -113,15 +113,15 @@ const Warehouses: React.FC = () => {
                                 {warehouse.status}
                             </span>
                         </div>
-                        <h3 className="font-semibold text-lg text-white mb-1">{warehouse.name}</h3>
-                        <p className="text-sm text-indigo-300 mb-1 font-mono">{warehouse.code}</p>
+                        <h3 className="font-semibold text-lg text-blue-900 mb-1">{warehouse.name}</h3>
+                        <p className="text-sm text-blue-600 mb-1 font-mono">{warehouse.code}</p>
                         {warehouse.address && (
-                            <p className="text-sm text-slate-400 mb-4 flex items-center gap-1">
+                            <p className="text-sm text-slate-600 mb-4 flex items-center gap-1">
                                 <span>📍</span> {warehouse.address}, {warehouse.city}
                             </p>
                         )}
                         {isAdmin && (
-                            <div className="flex gap-2 pt-4 border-t border-slate-700/50">
+                            <div className="flex gap-2 pt-4 border-t border-blue-100">
                                 <button onClick={() => handleEdit(warehouse)} className="btn btn-secondary text-sm flex-1">✏️ Sửa</button>
                                 <button onClick={() => handleDelete(warehouse)} className="btn btn-danger text-sm">🗑️ Xóa</button>
                             </div>
@@ -157,7 +157,7 @@ const Warehouses: React.FC = () => {
                             </select>
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700/50">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-blue-100">
                         <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>
                         <button type="submit" disabled={formLoading} className="btn btn-primary">{formLoading ? 'Đang lưu...' : (editingWarehouse ? 'Cập nhật' : 'Thêm mới')}</button>
                     </div>

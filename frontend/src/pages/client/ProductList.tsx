@@ -6,6 +6,8 @@ import { cartService } from '../../services/cartService';
 import { useAuth } from '../../context/AuthContext';
 import { Product, Category, PaginationInfo, ProductVariant } from '../../interface';
 import { Pagination } from '../../components/Pagination';
+import MiniCart from './Minicarts';
+
 
 /**
  * Product List Page - Client
@@ -28,7 +30,7 @@ const ProductList: React.FC = () => {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [sortBy, setSortBy] = useState<string>('newest');
 
     // Quick Add states - cho từng sản phẩm
@@ -37,6 +39,9 @@ const ProductList: React.FC = () => {
     const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
     const [loadingAdd, setLoadingAdd] = useState<{ [key: number]: boolean }>({});
     const [loadingVariants, setLoadingVariants] = useState<{ [key: number]: boolean }>({});
+
+    //gio hang cua user
+
 
     // Toast notifications
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -162,7 +167,10 @@ const ProductList: React.FC = () => {
                     sku: product.sku,
                     max_stock: 999, // Không giới hạn vì không có variant stock
                 });
-                showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+
+                showToast('success', 'Đã thêm hàng hóa vào danh sách nhập');
+                window.dispatchEvent(new CustomEvent('cartUpdated'));
+                console.log("EVENT FIRED");
             };
 
             try {
@@ -212,9 +220,9 @@ const ProductList: React.FC = () => {
             if (currentInCart + quantity > maxStock) {
                 const canAdd = maxStock - currentInCart;
                 if (canAdd <= 0) {
-                    showToast('error', `Đã có ${currentInCart} sản phẩm trong giỏ (tồn kho: ${maxStock})`);
+                    showToast('error', `Đã có ${currentInCart} mặt hàng trong danh sách (tồn kho: ${maxStock})`);
                 } else {
-                    showToast('error', `Chỉ thêm được ${canAdd} nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})`);
+                    showToast('error', `Chỉ thêm được ${canAdd} nữa (đã có ${currentInCart} trong danh sách, tồn kho: ${maxStock})`);
                 }
                 setLoadingAdd(prev => ({ ...prev, [productId]: false }));
                 return;
@@ -234,7 +242,9 @@ const ProductList: React.FC = () => {
                 sku: selectedVariant.sku || product.sku,
                 max_stock: selectedVariant.stock,
             });
-            showToast('success', 'Đã thêm sản phẩm vào giỏ hàng');
+            showToast('success', 'Đã thêm hàng hóa vào danh sách nhập');
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+            console.log("EVENT FIRED");
         };
 
         try {
@@ -281,6 +291,7 @@ const ProductList: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+
             {/* Toast Notifications */}
             <div className="fixed top-4 right-4 z-50 space-y-2">
                 {toasts.map(toast => (
@@ -308,27 +319,29 @@ const ProductList: React.FC = () => {
                                 <Link to="/" className="hover:text-white transition-colors">Trang chủ</Link>
                             </li>
                             <li className="text-blue-300">›</li>
-                            <li className="text-white font-medium">Sản phẩm</li>
+                            <li className="text-white font-medium">Hàng hóa</li>
                         </ol>
                     </nav>
 
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-bold mb-2">Khám phá sản phẩm</h1>
+                            <h1 className="text-3xl md:text-4xl font-bold mb-2">Danh mục hàng hóa</h1>
                             <p className="text-blue-100">
                                 {pagination.total > 0 ? (
-                                    <>Hiển thị <strong>{products.length}</strong> / <strong>{pagination.total}</strong> sản phẩm</>
+                                    <>Hiển thị <strong>{products.length}</strong> / <strong>{pagination.total}</strong> hàng hóa</>
                                 ) : (
-                                    'Duyệt qua các danh mục sản phẩm của chúng tôi'
+                                    'Duyệt qua các danh mục hàng hóa của chúng tôi'
                                 )}
                             </p>
                         </div>
+
+
 
                         {/* Quick Stats */}
                         <div className="flex items-center gap-4">
                             <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-center">
                                 <div className="text-2xl font-bold">{pagination.total}</div>
-                                <div className="text-xs text-blue-200">Sản phẩm</div>
+                                <div className="text-xs text-blue-200">Hàng hóa</div>
                             </div>
                             <div className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-center">
                                 <div className="text-2xl font-bold">{categories.length}</div>
@@ -349,7 +362,7 @@ const ProductList: React.FC = () => {
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm sản phẩm theo tên, SKU..."
+                                placeholder="Tìm kiếm hàng hóa theo tên, SKU..."
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
                                 className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
@@ -383,16 +396,18 @@ const ProductList: React.FC = () => {
                                 <option value="name">Tên A-Z</option>
                             </select>
                         </div>
-
+                        <div className="">
+                        <MiniCart />
+                        </div>
                         {/* View Mode Toggle */}
                         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
-                            <button
+                            {/* <button
                                 onClick={() => setViewMode('grid')}
                                 className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 title="Hiển thị dạng lưới"
                             >
                                 ▦
-                            </button>
+                            </button> */}
                             <button
                                 onClick={() => setViewMode('list')}
                                 className={`px-3 py-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-600 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -402,6 +417,8 @@ const ProductList: React.FC = () => {
                             </button>
                         </div>
                     </div>
+
+
 
                     {/* Active Filters */}
                     {(search || selectedCategory) && (
@@ -429,6 +446,7 @@ const ProductList: React.FC = () => {
                     )}
                 </div>
 
+
                 {/* ========== CATEGORY PILLS ========== */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
                     <button
@@ -454,11 +472,12 @@ const ProductList: React.FC = () => {
                     ))}
                 </div>
 
+
                 {/* ========== PRODUCTS DISPLAY ========== */}
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-64 gap-4">
                         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500 dark:text-slate-400">Đang tải sản phẩm...</p>
+                        <p className="text-slate-500 dark:text-slate-400">Đang tải hàng hóa...</p>
                     </div>
                 ) : (
                     <>
@@ -524,7 +543,7 @@ const ProductList: React.FC = () => {
                                                 to={`/products/${product.id}`}
                                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
                                             >
-                                                🛒 Thêm vào giỏ
+                                                📋 Thêm vào DS
                                             </Link>
                                         </div>
                                     </div>
@@ -598,19 +617,55 @@ const ProductList: React.FC = () => {
                                                         <div className="h-11 flex items-center justify-center text-orange-700 text-sm bg-orange-50 rounded-lg border-2 border-orange-300 font-semibold">
                                                             ⚠️ Chưa có biến thể
                                                         </div>
-                                                    ) : (
-                                                        <select
-                                                            value={selectedVariantId || ''}
-                                                            onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
-                                                            className="w-full px-2 py-2.5 border-2 border-slate-400 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer truncate"
-                                                        >
-                                                            {variants.map(v => (
-                                                                <option key={v.id} value={v.id}>
-                                                                    {getVariantLabel(v)} {v.stock > 0 ? `(${v.stock})` : '(Hết)'}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    )}
+                                                    ) : (() => {
+                                                        const groupedVariants = variants.reduce((acc: Record<string, ProductVariant[]>, v) => {
+                                                            let groupKey = 'Mặc định';
+                                                            if (v.attribute_values && v.attribute_values.length > 0) {
+                                                                const mainAttr = v.attribute_values.find((av: any) => 
+                                                                    (av.attribute_name || '').toLowerCase().includes('color') || 
+                                                                    (av.attribute_display_name || '').toLowerCase() === 'màu sắc'
+                                                                ) || v.attribute_values[0];
+                                                                groupKey = mainAttr.display_value || 'Mặc định';
+                                                            } else if (v.color) {
+                                                                groupKey = v.color;
+                                                            }
+                                                            if (!acc[groupKey]) acc[groupKey] = [];
+                                                            acc[groupKey].push(v);
+                                                            return acc;
+                                                        }, {});
+
+                                                        return (
+                                                            <select
+                                                                value={selectedVariantId || ''}
+                                                                onChange={(e) => handleVariantChange(product.id, parseInt(e.target.value))}
+                                                                className="w-full px-2 py-2.5 border-2 border-slate-400 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer truncate"
+                                                            >
+                                                                {Object.keys(groupedVariants).map(groupKey => (
+                                                                    <optgroup key={groupKey} label={`Phân loại: ${groupKey}`}>
+                                                                        {groupedVariants[groupKey].map(v => {
+                                                                            // Tạo label chỉ chứa các thuộc tính phụ
+                                                                            let labelParts: string[] = [];
+                                                                            if (v.attribute_values && v.attribute_values.length > 0) {
+                                                                                v.attribute_values.forEach((av: any) => {
+                                                                                    if (av.display_value !== groupKey) labelParts.push(av.display_value);
+                                                                                });
+                                                                            } else {
+                                                                                if (v.size) labelParts.push(v.size);
+                                                                                if (v.storage) labelParts.push(v.storage);
+                                                                            }
+                                                                            const subLabel = labelParts.length > 0 ? labelParts.join(' / ') : 'Tiêu chuẩn';
+
+                                                                            return (
+                                                                                <option key={v.id} value={v.id} disabled={v.stock <= 0}>
+                                                                                    {subLabel} {v.stock > 0 ? `(${v.stock})` : '(Hết)'}
+                                                                                </option>
+                                                                            );
+                                                                        })}
+                                                                    </optgroup>
+                                                                ))}
+                                                            </select>
+                                                        );
+                                                    })()}
                                                 </div>
 
                                                 {/* Quantity Input */}
@@ -654,7 +709,7 @@ const ProductList: React.FC = () => {
                                                         {isLoadingAdd ? (
                                                             <><span className="animate-spin">⏳</span> Đang thêm...</>
                                                         ) : (
-                                                            <>🛒 Thêm vào giỏ</>
+                                                            <>📋 Thêm vào DS</>
                                                         )}
                                                     </button>
                                                 ) : (
@@ -674,7 +729,7 @@ const ProductList: React.FC = () => {
                                                             </>
                                                         ) : (
                                                             <>
-                                                                🛒 Thêm vào giỏ
+                                                                📋 Thêm vào DS
                                                             </>
                                                         )}
                                                     </button>
@@ -690,7 +745,7 @@ const ProductList: React.FC = () => {
                         {products.length === 0 && (
                             <div className="text-center py-16">
                                 <div className="text-6xl mb-4">🔍</div>
-                                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">Không tìm thấy sản phẩm</h3>
+                                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">Không tìm thấy hàng hóa</h3>
                                 <p className="text-slate-500 dark:text-slate-400 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                                 <button
                                     onClick={() => { setSearch(''); setSelectedCategory(undefined); }}

@@ -106,12 +106,13 @@ const Home: React.FC = () => {
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Trang chủ</Link>
-                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Sản phẩm</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hàng hóa</Link>
 
-                        {/* NÚT ORDERS VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
+                        {/* NÚT YÊU CẦU VÀ SUPPORT - CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP */}
                         {isAuthenticated && (
                             <>
-                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Yêu cầu nhập</Link>
+                                <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors flex items-center gap-1"><span className="text-sm"></span> Công nợ</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -177,13 +178,13 @@ const Home: React.FC = () => {
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
                                         </div>
 
-                                        {/* Giỏ hàng */}
+                                        {/* Phiếu nhập tạm */}
                                         <button
                                             onClick={() => { navigate('/cart'); setDropdownOpen(false); }}
                                             className="w-full flex items-center justify-between px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-slate-700 hover:text-primary-600 transition-colors text-sm"
                                         >
                                             <span className="flex items-center gap-3">
-                                                <span>🛒</span> Giỏ hàng
+                                                <span>📋</span> Phiếu nhập tạm
                                             </span>
                                             {cartItemCount > 0 && (
                                                 <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -194,12 +195,12 @@ const Home: React.FC = () => {
 
                                         <div className="border-t border-slate-200 dark:border-slate-700"></div>
 
-                                        {/* Đơn hàng */}
+                                        {/* Yêu cầu nhập */}
                                         <button
                                             onClick={() => { navigate('/orders'); setDropdownOpen(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
                                         >
-                                            <span>�</span> Đơn hàng của tôi
+                                            <span>📝</span> Yêu cầu nhập
                                         </button>
                                         {/* Hỗ trợ */}
                                         <button
@@ -207,6 +208,14 @@ const Home: React.FC = () => {
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
                                         >
                                             <span>💬</span> Hỗ trợ
+                                        </button>
+
+                                        {/* Công nợ */}
+                                        <button
+                                            onClick={() => { navigate('/my-receivables'); setDropdownOpen(false); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 transition-colors text-sm"
+                                        >
+                                            <span>💳</span> Công nợ của tôi
                                         </button>
 
                                         <button
@@ -262,12 +271,13 @@ const Home: React.FC = () => {
                 <div className="md:hidden py-4 border-t">
                     <div className="flex flex-col space-y-3">
                         <Link to="/" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Trang chủ</Link>
-                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Sản phẩm</Link>
+                        <Link to="/products" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hàng hóa</Link>
 
-                        {/* NÚT ORDERS VÀ SUPPORT CHO MOBILE */}
+                        {/* NÚT YÊU CẦU VÀ SUPPORT CHO MOBILE */}
                         {isAuthenticated && (
                             <>
-                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Đơn hàng</Link>
+                                <Link to="/orders" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Yêu cầu nhập</Link>
+                                <Link to="/my-receivables" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">💳 Công nợ</Link>
                                 <Link to="/support" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium transition-colors">Hỗ trợ</Link>
                             </>
                         )}
@@ -314,7 +324,7 @@ const Home: React.FC = () => {
                         </p>
                         <div className="flex justify-center gap-4 flex-wrap">
                             <Link to="/products" className="bg-white text-slate-800 px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2">
-                                <span>🛒</span> Xem sản phẩm
+                                <span>📦</span> Danh mục hàng hóa
                             </Link>
                             {!isAuthenticated && (
                                 <Link to="/register" className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/10 transition-all flex items-center gap-2">
@@ -367,7 +377,7 @@ const Home: React.FC = () => {
                                 </div>
                             </div>
                             <Link to="/products" className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
-                                Xem sản phẩm →
+                                Xem hàng hóa →
                             </Link>
                         </div>
                     </div>
@@ -452,6 +462,21 @@ const Home: React.FC = () => {
                                 StockFlow là đồ án tốt nghiệp, xây dựng trên nền tảng công nghệ hiện đại với React, TypeScript, Node.js và MySQL.
                                 Hệ thống cung cấp giải pháp quản lý kho hàng toàn diện cho doanh nghiệp vừa và nhỏ.
                             </p>
+
+                            {/* Thông tin địa chỉ kho */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
+                                <div className="flex items-start gap-3">
+                                    <div className="text-2xl mt-0.5">📍</div>
+                                    <div>
+                                        <h4 className="font-semibold text-white mb-1">Địa chỉ kho hàng</h4>
+                                        <p className="text-slate-300 text-sm leading-relaxed">
+                                            Số 1, Phố Trịnh Văn Bô, Phương Canh, Hà Nội
+                                        </p>
+                                        <p className="text-slate-400 text-xs mt-1">🏭 Kho tổng - StockFlow Warehouse</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex flex-wrap gap-3">
                                 <span className="px-3 py-1 bg-white/10 rounded-full text-sm">React</span>
                                 <span className="px-3 py-1 bg-white/10 rounded-full text-sm">TypeScript</span>
@@ -519,11 +544,18 @@ const Home: React.FC = () => {
                             </div>
                             <p className="text-sm leading-relaxed mb-4">
                                 Hệ thống quản lý kho hàng thông minh.<br />
-                                Đồ án tốt nghiệp - 2026
+                                Dự án tốt nghiệp - 2026
                             </p>
+                            <div className="flex items-start gap-2 text-sm">
+                                <span>📍</span>
+                                <p className="text-slate-400 leading-relaxed">
+                                    Số 1, Phố Trịnh Văn Bô,<br />
+                                    Phương Canh, Hà Nội
+                                </p>
+                            </div>
                         </div>
                         <div>
-                            <h4 className="font-semibold text-white mb-4">Liên kết</h4>
+                            <h4 className="font-semibold text-white mb-4">Liên hệ</h4>
                             <ul className="space-y-2 text-sm">
                                 <li><Link to="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
                                 <li><Link to="/products" className="hover:text-white transition-colors">Sản phẩm</Link></li>
@@ -541,7 +573,9 @@ const Home: React.FC = () => {
                     </div>
                     <div className="border-t border-slate-800 pt-8 text-center text-sm">
                         <p>© 2026 StockFlow - Smart Inventory Management System</p>
-                        <p className="mt-1 text-slate-500">Made with ❤️ for Graduation Project</p>
+                        <p className="mt-1 text-slate-500">
+                            Author by Nguyen Minh Hien
+                        </p>
                     </div>
                 </div>
             </footer>

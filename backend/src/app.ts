@@ -5,8 +5,13 @@ import { env } from './config/env';
 import { testConnection } from './config/database';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
+import { schedulerService } from './services/scheduler';
 
 const app = express();
+
+// View Engine Setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
 // Middleware
 app.use(cors({
@@ -46,6 +51,9 @@ const startServer = async () => {
         app.listen(env.port, () => {
             console.log(`🚀 Server is running on http://localhost:${env.port}`);
             console.log(`📚 API available at http://localhost:${env.port}/api`);
+
+            // Khởi chạy cron jobs (kiểm tra nợ quá hạn, etc.)
+            schedulerService.start();
         });
     } catch (error) {
         console.error('Failed to start server:', error);

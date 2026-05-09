@@ -31,7 +31,16 @@ const Register: React.FC = () => {
         if (!formData.username.trim()) return 'Tên đăng nhập không được để trống';
         if (formData.username.length < 3) return 'Tên đăng nhập phải có ít nhất 3 ký tự';
         if (!formData.email.trim()) return 'Email không được để trống';
+        
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Định dạng email không hợp lệ';
+        
+        // Cảnh báo các lỗi gõ sai tên miền phổ biến
+        const emailLower = formData.email.toLowerCase();
+        const invalidDomains = ['@gmai.com', '@gmaiil.com', '@gamil.com', '@gmail.com.vn', '@gmail.con', '@yaho.com', '@yahoo.com.vn'];
+        if (invalidDomains.some(domain => emailLower.endsWith(domain))) {
+            return 'Có vẻ phần đuôi email (domain) của bạn bị gõ sai, vui lòng kiểm tra lại.';
+        }
+
         if (!formData.password) return 'Mật khẩu không được để trống';
         if (formData.password.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
         if (formData.password.trim().length === 0) return 'Mật khẩu không được chỉ chứa khoảng trắng';
@@ -96,19 +105,19 @@ const Register: React.FC = () => {
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-8"
             style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)'
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f1f5f9 100%)'
             }}>
 
             {/* Animated Background Effects */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-1/3 right-1/4 w-60 h-60 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300/30 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="absolute top-1/3 right-1/4 w-60 h-60 bg-pink-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
             <div className="w-full max-w-lg relative z-10">
                 {/* Main Card with Glassmorphism */}
-                <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 relative overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-500/10 border border-white p-8 relative overflow-hidden">
 
                     {/* Decorative corner accents */}
                     <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-500/20 to-transparent rounded-br-full" />
@@ -127,22 +136,22 @@ const Register: React.FC = () => {
                                 </svg>
                             </div>
                         </div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-indigo-200 bg-clip-text text-transparent">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent mt-2">
                             Tạo tài khoản
                         </h1>
-                        <p className="text-slate-400 mt-2">Tham gia Hệ thống Quản lý Kho</p>
+                        <p className="text-slate-500 mt-2">Tham gia Hệ thống Quản lý Kho</p>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-sm animate-fadeIn">
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl backdrop-blur-sm animate-fadeIn">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <p className="text-red-300 text-sm">{error}</p>
+                                <p className="text-red-700 text-sm font-medium">{error}</p>
                             </div>
                         </div>
                     )}
@@ -152,12 +161,12 @@ const Register: React.FC = () => {
                         {/* Row 1: Username & Full Name */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="group">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
                                     <span className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                         </svg>
-                                        Tên đăng nhập <span className="text-pink-400">*</span>
+                                        Tên đăng nhập <span className="text-pink-500">*</span>
                                     </span>
                                 </label>
                                 <input
@@ -165,18 +174,18 @@ const Register: React.FC = () => {
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                     placeholder="Nhập username"
                                     autoFocus
                                 />
                             </div>
                             <div className="group">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
                                     <span className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        Họ và tên <span className="text-pink-400">*</span>
+                                        Họ và tên <span className="text-pink-500">*</span>
                                     </span>
                                 </label>
                                 <input
@@ -184,7 +193,7 @@ const Register: React.FC = () => {
                                     name="full_name"
                                     value={formData.full_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                     placeholder="Nguyễn Văn A"
                                 />
                             </div>
@@ -192,12 +201,12 @@ const Register: React.FC = () => {
 
                         {/* Email Field */}
                         <div className="group">
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 <span className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
-                                    Email <span className="text-pink-400">*</span>
+                                    Email <span className="text-pink-500">*</span>
                                 </span>
                             </label>
                             <input
@@ -205,16 +214,16 @@ const Register: React.FC = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                 placeholder="example@email.com"
                             />
                         </div>
 
                         {/* Phone Field */}
                         <div className="group">
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 <span className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                     </svg>
                                     Số điện thoại
@@ -226,7 +235,7 @@ const Register: React.FC = () => {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                 placeholder="0901234567"
                             />
                         </div>
@@ -234,12 +243,12 @@ const Register: React.FC = () => {
                         {/* Row 2: Password & Confirm Password */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="group">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
                                     <span className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                         </svg>
-                                        Mật khẩu <span className="text-pink-400">*</span>
+                                        Mật khẩu <span className="text-pink-500">*</span>
                                     </span>
                                 </label>
                                 <div className="relative">
@@ -248,13 +257,13 @@ const Register: React.FC = () => {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 pr-12 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500"
+                                        className="w-full px-4 py-3 pr-12 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm"
                                         placeholder="Tối thiểu 6 ký tự"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors p-1"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-500 transition-colors p-1"
                                     >
                                         {showPassword ? (
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -277,7 +286,7 @@ const Register: React.FC = () => {
                                                     key={level}
                                                     className={`h-1 flex-1 rounded-full transition-all duration-300 ${level <= passwordStrength.strength
                                                             ? `bg-gradient-to-r ${passwordStrength.color}`
-                                                            : 'bg-slate-700'
+                                                            : 'bg-slate-200'
                                                         }`}
                                                 />
                                             ))}
@@ -289,12 +298,12 @@ const Register: React.FC = () => {
                                 )}
                             </div>
                             <div className="group">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
                                     <span className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                         </svg>
-                                        Xác nhận <span className="text-pink-400">*</span>
+                                        Xác nhận <span className="text-pink-500">*</span>
                                     </span>
                                 </label>
                                 <div className="relative">
@@ -303,18 +312,18 @@ const Register: React.FC = () => {
                                         name="confirmPassword"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
-                                        className={`w-full px-4 py-3 pr-12 bg-slate-900/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-500 ${formData.confirmPassword && formData.password !== formData.confirmPassword
-                                                ? 'border-red-500/50'
+                                        className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-300 shadow-sm ${formData.confirmPassword && formData.password !== formData.confirmPassword
+                                                ? 'border-red-400 ring-1 ring-red-400/50'
                                                 : formData.confirmPassword && formData.password === formData.confirmPassword
-                                                    ? 'border-emerald-500/50'
-                                                    : 'border-slate-600/50'
+                                                    ? 'border-emerald-400'
+                                                    : 'border-slate-200'
                                             }`}
                                         placeholder="Nhập lại mật khẩu"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors p-1"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-500 transition-colors p-1"
                                     >
                                         {showConfirmPassword ? (
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -374,20 +383,20 @@ const Register: React.FC = () => {
                     {/* Divider */}
                     <div className="relative my-8">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-700/50"></div>
+                            <div className="w-full border-t border-slate-200"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-slate-800/40 text-slate-500">hoặc</span>
+                            <span className="px-4 bg-white text-slate-500 rounded-full">hoặc</span>
                         </div>
                     </div>
 
                     {/* Login Link */}
                     <div className="text-center">
-                        <p className="text-slate-400">
+                        <p className="text-slate-600">
                             Đã có tài khoản?{' '}
                             <Link
                                 to="/login"
-                                className="text-purple-400 hover:text-purple-300 font-medium transition-colors hover:underline underline-offset-4"
+                                className="text-purple-600 hover:text-purple-700 font-bold transition-colors hover:underline underline-offset-4"
                             >
                                 Đăng nhập tại đây
                             </Link>
@@ -395,15 +404,15 @@ const Register: React.FC = () => {
                     </div>
 
                     {/* Info Box */}
-                    <div className="mt-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/30">
+                    <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 shadow-inner">
                         <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <div className="text-sm text-slate-400">
-                                <p className="mb-1">Sau khi đăng ký, bạn sẽ có tài khoản người dùng.</p>
+                            <div className="text-sm text-slate-600">
+                                <p className="mb-1 font-medium">Sau khi đăng ký, bạn sẽ có tài khoản người dùng.</p>
                                 <p>Liên hệ admin để được cấp quyền thêm.</p>
                             </div>
                         </div>

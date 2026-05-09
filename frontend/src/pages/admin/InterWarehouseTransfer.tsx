@@ -47,7 +47,7 @@ const InterWarehouseTransfer: React.FC = () => {
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
             'pending': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-            'approved': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            'approved': 'bg-emerald-500/20 text-emerald-600 font-bold border-emerald-500/30',
             'rejected': 'bg-red-500/20 text-red-400 border-red-500/30',
         };
         const labels: Record<string, string> = {
@@ -74,22 +74,22 @@ const InterWarehouseTransfer: React.FC = () => {
                     <h1 className="text-2xl font-bold">
                         <span className="gradient-text">🔄 Phiếu Chuyển Kho</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Lịch sử và trạng thái các phiếu chuyển hàng giữa các kho</p>
+                    <p className="text-slate-600 mt-1">Lịch sử và trạng thái các phiếu chuyển hàng giữa các kho</p>
                 </div>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="chart-container border-l-4 border-emerald-500">
-                    <p className="text-sm text-slate-400">Đã chuyển</p>
-                    <p className="text-2xl font-bold text-emerald-400">{approvedCount}</p>
+                    <p className="text-sm text-slate-600">Đã chuyển</p>
+                    <p className="text-2xl font-bold text-emerald-600 font-bold">{approvedCount}</p>
                 </div>
                 <div className="chart-container border-l-4 border-amber-500">
-                    <p className="text-sm text-slate-400">Chờ duyệt</p>
+                    <p className="text-sm text-slate-600">Chờ duyệt</p>
                     <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
                 </div>
                 <div className="chart-container border-l-4 border-purple-500">
-                    <p className="text-sm text-slate-400">Tổng phiếu</p>
+                    <p className="text-sm text-slate-600">Tổng phiếu</p>
                     <p className="text-2xl font-bold text-purple-400">{pagination.total}</p>
                 </div>
             </div>
@@ -109,7 +109,7 @@ const InterWarehouseTransfer: React.FC = () => {
                     </select>
                     <button
                         onClick={() => { setSelectedStatus(''); setPagination(p => ({ ...p, page: 1 })); }}
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-slate-600 hover:text-blue-900 transition-colors"
                     >
                         Xóa bộ lọc
                     </button>
@@ -126,34 +126,34 @@ const InterWarehouseTransfer: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                                <thead className="bg-blue-50/30 border-b border-blue-100">
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Mã phiếu</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho nguồn</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Kho đích</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Ngày</th>
-                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-300">Số SP</th>
-                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-300">Người tạo</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Trạng thái</th>
-                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-300">Thao tác</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Mã phiếu</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Kho nguồn</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Kho đích</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Ngày</th>
+                                        <th className="text-right py-4 px-6 text-sm font-medium text-slate-700 font-medium">Số SP</th>
+                                        <th className="text-left py-4 px-6 text-sm font-medium text-slate-700 font-medium">Người tạo</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Trạng thái</th>
+                                        <th className="text-center py-4 px-6 text-sm font-medium text-slate-700 font-medium">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {transfers.map(transfer => (
-                                        <tr key={transfer.id} className={`border-b border-slate-700/30 hover:bg-slate-700/30 transition-colors ${transfer.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
+                                        <tr key={transfer.id} className={`border-b border-slate-100 hover:bg-blue-50 transition-colors ${transfer.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
                                             <td className="py-4 px-6 font-mono text-sm font-medium text-purple-400">{transfer.transfer_number}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.source_warehouse_name}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.destination_warehouse_name}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-400">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
-                                            <td className="py-4 px-6 text-sm text-right text-white">{transfer.total_items}</td>
-                                            <td className="py-4 px-6 text-sm text-slate-300">{transfer.created_by_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{transfer.source_warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{transfer.destination_warehouse_name}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-600">{new Date(transfer.transfer_date).toLocaleDateString('vi-VN')}</td>
+                                            <td className="py-4 px-6 text-sm text-right text-blue-900">{transfer.total_items}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-700 font-medium">{transfer.created_by_name}</td>
                                             <td className="py-4 px-6 text-center">
                                                 {getStatusBadge(transfer.status)}
                                             </td>
                                             <td className="py-4 px-6 text-center">
                                                 <button
                                                     onClick={() => handleViewDetail(transfer.id)}
-                                                    className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                                                    className="text-blue-600 hover:text-blue-600 font-medium transition-colors"
                                                 >
                                                     Chi tiết
                                                 </button>
@@ -173,7 +173,7 @@ const InterWarehouseTransfer: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-700/50">
+                        <div className="px-6 py-4 border-t border-blue-100">
                             <Pagination pagination={pagination} onPageChange={(page) => setPagination(p => ({ ...p, page }))} />
                         </div>
                     </>
@@ -183,15 +183,15 @@ const InterWarehouseTransfer: React.FC = () => {
             {/* Detail Modal */}
             {showDetailModal && selectedTransfer && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-slate-700/50 shadow-2xl shadow-purple-500/10">
+                    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 m-4 border border-blue-100 shadow-2xl shadow-purple-500/10">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h2 className="text-xl font-bold text-white">🔄 Chi tiết phiếu chuyển: {selectedTransfer.transfer_number}</h2>
+                                <h2 className="text-xl font-bold text-blue-900">🔄 Chi tiết phiếu chuyển: {selectedTransfer.transfer_number}</h2>
                                 <div className="flex gap-2 mt-2">
                                     {getStatusBadge(selectedTransfer.status)}
                                 </div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-white text-2xl transition-colors">
+                            <button onClick={() => setShowDetailModal(false)} className="text-slate-600 hover:text-blue-900 text-2xl transition-colors">
                                 ×
                             </button>
                         </div>
@@ -199,28 +199,28 @@ const InterWarehouseTransfer: React.FC = () => {
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                             <div>
                                 <span className="text-slate-500">Kho nguồn:</span>
-                                <p className="font-medium text-white">{selectedTransfer.source_warehouse_name}</p>
+                                <p className="font-medium text-blue-900">{selectedTransfer.source_warehouse_name}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500">Kho đích:</span>
-                                <p className="font-medium text-white">{selectedTransfer.destination_warehouse_name}</p>
+                                <p className="font-medium text-blue-900">{selectedTransfer.destination_warehouse_name}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500">Ngày:</span>
-                                <p className="font-medium text-white">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
+                                <p className="font-medium text-blue-900">{new Date(selectedTransfer.transfer_date).toLocaleDateString('vi-VN')}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500">Người tạo:</span>
-                                <p className="font-medium text-white">{selectedTransfer.created_by_name}</p>
+                                <p className="font-medium text-blue-900">{selectedTransfer.created_by_name}</p>
                             </div>
                             <div>
                                 <span className="text-slate-500">Tổng giá trị:</span>
-                                <p className="font-medium text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()} đ</p>
+                                <p className="font-medium text-lg text-purple-400">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')} đ</p>
                             </div>
                             {selectedTransfer.reason && (
                                 <div>
                                     <span className="text-slate-500">Lý do:</span>
-                                    <p className="font-medium text-white">{selectedTransfer.reason}</p>
+                                    <p className="font-medium text-blue-900">{selectedTransfer.reason}</p>
                                 </div>
                             )}
                         </div>
@@ -229,12 +229,12 @@ const InterWarehouseTransfer: React.FC = () => {
                         <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg mb-4">
                             <div className="flex items-center justify-center gap-4">
                                 <div className="text-center">
-                                    <p className="text-sm text-slate-400">Kho nguồn</p>
+                                    <p className="text-sm text-slate-600">Kho nguồn</p>
                                     <p className="font-bold text-purple-400">{selectedTransfer.source_warehouse_name}</p>
                                 </div>
                                 <div className="text-3xl text-purple-500">→</div>
                                 <div className="text-center">
-                                    <p className="text-sm text-slate-400">Kho đích</p>
+                                    <p className="text-sm text-slate-600">Kho đích</p>
                                     <p className="font-bold text-purple-400">{selectedTransfer.destination_warehouse_name}</p>
                                 </div>
                             </div>
@@ -251,35 +251,35 @@ const InterWarehouseTransfer: React.FC = () => {
                         {/* Items table */}
                         {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-medium mb-2 text-white">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
-                                <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+                                <h3 className="font-medium mb-2 text-blue-900">Danh sách sản phẩm ({selectedTransfer.total_items} SP)</h3>
+                                <div className="overflow-x-auto rounded-lg border border-blue-100">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-700/50">
+                                        <thead className="bg-slate-100">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-slate-300">SKU</th>
-                                                <th className="px-4 py-3 text-left text-slate-300">Tên SP</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">SL</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Đơn giá</th>
-                                                <th className="px-4 py-3 text-right text-slate-300">Thành tiền</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">SKU</th>
+                                                <th className="px-4 py-3 text-left text-slate-700 font-medium">Tên SP</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">SL</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Đơn giá</th>
+                                                <th className="px-4 py-3 text-right text-slate-700 font-medium">Thành tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {selectedTransfer.items.map(item => (
-                                                <tr key={item.id} className="border-t border-slate-700/50">
+                                                <tr key={item.id} className="border-t border-blue-100">
                                                     <td className="px-4 py-3 font-mono text-purple-300">{item.sku}</td>
-                                                    <td className="px-4 py-3 text-white">{item.product_name}</td>
-                                                    <td className="px-4 py-3 text-right text-white">{item.quantity_requested}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-300">{item.unit_cost.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-right font-medium text-purple-400">{item.line_total.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-blue-900">{item.product_name}</td>
+                                                    <td className="px-4 py-3 text-right text-blue-900">{item.quantity_requested}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-700 font-medium">{Number(item.unit_cost).toLocaleString('vi-VN')}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-purple-400">{Number(item.line_total).toLocaleString('vi-VN')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="bg-slate-700/50 font-medium">
+                                        <tfoot className="bg-slate-100 font-medium">
                                             <tr>
-                                                <td colSpan={2} className="px-4 py-3 text-slate-300">Tổng cộng:</td>
-                                                <td className="px-4 py-3 text-right text-white">{selectedTransfer.total_quantity}</td>
+                                                <td colSpan={2} className="px-4 py-3 text-slate-700 font-medium">Tổng cộng:</td>
+                                                <td className="px-4 py-3 text-right text-blue-900">{selectedTransfer.total_quantity}</td>
                                                 <td className="px-4 py-3"></td>
-                                                <td className="px-4 py-3 text-right text-lg text-purple-400">{selectedTransfer.total_value.toLocaleString()}</td>
+                                                <td className="px-4 py-3 text-right text-lg text-purple-400">{Number(selectedTransfer.total_value).toLocaleString('vi-VN')}</td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -287,7 +287,7 @@ const InterWarehouseTransfer: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end pt-4 border-t border-slate-700/50">
+                        <div className="flex justify-end pt-4 border-t border-blue-100">
                             <button
                                 onClick={() => setShowDetailModal(false)}
                                 className="btn btn-secondary"

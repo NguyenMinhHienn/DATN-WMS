@@ -1,4 +1,6 @@
 import { stockTransferRepository } from '../repositories/stock-transfer.repository';
+import { receivableService } from './receivable.service';
+import { payableService } from './payable.service';
 import {
     CreateStockTransferDto,
     CreateStockTransferItemDto,
@@ -17,6 +19,7 @@ import { AppError } from '../middlewares/error.middleware';
  * - ADMIN: Xem tất cả phiếu, duyệt/từ chối phiếu
  * - IMPORT: Cho phép nhập thông tin sản phẩm mới (tên, SKU, hình)
  */
+// test
 export class StockTransferService {
 
     async getAllTransfers(
@@ -132,8 +135,8 @@ export class StockTransferService {
             product_image_url: item.product_image_url,
 
             // Số lượng và giá
-            quantity_requested: item.quantity_requested ?? item.quantity ?? 0,
-            unit_cost: item.unit_cost ?? item.unit_price ?? 0,
+            quantity_requested: Number(item.quantity_requested ?? item.quantity ?? 0),
+            unit_cost: Number(item.unit_cost ?? item.unit_price ?? 0),
 
             // Thông tin bổ sung
             batch_number: item.batch_number,
@@ -141,14 +144,42 @@ export class StockTransferService {
             notes: item.notes,
         }));
 
+        const subtotal = Number(dto.subtotal ?? 0);
+        const vat_percent = Number(dto.vat_percent ?? 0);
+        const vat_amount = Number(dto.vat_amount ?? (subtotal * vat_percent));
+        const shipping_fee = Number(dto.shipping_fee ?? 0);
+
+        console.log('[StockTransferService] Normalized payload:', {
+            transfer_type,
+            subtotal,
+            vat_percent,
+            vat_amount,
+            shipping_fee
+        });
+        
         return {
             transfer_type,
             source_warehouse_id: dto.source_warehouse_id,
             destination_warehouse_id: dto.destination_warehouse_id,
             transfer_date: dto.transfer_date || new Date().toISOString().split('T')[0],
             expected_arrival_date: dto.expected_arrival_date,
+            supplier_id: dto.supplier_id,
+            delivery_person: dto.delivery_person,
+            storekeeper: dto.storekeeper,
+            receiver_name: dto.receiver_name,
+            receiver_department: dto.receiver_department,
+            receiver_address: dto.receiver_address,
+            receiver_phone: dto.receiver_phone,
+            receiver_latitude: dto.receiver_latitude,
+            receiver_longitude: dto.receiver_longitude,
+            order_id: dto.order_id || dto.orderId,
             reason: dto.reason,
             notes: dto.notes,
+            subtotal,
+            vat_percent,
+            vat_amount,
+            shipping_fee,
+            payment_terms: Number(dto.payment_terms ?? 0),
             items: normalizedItems,
         };
     }
@@ -164,6 +195,11 @@ export class StockTransferService {
             errors.push('Loại phiếu (type) là bắt buộc');
         } else if (!['IMPORT', 'EXPORT', 'TRANSFER'].includes(dto.transfer_type)) {
             errors.push('Loại phiếu không hợp lệ. Phải là IMPORT, EXPORT, hoặc TRANSFER');
+        }
+
+        // Kiểm tra nhà cung cấp (bắt buộc cho phiếu NHẬP)
+        if (dto.transfer_type === 'IMPORT' && !dto.supplier_id) {
+            errors.push('Nhà cung cấp là bắt buộc cho phiếu NHẬP. Mỗi phiếu nhập chỉ gắn với một nhà cung cấp duy nhất.');
         }
 
         // Kiểm tra warehouse
@@ -241,7 +277,8 @@ export class StockTransferService {
                 const stockCheck = await stockTransferRepository.checkSufficientStock(
                     dto.source_warehouse_id,
                     item.product_id,
-                    qty
+                    qty,
+                    item.product_variant_id
                 );
 
                 if (!stockCheck.sufficient) {
@@ -269,7 +306,94 @@ export class StockTransferService {
             );
         }
 
-        return stockTransferRepository.approve(id, adminUserId);
+        const approved = await stockTransferRepository.approve(id, adminUserId);
+
+        if (approved && transfer.transfer_type === 'EXPORT') {
+            try {
+                if ((transfer as any).order_id) {
+                    const orderId = (transfer as any).order_id;
+                    const pool = require('../config/database').default;
+                    const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ? LIMIT 1', [orderId]);
+                    
+                    if (orders.length > 0) {
+                        const order = orders[0];
+                        const { receivableRepository } = require('../repositories/receivable.repository');
+                        const existingOrderReceivable = await receivableRepository.findBySource('order', orderId);
+                        
+                        if (!existingOrderReceivable) {
+                            const grandTotal = parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0) + 
+                                               parseFloat((transfer as any).vat_amount || 0) + 
+                                               parseFloat((transfer as any).shipping_fee || 0);
+
+                            if (order.payment_method === 'CREDIT') {
+                                const { creditService } = require('./credit.service');
+                                const creditInfo = await creditService.getCreditInfo(order.user_id);
+                                await receivableService.createFromCreditOrder({
+                                    id: orderId,
+                                    total_amount: grandTotal,
+                                    shipping_name: order.shipping_name,
+                                    shipping_phone: order.shipping_phone,
+                                    shipping_address: order.shipping_address,
+                                    user_id: order.user_id,
+                                    created_at: order.created_at,
+                                    payment_terms: creditInfo.credit_payment_terms,
+                                });
+                                await creditService.syncCreditUsed(order.user_id);
+                                console.log(`✅ Đã tạo công nợ Credit sớm cho đơn hàng #${orderId} khi duyệt phiếu xuất`);
+                            } else if (order.payment_method === 'COD') {
+                                // Với COD, tạo công nợ nhưng chưa auto-close (chờ lúc giao hàng xong mới close)
+                                await receivableService.createFromOrder({
+                                    id: orderId,
+                                    total_amount: grandTotal,
+                                    shipping_name: order.shipping_name,
+                                    shipping_phone: order.shipping_phone,
+                                    shipping_address: order.shipping_address,
+                                    user_id: order.user_id,
+                                    created_at: order.created_at,
+                                });
+                                console.log(`✅ Đã tạo công nợ COD sớm cho đơn hàng #${orderId} khi duyệt phiếu xuất`);
+                            }
+                        }
+                    }
+                } else {
+                    // Phiếu xuất ngoài không qua Order
+                    await receivableService.createFromExportTransfer({
+                        id: transfer.id,
+                        transfer_number: transfer.transfer_number,
+                        total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
+                        transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                        receiver_name: (transfer as any).receiver_name,
+                        receiver_phone: (transfer as any).receiver_phone,
+                        receiver_address: (transfer as any).receiver_address,
+                        payment_terms: (transfer as any).payment_terms || 0,
+                        user_id: (transfer as any).user_id,
+                    }, adminUserId);
+                }
+            } catch (recErr) {
+                console.error('⚠️ Lỗi tạo công nợ từ phiếu xuất (Stock Transfer):', recErr);
+            }
+        }
+
+        // 🆕 Tạo công nợ phải trả NCC khi duyệt phiếu NHẬP CÓ CÔNG NỢ
+        if (approved && transfer.transfer_type === 'IMPORT' 
+            && (transfer as any).supplier_id 
+            && ((transfer as any).payment_terms || 0) > 0) {
+            try {
+                await payableService.createFromImportTransfer({
+                    id: transfer.id,
+                    transfer_number: transfer.transfer_number,
+                    total_amount: parseFloat((transfer as any).total_value || (transfer as any).subtotal || 0),
+                    transfer_date: transfer.transfer_date instanceof Date ? transfer.transfer_date.toISOString().split('T')[0] : String(transfer.transfer_date).split('T')[0],
+                    supplier_id: (transfer as any).supplier_id,
+                    supplier_name: (transfer as any).supplier_name || 'Nhà cung cấp',
+                    payment_terms: (transfer as any).payment_terms,
+                }, adminUserId);
+            } catch (payErr) {
+                console.error('⚠️ Lỗi tạo công nợ NCC từ phiếu nhập (Stock Transfer):', payErr);
+            }
+        }
+
+        return approved;
     }
 
     async rejectTransfer(id: number, adminUserId: number, reason?: string): Promise<boolean> {

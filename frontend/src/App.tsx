@@ -10,6 +10,7 @@ import { StaffRoute } from './components/StaffRoute';
 // Layouts
 import { AdminLayout } from './layout/AdminLayout';
 import { StaffLayout } from './layout/StaffLayout';
+import { ClientLayout } from './layout/ClientLayout';
 
 // Admin Pages
 import Dashboard from './pages/admin/Dashboard';
@@ -22,14 +23,23 @@ import Reports from './pages/admin/Reports';
 import ProductConfig from './pages/admin/ProductConfig';
 import AdminOrders from './pages/admin/AdminOrders';
 import FinancialReport from './pages/admin/FinancialReport';
+import ExportReceipt from './pages/admin/ExportReceipt';
+import Receivables from './pages/admin/Receivables';
+import CustomerLedger from './pages/admin/CustomerLedger';
+import Payables from './pages/admin/Payables';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
 import CreateTransfer from './pages/staff/CreateTransfer';
 import MyTransfers from './pages/staff/MyTransfers';
 import StaffProducts from './pages/staff/StaffProducts';
-import StaffOrders from './pages/staff/StaffOrders';
-import StaffDonHang from './pages/staff/staffdonhang';
+import StaffDonHang from './pages/staff/StaffDonHang';
+import StaffInventoryView from './pages/staff/StaffInventoryView';
+import StaffProductConfigView from './pages/staff/StaffProductConfigView';
+import StaffReceivables from './pages/staff/StaffReceivables';
+import StaffPayables from './pages/staff/StaffPayables';
+
+// ... rest of imports
 
 // Client/Public Pages
 import Home from './pages/client/Home';
@@ -39,12 +49,16 @@ import ProductList from './pages/client/ProductList';
 import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
 import AccessDenied from './pages/client/AccessDenied';
+import ClientReceivables from './pages/client/ClientReceivables';
+import CreditDashboard from './pages/client/CreditDashboard';
 
 // Shared Pages
 import Profile from './pages/Profile';
 import OrdersPage from './pages/client/Orders';
 import SupportPage from './pages/client/SupportTicketsPage';
 import PaymentCancel from './pages/client/PaymentCancel';
+import DebtPaymentSuccess from './pages/client/DebtPaymentSuccess';
+import DebtPaymentCancel from './pages/client/DebtPaymentCancel';
 // import PaymentSuccess from './pages/client/PaymentSuccess';
 
 /**
@@ -77,18 +91,23 @@ const App: React.FC = () => {
                         <Route path="/" element={<Home />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
-                        <Route path="/products" element={<ProductList />} />
-                        <Route path="/products/:id" element={<ProductDetail />} />
-                        <Route path="/cart" element={<Cart />} />
                         <Route path="/403" element={<AccessDenied />} />
 
-                        {/* ==================== SHARED ROUTES (All authenticated users) ==================== */}
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/orders" element={<OrdersPage />} />
-                        <Route path="/orders/:id" element={<OrdersPage />} />
-                        <Route path="/support" element={<SupportPage />} />
-                        <Route path="/payment-cancel" element={<PaymentCancel />} />
-                        {/* <Route path="/payment/success" element={<PaymentSuccess />} /> */}
+                        {/* ==================== CLIENT ROUTES (with ClientLayout) ==================== */}
+                        <Route element={<ClientLayout />}>
+                            <Route path="/products" element={<ProductList />} />
+                            <Route path="/products/:id" element={<ProductDetail />} />
+                            <Route path="/cart" element={<Cart />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/orders" element={<OrdersPage />} />
+                            <Route path="/orders/:id" element={<OrdersPage />} />
+                            <Route path="/support" element={<SupportPage />} />
+                            <Route path="/payment-cancel" element={<PaymentCancel />} />
+                            <Route path="/debt-payment-success" element={<DebtPaymentSuccess />} />
+                            <Route path="/debt-payment-cancel" element={<DebtPaymentCancel />} />
+                            <Route path="/my-receivables" element={<ClientReceivables />} />
+                            <Route path="/my-credit" element={<CreditDashboard />} />
+                        </Route>
 
                         {/* ==================== ADMIN ROUTES ==================== */}
                         {/* Chỉ role 'admin' - Quản lý, duyệt phiếu */}
@@ -110,7 +129,11 @@ const App: React.FC = () => {
                             <Route path="reports" element={<Reports />} />
                             <Route path="product-config" element={<ProductConfig />} />
                             <Route path="orders" element={<AdminOrders />} />
+                            <Route path="export-receipts" element={<ExportReceipt />} />
                             <Route path="financial-report" element={<FinancialReport />} />
+                            <Route path="receivables" element={<Receivables />} />
+                            <Route path="customer-ledger" element={<CustomerLedger />} />
+                            <Route path="payables" element={<Payables />} />
                         </Route>
 
                         {/* ==================== STAFF ROUTES ==================== */}
@@ -125,11 +148,14 @@ const App: React.FC = () => {
                         >
                             <Route index element={<Navigate to="/staff/dashboard" replace />} />
                             <Route path="dashboard" element={<StaffDashboard />} />
+                            <Route path="products" element={<StaffProducts />} />
+                            <Route path="product-config" element={<StaffProductConfigView />} />
+                            <Route path="inventory" element={<StaffInventoryView />} />
+                            <Route path="donhang" element={<StaffDonHang />} />
                             <Route path="create-transfer" element={<CreateTransfer />} />
                             <Route path="my-transfers" element={<MyTransfers />} />
-                            <Route path="products" element={<StaffProducts />} />
-                            <Route path="orders" element={<StaffOrders />} />
-                            <Route path="donhang" element={<StaffDonHang />} />
+                            <Route path="receivables" element={<StaffReceivables />} />
+                            <Route path="payables" element={<StaffPayables />} />
                         </Route>
 
                         {/* ==================== FALLBACK ==================== */}
@@ -142,3 +168,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+{/* Last updated: Tue Mar 17 20:26:32 +07 2026 */}

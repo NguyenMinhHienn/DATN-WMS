@@ -81,6 +81,43 @@ const ProductDetail: React.FC = () => {
     // Get display price (Fix: Luôn ưu tiên dùng giá bán cơ bản của sản phẩm thay vì giá của variant)
     const displayPrice = product?.selling_price ?? 0;
 
+    // Group variants for better UI
+    const groupedVariants = React.useMemo(() => {
+        if (!product?.variants) return {};
+        const groups: Record<string, ProductVariant[]> = {};
+        product.variants.forEach(variant => {
+            let groupKey = 'Mặc định';
+            if (variant.attribute_values && variant.attribute_values.length > 0) {
+                // Ưu tiên nhóm theo Màu sắc hoặc thuộc tính đầu tiên
+                const mainAttr = variant.attribute_values.find((av: any) => 
+                    (av.attribute_name || '').toLowerCase().includes('color') || 
+                    (av.attribute_display_name || '').toLowerCase() === 'màu sắc'
+                ) || variant.attribute_values[0];
+                groupKey = mainAttr.display_value || 'Mặc định';
+            } else if (variant.color) {
+                groupKey = getVariantOptionLabel('color', variant.color) || 'Mặc định';
+            }
+
+            if (!groups[groupKey]) groups[groupKey] = [];
+            groups[groupKey].push(variant);
+        });
+        return groups;
+    }, [product?.variants]);
+
+    const currentGroupKey = React.useMemo<string>(() => {
+        if (!selectedVariant) return 'Mặc định';
+        if (selectedVariant.attribute_values && selectedVariant.attribute_values.length > 0) {
+            const mainAttr = selectedVariant.attribute_values.find((av: any) => 
+                (av.attribute_name || '').toLowerCase().includes('color') || 
+                (av.attribute_display_name || '').toLowerCase() === 'màu sắc'
+            ) || selectedVariant.attribute_values[0];
+            return mainAttr.display_value || 'Mặc định';
+        } else if (selectedVariant.color) {
+            return getVariantOptionLabel('color', selectedVariant.color) || 'Mặc định';
+        }
+        return 'Mặc định';
+    }, [selectedVariant]);
+
     // Xử lý thêm vào giỏ hàng
     const handleAddToCart = async () => {
         if (!product) return;
@@ -98,9 +135,9 @@ const ProductDetail: React.FC = () => {
             if (currentInCart + quantity > maxStock) {
                 const canAdd = maxStock - currentInCart;
                 if (canAdd <= 0) {
-                    setCartMessage({ type: 'error', text: `Bạn đã có ${currentInCart} sản phẩm này trong giỏ hàng (tồn kho: ${maxStock})` });
+                    setCartMessage({ type: 'error', text: `Bạn đã có ${currentInCart} hàng hóa này trong phiếu nhập tạm (tồn kho: ${maxStock})` });
                 } else {
-                    setCartMessage({ type: 'error', text: `Chỉ có thể thêm tối đa ${canAdd} sản phẩm nữa (đã có ${currentInCart} trong giỏ, tồn kho: ${maxStock})` });
+                    setCartMessage({ type: 'error', text: `Chỉ có thể thêm tối đa ${canAdd} lượng hàng nữa (đã có ${currentInCart} trong phiếu, tồn kho: ${maxStock})` });
                 }
                 setTimeout(() => setCartMessage(null), 4000);
                 return;
@@ -146,23 +183,23 @@ const ProductDetail: React.FC = () => {
                 // User đã đăng nhập + có variant -> gọi API để lưu vào DB
                 const result = await cartService.addToCartAPI(product.id, selectedVariant.id, quantity);
                 if (result.success) {
-                    setCartMessage({ type: 'success', text: result.message || `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                    setCartMessage({ type: 'success', text: result.message || `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
                 } else {
                     // API lỗi - fallback localStorage
                     console.warn('API addToCart failed, using localStorage:', result.message);
                     addToLocalStorage();
-                    setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                    setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
                 }
             } else {
                 // Chưa đăng nhập hoặc không có variant -> dùng localStorage
                 addToLocalStorage();
-                setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+                setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
             }
         } catch (error) {
             console.error('Add to cart error:', error);
             // Fallback localStorage
             addToLocalStorage();
-            setCartMessage({ type: 'success', text: `Đã thêm ${quantity} sản phẩm vào giỏ hàng!` });
+            setCartMessage({ type: 'success', text: `Đã thêm ${quantity} hàng hóa vào phiếu nhập tạm!` });
         } finally {
             setAddingToCart(false);
         }
@@ -182,7 +219,7 @@ const ProductDetail: React.FC = () => {
     if (!product) {
         return (
             <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                <h1 className="text-2xl font-bold text-slate-800 mb-4">Không tìm thấy sản phẩm</h1>
+                <h1 className="text-2xl font-bold text-slate-800 mb-4">Không tìm thấy hàng hóa</h1>
                 {error && (
                     <p className="text-red-600 mb-4">{error}</p>
                 )}
@@ -206,7 +243,7 @@ const ProductDetail: React.FC = () => {
                             <li className="text-primary-300">›</li>
                             <li className="flex items-center gap-1">
                                 <span>📦</span>
-                                <Link to="/products" className="hover:text-white transition-colors">Sản phẩm</Link>
+                                <Link to="/products" className="hover:text-white transition-colors">Hàng hóa</Link>
                             </li>
                             {product.category_name && (
                                 <>
@@ -247,14 +284,14 @@ const ProductDetail: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
-                                title="Chia sẻ sản phẩm"
+                                title="Chia sẻ"
                             // TODO: onClick - mở modal chia sẻ
                             >
                                 📤
                             </button>
                             <button
                                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
-                                title="So sánh sản phẩm"
+                                title="So sánh"
                             // TODO: onClick - thêm vào danh sách so sánh
                             >
                                 ⚖️
@@ -276,8 +313,8 @@ const ProductDetail: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     {/* Image */}
-                    <div className="card">
-                        <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center text-9xl overflow-hidden">
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
+                        <div className="w-full aspect-square bg-blue-50/50 rounded-lg flex items-center justify-center text-9xl overflow-hidden">
                             {(selectedVariant?.image_url || product.image_url) ? (
                                 <img src={uploadService.getImageUrl(selectedVariant?.image_url || product.image_url || '')} alt={product.name} className="w-full h-full object-cover rounded-lg" />
                             ) : '📦'}
@@ -310,61 +347,95 @@ const ProductDetail: React.FC = () => {
 
                         {/* Variant Selection */}
                         {product.variants && product.variants.length > 0 && (
-                            <div className="mb-6 p-4 bg-slate-50 rounded-lg">
-                                <h3 className="text-sm font-semibold text-slate-700 mb-3">Chọn phiên bản:</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {product.variants.map(variant => {
-                                        const isSelected = selectedVariant?.id === variant.id;
-                                        // Build variant label from attributes
-                                        let labelParts: string[] = [];
+                            <div className="mb-6 p-5 bg-white border border-slate-200 shadow-sm rounded-xl">
+                                {/* Phân loại chính (Vd: Màu sắc) */}
+                                {Object.keys(groupedVariants).length > 0 && (
+                                    <div className="mb-5">
+                                        <h3 className="text-sm font-bold text-slate-800 mb-3">Phân loại:</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {Object.keys(groupedVariants).map(groupKey => {
+                                                const isSelected = currentGroupKey === groupKey;
+                                                const variantsInGroup = groupedVariants[groupKey];
+                                                // Kiểm tra xem toàn bộ group có hết hàng không
+                                                const isGroupOutOfStock = variantsInGroup.every(v => v.stock <= 0);
+                                                
+                                                // Tìm màu (nếu có)
+                                                let colorCode = null;
+                                                const firstVar = variantsInGroup[0];
+                                                if(firstVar.attribute_values) {
+                                                    const colorAttr = firstVar.attribute_values.find((av: any) => av.display_value === groupKey);
+                                                    if(colorAttr?.color_code) colorCode = colorAttr.color_code;
+                                                } else if (firstVar.color && getVariantOptionLabel('color', firstVar.color) === groupKey) {
+                                                    colorCode = getColorHex(firstVar.color);
+                                                }
 
-                                        // Check for new attribute_values system first
-                                        if (variant.attribute_values && variant.attribute_values.length > 0) {
-                                            labelParts = variant.attribute_values.map((av: any) => av.display_value);
-                                        } else {
-                                            // Fallback to legacy columns
-                                            if (variant.color) labelParts.push(getVariantOptionLabel('color', variant.color));
-                                            if (variant.size) labelParts.push(getVariantOptionLabel('size', variant.size));
-                                            if (variant.storage) labelParts.push(variant.storage);
-                                            if (variant.ram) labelParts.push(variant.ram);
-                                            if (variant.material) labelParts.push(getVariantOptionLabel('material', variant.material));
-                                            if (variant.capacity) labelParts.push(variant.capacity);
-                                        }
+                                                return (
+                                                    <button 
+                                                        key={groupKey}
+                                                        onClick={() => setSelectedVariant(variantsInGroup[0])}
+                                                        className={`flex items-center gap-2 px-4 py-2 border-2 rounded-xl text-sm font-semibold transition-all ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm' : 'border-slate-200 hover:border-slate-400 text-slate-700 bg-white'} ${isGroupOutOfStock ? 'opacity-50' : ''}`}
+                                                    >
+                                                        {colorCode && (
+                                                            <span className="w-4 h-4 rounded-full border border-slate-300 shadow-sm" style={{ backgroundColor: colorCode }} />
+                                                        )}
+                                                        {groupKey}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
-                                        const label = labelParts.join(' / ') || 'Mặc định';
+                                {/* Thuộc tính phụ (Vd: Size, Dung lượng) */}
+                                {groupedVariants[currentGroupKey] && groupedVariants[currentGroupKey].length > 1 && (
+                                    <div className="mb-3">
+                                        <h3 className="text-sm font-bold text-slate-800 mb-3">Tùy chọn:</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {groupedVariants[currentGroupKey].map((variant: ProductVariant) => {
+                                                const isSelected = selectedVariant?.id === variant.id;
+                                                let labelParts: string[] = [];
+                                                if (variant.attribute_values && variant.attribute_values.length > 0) {
+                                                    variant.attribute_values.forEach((av: any) => {
+                                                        if (av.display_value !== currentGroupKey) labelParts.push(av.display_value);
+                                                    });
+                                                } else {
+                                                    if (variant.size) labelParts.push(getVariantOptionLabel('size', variant.size));
+                                                    if (variant.storage) labelParts.push(variant.storage);
+                                                    if (variant.ram) labelParts.push(variant.ram);
+                                                    if (variant.material) labelParts.push(getVariantOptionLabel('material', variant.material));
+                                                    if (variant.capacity) labelParts.push(variant.capacity);
+                                                }
+                                                const label = labelParts.length > 0 ? labelParts.join(' / ') : 'Tiêu chuẩn';
 
-                                        // Get color info from attribute_values or legacy column
-                                        const colorAttr = variant.attribute_values?.find((av: any) => av.attribute_name === 'color');
-                                        const colorCode = colorAttr?.color_code || (variant.color ? getColorHex(variant.color) : null);
-
-                                        return (
-                                            <button
-                                                key={variant.id}
-                                                onClick={() => setSelectedVariant(variant)}
-                                                className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-all ${isSelected
-                                                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                                    : 'border-slate-200 hover:border-slate-400'
-                                                    } ${variant.stock <= 0 ? 'opacity-50' : ''}`}
-                                            >
-                                                {colorCode && (
-                                                    <span
-                                                        className="w-4 h-4 rounded-full border"
-                                                        style={{ backgroundColor: colorCode }}
-                                                    />
-                                                )}
-                                                <span className="text-sm">{label}</span>
-                                                {variant.stock <= 0 && <span className="text-xs text-red-500">(Hết hàng)</span>}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                return (
+                                                    <button 
+                                                        key={variant.id}
+                                                        onClick={() => setSelectedVariant(variant)}
+                                                        disabled={variant.stock <= 0}
+                                                        className={`px-4 py-2 border-2 rounded-xl text-sm font-bold transition-all disabled:cursor-not-allowed ${isSelected ? 'border-primary-500 bg-primary-500 text-white shadow-md' : 'border-slate-200 hover:border-slate-400 text-slate-700 bg-white hover:bg-slate-50'} ${variant.stock <= 0 ? 'opacity-40 bg-slate-100 hover:!bg-slate-100 border-slate-200 text-slate-400' : ''}`}
+                                                    >
+                                                        {label} {variant.stock <= 0 && <span className="ml-1 font-normal opacity-80">(Hết)</span>}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Selected variant info */}
                                 {selectedVariant && (
-                                    <div className="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600">
-                                        <span>Tồn kho: <strong className={selectedVariant.stock > 0 ? 'text-emerald-600' : 'text-red-600'}>{selectedVariant.stock}</strong></span>
-                                        <span className="mx-2">|</span>
-                                        <span>SKU: <strong className="font-mono">{selectedVariant.sku}</strong></span>
+                                    <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-500 font-medium">Tình trạng:</span>
+                                            {selectedVariant.stock > 0 ? (
+                                                <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-md">✓ Còn hàng ({selectedVariant.stock})</span>
+                                            ) : (
+                                                <span className="text-red-500 font-bold bg-red-50 px-2 py-1 rounded-md">✗ Hết hàng</span>
+                                            )}
+                                        </div>
+                                        <div className="text-slate-500">
+                                            <span className="font-medium">SKU:</span> <span className="font-mono bg-slate-100 px-2 py-1 rounded-md text-slate-700">{selectedVariant.sku}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -377,8 +448,8 @@ const ProductDetail: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="card bg-slate-50">
-                            <h2 className="text-lg font-semibold text-slate-800 mb-4">Thuộc tính sản phẩm</h2>
+                        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6">
+                            <h2 className="text-lg font-bold text-blue-900 mb-4">Thuộc tính hàng hóa</h2>
                             <table className="w-full text-sm">
                                 <tbody>
                                     {product.category_name && (
@@ -498,8 +569,8 @@ const ProductDetail: React.FC = () => {
 
                         {/* Custom Product Specifications */}
                         {specifications.length > 0 && (
-                            <div className="card bg-white border border-slate-200 mt-4">
-                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Chi tiết thuộc tính</h2>
+                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6 mt-4">
+                                <h2 className="text-lg font-bold text-blue-900 mb-4">Chi tiết thuộc tính</h2>
                                 <table className="w-full text-sm">
                                     <tbody>
                                         {specifications.map((spec, index) => (
@@ -523,12 +594,12 @@ const ProductDetail: React.FC = () => {
                                 <span>{cartMessage.type === 'success' ? '✓' : '✗'}</span>
                                 <span>{cartMessage.text}</span>
                                 <Link to="/cart" className="ml-auto text-sm font-medium underline hover:no-underline">
-                                    Xem giỏ hàng →
+                                    Xem phiếu nhập →
                                 </Link>
                             </div>
                         )}
 
-                        <div className="card bg-gradient-to-r from-primary-50 to-white border border-primary-100 mt-6">
+                        <div className="bg-gradient-to-r from-primary-50 to-white rounded-2xl shadow-md border border-primary-100 p-6 mt-6">
                             <div className="flex flex-col sm:flex-row items-center gap-4">
                                 {/* Quantity Selector - Hoạt động */}
                                 <div className="flex items-center gap-2">
@@ -578,9 +649,9 @@ const ProductDetail: React.FC = () => {
                                     disabled={addingToCart}
                                 >
                                     {addingToCart ? (
-                                        <><span className="animate-spin text-xl">⏳</span> Đang thêm...</>
+                                        <><span className="animate-spin text-xl">⏳</span> Đang tải...</>
                                     ) : (
-                                        <><span className="text-xl">🛒</span> Thêm vào giỏ hàng</>
+                                        <><span className="text-xl">📋</span> Thêm vào DS nhập</>
                                     )}
                                 </button>
 
@@ -602,7 +673,7 @@ const ProductDetail: React.FC = () => {
                             <p className="text-xs text-slate-500 mt-3 text-center sm:text-left">
                                 {/* UI only - hiển thị tình trạng stock */}
                                 {(selectedVariant?.stock ?? product.total_stock ?? 0) > 0
-                                    ? `✓ Còn hàng (${selectedVariant?.stock ?? product.total_stock} sản phẩm)`
+                                    ? `✓ Còn hàng (${selectedVariant?.stock ?? product.total_stock} đơn vị)`
                                     : '✗ Hết hàng'}
                             </p>
                         </div>
@@ -617,22 +688,22 @@ const ProductDetail: React.FC = () => {
                 {/* TODO: Replace bằng API sản phẩm liên quan - GET /products/related/:productId */}
                 <div className="mt-12 border-t border-slate-200 pt-8">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>📦</span> Sản phẩm liên quan
+                        <span>📦</span> Hàng hóa liên quan
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {/* Placeholder Related Products - sẽ thay bằng map data từ API */}
                         {/* TODO: Thay mảng placeholder này bằng API GET /products/related/:productId */}
                         {[
-                            { id: 1, name: 'Sản phẩm tương tự 1', price: 1500000, image: '' },
-                            { id: 2, name: 'Sản phẩm tương tự 2', price: 2200000, image: '' },
-                            { id: 3, name: 'Sản phẩm tương tự 3', price: 1850000, image: '' },
-                            { id: 4, name: 'Sản phẩm tương tự 4', price: 3100000, image: '' },
+                            { id: 1, name: 'Hàng hóa tương tự 1', price: 1500000, image: '' },
+                            { id: 2, name: 'Hàng hóa tương tự 2', price: 2200000, image: '' },
+                            { id: 3, name: 'Hàng hóa tương tự 3', price: 1850000, image: '' },
+                            { id: 4, name: 'Hàng hóa tương tự 4', price: 3100000, image: '' },
                         ].map(item => (
                             <Link
                                 key={item.id}
                                 to={`/products/${item.id}`}
                                 id={`related-product-${item.id}`}
-                                className="card p-4 hover:shadow-lg transition-shadow cursor-pointer group block"
+                                className="bg-white rounded-2xl shadow-md border border-slate-200 p-4 hover:shadow-lg transition-shadow cursor-pointer group block"
                             >
                                 <div className="aspect-square bg-slate-100 rounded-lg mb-3 flex items-center justify-center text-4xl group-hover:scale-105 transition-transform overflow-hidden">
                                     {item.image ? (
@@ -656,11 +727,11 @@ const ProductDetail: React.FC = () => {
                 {/* TODO: Gắn API đánh giá - GET /reviews/product/:productId */}
                 <div className="mt-12 border-t border-slate-200 pt-8">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span>⭐</span> Đánh giá sản phẩm
+                        <span>⭐</span> Đánh giá
                     </h2>
 
                     {/* Rating Summary - UI only */}
-                    <div className="card bg-gradient-to-br from-amber-50 to-white border-amber-100">
+                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-2xl shadow-md border border-amber-100 p-6">
                         <div className="flex flex-col md:flex-row items-center gap-6">
                             {/* Average Rating Display */}
                             <div className="text-center">
@@ -722,8 +793,8 @@ const ProductDetail: React.FC = () => {
                     </h2>
 
                     {/* Comment Form - UI only */}
-                    <div className="card mb-6">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-4">Để lại bình luận</h3>
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-100 p-6 mb-6">
+                        <h3 className="text-lg font-bold text-blue-900 mb-4">Để lại bình luận</h3>
                         <form
                             id="form-comment"
                             // TODO: onSubmit - gọi API POST /comments

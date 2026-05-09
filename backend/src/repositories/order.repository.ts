@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { inventoryCoreService } from '../services/inventory-core.service';
 
 /**
  * Order Repository
@@ -12,8 +13,8 @@ export interface OrderRow {
     id: number;
     user_id: number;
     total_amount: number;
-    payment_method: 'COD' | 'BANKING';
-    payment_status: 'unpaid' | 'paid';
+    payment_method: 'COD' | 'BANKING' | 'CREDIT';
+    payment_status: 'unpaid' | 'paid' | 'credit_pending';
     status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'failed' | 'cancelled';
     shipping_name: string;
     shipping_phone: string;
@@ -63,24 +64,27 @@ class OrderRepository {
         shippingName: string,
         shippingPhone: string,
         shippingAddress: string,
-        paymentMethod: 'COD' | 'BANKING',
+        paymentMethod: 'COD' | 'BANKING' | 'CREDIT',
         totalAmount: number,
         items: CreateOrderItemInput[],
-        notes?: string
+        notes?: string,
+        shippingLatitude?: number,
+        shippingLongitude?: number
     ): Promise<number> {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
 
             // Insert order
+            const initialPaymentStatus = paymentMethod === 'CREDIT' ? 'credit_pending' : 'unpaid';
             const [orderResult] = await connection.execute<ResultSetHeader>(
-                `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, notes)
-                 VALUES (?, ?, ?, 'unpaid', 'pending', ?, ?, ?, ?)`,
-                [userId, totalAmount, paymentMethod, shippingName, shippingPhone, shippingAddress, notes || null]
+                `INSERT INTO orders (user_id, total_amount, payment_method, payment_status, status, shipping_name, shipping_phone, shipping_address, shipping_latitude, shipping_longitude, notes)
+                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`,
+                [userId, totalAmount, paymentMethod, initialPaymentStatus, shippingName, shippingPhone, shippingAddress, shippingLatitude || null, shippingLongitude || null, notes || null]
             );
             const orderId = orderResult.insertId;
 
-            // Insert order items and deduct stock
+            // Insert order items and RESERVE stock (instead of deducting)
             for (const item of items) {
                 // 1. Insert order item
                 await connection.execute<ResultSetHeader>(
@@ -89,12 +93,19 @@ class OrderRepository {
                     [orderId, item.product_id, item.variant_id, item.product_name, item.variant_sku, item.quantity, item.unit_price, item.cost_price_snapshot, item.variant_attributes]
                 );
 
-                // 2. Thêm logic: Trừ tồn kho NGAY LẬP TỨC 
+                // 2. GIỮ HÀNG (RESERVE) thay vì trừ stock trực tiếp
                 if (item.variant_id) {
-                    await connection.execute(
-                        'UPDATE product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [item.quantity, item.variant_id]
-                    );
+                    await inventoryCoreService.reserveStock({
+                        connection,
+                        productId: item.product_id,
+                        variantId: item.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: item.quantity,
+                        referenceType: 'order',
+                        referenceId: orderId,
+                        referenceNumber: `ORD-${orderId}`,
+                        userId: userId,
+                    });
                 }
             }
 
@@ -114,9 +125,12 @@ class OrderRepository {
     async getAllOrders(page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         let query = `
-            SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                   COALESCE(st.vat_amount, 0) as vat_amount,
+                   COALESCE(st.shipping_fee, 0) as shipping_fee
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
             WHERE 1=1
         `;
         const params: any[] = [];
@@ -156,8 +170,11 @@ class OrderRepository {
     async getOrdersByUserId(userId: number, page: number = 1, limit: number = 10, status?: string): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         let query = `
-            SELECT o.*
+            SELECT o.*,
+                   COALESCE(st.vat_amount, 0) as vat_amount,
+                   COALESCE(st.shipping_fee, 0) as shipping_fee
             FROM orders o
+            LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
             WHERE o.user_id = ?
         `;
         const params: any[] = [userId];
@@ -195,9 +212,12 @@ class OrderRepository {
      */
     async getOrderById(orderId: number): Promise<(OrderRow & { items: OrderItemRow[] }) | null> {
         const [orderRows] = await pool.query<RowDataPacket[]>(
-            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                    COALESCE(st.vat_amount, 0) as vat_amount,
+                    COALESCE(st.shipping_fee, 0) as shipping_fee
              FROM orders o
              LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
              WHERE o.id = ?`,
             [orderId]
         );
@@ -242,13 +262,20 @@ class OrderRepository {
                 [orderId]
             );
 
-            // 2. Đi qua từng item và cộng lại tồn kho
+            // 2. HỦY GIỮ HÀNG (RELEASE) thay vì cộng lại stock trực tiếp
             for (const item of items) {
                 if (item.variant_id) {
-                    await connection.execute(
-                        'UPDATE product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [item.quantity, item.variant_id]
-                    );
+                    await inventoryCoreService.releaseStock({
+                        connection,
+                        productId: item.product_id,
+                        variantId: item.variant_id,
+                        warehouseId: 1, // Kho Tổng
+                        quantity: item.quantity,
+                        referenceType: 'order',
+                        referenceId: orderId,
+                        referenceNumber: `ORD-${orderId}`,
+                        reason: 'Order cancelled',
+                    });
                 }
             }
 
@@ -277,9 +304,12 @@ class OrderRepository {
     async getOrdersByStatus(status: string, page: number = 1, limit: number = 10): Promise<{ data: OrderRow[], pagination: any }> {
         const offset = (page - 1) * limit;
         const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT o.*, u.full_name as user_fullname, u.email as user_email
+            `SELECT o.*, u.full_name as user_fullname, u.email as user_email,
+                    COALESCE(st.vat_amount, 0) as vat_amount,
+                    COALESCE(st.shipping_fee, 0) as shipping_fee
              FROM orders o
              LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN stock_transfers st ON st.order_id = o.id AND st.transfer_type = 'EXPORT'
              WHERE o.status = ?
              ORDER BY o.created_at DESC
              LIMIT ? OFFSET ?`,

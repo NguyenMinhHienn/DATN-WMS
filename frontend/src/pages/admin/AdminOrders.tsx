@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 
 /**
  * Admin Orders Page - Modern UI
- * Quản lý đơn hàng với progress stepper và glassmorphism design
+ * Quản lý yêu cầu nhập với progress stepper và glassmorphism design
  */
 
 // ==================== STATUS CONFIG ====================
@@ -13,13 +13,13 @@ const STATUS_CONFIG: Record<string, {
 }> = {
     pending: { label: 'Chờ duyệt', icon: '⏳', color: '#f59e0b', gradient: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/40', bg: 'bg-amber-500/10', step: 0 },
     confirmed: { label: 'Đã duyệt', icon: '✅', color: '#3b82f6', gradient: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/40', bg: 'bg-blue-500/10', step: 1 },
-    shipping: { label: 'Đang giao', icon: '🚚', color: '#8b5cf6', gradient: 'from-violet-500/20 to-violet-600/5', border: 'border-violet-500/40', bg: 'bg-violet-500/10', step: 2 },
-    delivered: { label: 'Đã giao', icon: '📦', color: '#10b981', gradient: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', step: 3 },
-    failed: { label: 'Giao thất bại', icon: '❌', color: '#ef4444', gradient: 'from-red-500/20 to-red-600/5', border: 'border-red-500/40', bg: 'bg-red-500/10', step: -1 },
+    shipping: { label: 'Đang xử lý', icon: '🚚', color: '#8b5cf6', gradient: 'from-violet-500/20 to-violet-600/5', border: 'border-violet-500/40', bg: 'bg-violet-500/10', step: 2 },
+    delivered: { label: 'Hoàn thành', icon: '📦', color: '#10b981', gradient: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', step: 3 },
+    failed: { label: 'Xử lý thất bại', icon: '❌', color: '#ef4444', gradient: 'from-red-500/20 to-red-600/5', border: 'border-red-500/40', bg: 'bg-red-500/10', step: -1 },
     cancelled: { label: 'Đã hủy', icon: '🚫', color: '#6b7280', gradient: 'from-slate-500/20 to-slate-600/5', border: 'border-slate-500/40', bg: 'bg-slate-500/10', step: -1 },
 };
 
-const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang giao', 'Đã giao'];
+const STEPS = ['Chờ duyệt', 'Đã duyệt', 'Đang xử lý', 'Hoàn thành'];
 const STEP_ICONS = ['📝', '✅', '🚚', '📦'];
 
 // ==================== PROGRESS STEPPER COMPONENT ====================
@@ -54,20 +54,20 @@ const OrderStepper: React.FC<{ status: string }> = ({ status }) => {
                         <div className="flex items-center gap-1.5">
                             <div className={`
                                 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
-                                ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500/50' : ''}
-                                ${isCurrent ? 'bg-indigo-500/20 text-indigo-300 border-2 border-indigo-400/60 ring-2 ring-indigo-500/20 scale-110' : ''}
-                                ${isUpcoming ? 'bg-slate-700/30 text-slate-600 border border-slate-600/30' : ''}
+                                ${isCompleted ? 'bg-emerald-500/20 text-emerald-600 font-bold border-2 border-emerald-500/50' : ''}
+                                ${isCurrent ? 'bg-blue-100 text-blue-600 border-2 border-indigo-400/60 ring-2 ring-indigo-500/20 scale-110' : ''}
+                                ${isUpcoming ? 'hover:bg-blue-50 text-slate-600 border border-slate-300/30' : ''}
                             `}>
                                 {isCompleted ? '✓' : <span className="text-[10px]">{STEP_ICONS[idx]}</span>}
                             </div>
-                            <span className={`text-[10px] font-medium hidden sm:inline ${isCompleted ? 'text-emerald-400/70' :
-                                    isCurrent ? 'text-indigo-300' :
+                            <span className={`text-[10px] font-medium hidden sm:inline ${isCompleted ? 'text-emerald-600 font-bold/70' :
+                                    isCurrent ? 'text-blue-600' :
                                         'text-slate-600'
                                 }`}>{step}</span>
                         </div>
                         {/* Connector line */}
                         {idx < STEPS.length - 1 && (
-                            <div className={`flex-1 h-0.5 min-w-[12px] rounded-full mx-0.5 transition-all duration-300 ${idx < currentStep ? 'bg-emerald-500/40' : 'bg-slate-700/40'
+                            <div className={`flex-1 h-0.5 min-w-[12px] rounded-full mx-0.5 transition-all duration-300 ${idx < currentStep ? 'bg-emerald-500/40' : 'bg-slate-100/40'
                                 }`} />
                         )}
                     </React.Fragment>
@@ -99,7 +99,7 @@ const AdminOrders: React.FC = () => {
             setOrders(result.data);
             setTotalPages(result.pagination?.totalPages || 1);
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Không thể tải đơn hàng');
+            setError(err?.response?.data?.message || 'Không thể tải yêu cầu nhập');
         } finally {
             setLoading(false);
         }
@@ -112,7 +112,7 @@ const AdminOrders: React.FC = () => {
             const detail = await orderService.getOrderById(orderId);
             setSelectedOrder(detail);
         } catch (err) {
-            alert('Không thể tải chi tiết đơn hàng');
+            alert('Không thể tải chi tiết yêu cầu');
         } finally {
             setDetailLoading(false);
         }
@@ -120,11 +120,11 @@ const AdminOrders: React.FC = () => {
 
     const handleAction = async (orderId: number, action: string) => {
         const labels: Record<string, string> = {
-            confirm: 'Duyệt đơn hàng',
-            cancel: 'Hủy đơn hàng',
-            shipping: 'Chuyển sang Đang giao',
-            delivered: 'Xác nhận Đã giao',
-            failed: 'Đánh dấu Giao thất bại',
+            confirm: 'Duyệt yêu cầu',
+            cancel: 'Hủy yêu cầu',
+            shipping: 'Chuyển sang Đang xử lý',
+            delivered: 'Xác nhận Hoàn thành',
+            failed: 'Đánh dấu Xử lý thất bại',
         };
         if (!window.confirm(`Bạn chắc chắn muốn ${labels[action]?.toLowerCase()}?`)) return;
         setActionLoading(`${orderId}-${action}`);
@@ -150,8 +150,8 @@ const AdminOrders: React.FC = () => {
         { value: '', label: 'Tất cả', icon: '📋' },
         { value: 'pending', label: 'Chờ duyệt', icon: '⏳' },
         { value: 'confirmed', label: 'Đã duyệt', icon: '✅' },
-        { value: 'shipping', label: 'Đang giao', icon: '🚚' },
-        { value: 'delivered', label: 'Đã giao', icon: '📦' },
+        { value: 'shipping', label: 'Đang xử lý', icon: '🚚' },
+        { value: 'delivered', label: 'Hoàn thành', icon: '📦' },
         { value: 'failed', label: 'Thất bại', icon: '❌' },
         { value: 'cancelled', label: 'Đã hủy', icon: '🚫' },
     ];
@@ -160,11 +160,11 @@ const AdminOrders: React.FC = () => {
     const getNextAction = (order: OrderSummary): { action: string; label: string; icon: string; className: string } | null => {
         switch (order.status) {
             case 'pending':
-                return { action: 'confirm', label: 'Duyệt đơn', icon: '✅', className: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25' };
+                return { action: 'confirm', label: 'Duyệt yêu cầu', icon: '✅', className: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25' };
             case 'confirmed':
-                return { action: 'shipping', label: 'Bắt đầu giao', icon: '🚚', className: 'from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-violet-500/25' };
+                return { action: 'shipping', label: 'Bắt đầu xử lý', icon: '🚚', className: 'from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 shadow-violet-500/25' };
             case 'shipping':
-                return { action: 'delivered', label: 'Đã giao xong', icon: '📦', className: 'from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 shadow-emerald-500/25' };
+                return { action: 'delivered', label: 'Hoàn thành', icon: '📦', className: 'from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 shadow-emerald-500/25' };
             default:
                 return null;
         }
@@ -173,10 +173,10 @@ const AdminOrders: React.FC = () => {
     const getSecondaryActions = (order: OrderSummary): { action: string; label: string; icon: string; className: string }[] => {
         const actions: { action: string; label: string; icon: string; className: string }[] = [];
         if (['pending', 'confirmed'].includes(order.status)) {
-            actions.push({ action: 'cancel', label: 'Hủy', icon: '✕', className: 'text-slate-400 hover:text-red-400 hover:bg-red-500/10' });
+            actions.push({ action: 'cancel', label: 'Hủy', icon: '✕', className: 'text-slate-600 hover:text-red-400 hover:bg-red-500/10' });
         }
         if (order.status === 'shipping') {
-            actions.push({ action: 'failed', label: 'Thất bại', icon: '✕', className: 'text-slate-400 hover:text-red-400 hover:bg-red-500/10' });
+            actions.push({ action: 'failed', label: 'Thất bại', icon: '✕', className: 'text-slate-600 hover:text-red-400 hover:bg-red-500/10' });
         }
         return actions;
     };
@@ -186,14 +186,14 @@ const AdminOrders: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/20">🛒</span>
-                        Quản lý Đơn hàng
+                    <h1 className="text-2xl font-bold text-blue-900 flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/20">📋</span>
+                        Quản lý Yêu cầu nhập
                     </h1>
-                    <p className="text-slate-400 mt-1 ml-[52px]">Theo dõi và xử lý tất cả đơn hàng</p>
+                    <p className="text-slate-600 mt-1 ml-[52px]">Theo dõi và xử lý các yêu cầu nhập hàng</p>
                 </div>
                 <button onClick={fetchOrders}
-                    className="group px-4 py-2.5 bg-slate-800/60 text-slate-300 rounded-xl hover:bg-slate-700/60 text-sm font-medium border border-slate-700/50 transition-all hover:border-indigo-500/30">
+                    className="group px-4 py-2.5 bg-white/60 text-slate-700 font-medium rounded-xl hover:bg-slate-100/60 text-sm font-medium border border-blue-100 transition-all hover:border-indigo-500/30">
                     <span className="group-hover:animate-spin inline-block mr-1.5">🔄</span> Làm mới
                 </button>
             </div>
@@ -207,8 +207,8 @@ const AdminOrders: React.FC = () => {
                         <button key={tab.value} onClick={() => { setStatusFilter(tab.value); setPage(1); }}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200
                                 ${isActive
-                                    ? 'text-white shadow-lg border border-transparent'
-                                    : 'bg-slate-800/40 text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 border border-slate-700/30'
+                                    ? 'text-blue-900 shadow-lg border border-transparent'
+                                    : 'bg-white text-slate-600 hover:text-slate-200 hover:bg-slate-100/40 border border-slate-100'
                                 }`}
                             style={isActive ? {
                                 background: tabConfig ? `linear-gradient(135deg, ${tabConfig.color}22, ${tabConfig.color}11)` : 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.08))',
@@ -227,15 +227,15 @@ const AdminOrders: React.FC = () => {
             {loading ? (
                 <div className="text-center py-20">
                     <div className="relative w-12 h-12 mx-auto mb-4">
-                        <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
                     </div>
-                    <p className="text-slate-400 text-sm">Đang tải đơn hàng...</p>
+                    <p className="text-slate-600 text-sm">Đang tải yêu cầu...</p>
                 </div>
             ) : orders.length === 0 ? (
-                <div className="text-center py-20 bg-slate-800/20 rounded-2xl border border-slate-700/30 backdrop-blur-sm">
+                <div className="text-center py-20 bg-white/20 rounded-2xl border border-slate-100 backdrop-blur-sm">
                     <div className="text-6xl mb-4 opacity-50">📭</div>
-                    <p className="text-slate-400">Không có đơn hàng nào</p>
+                    <p className="text-slate-600">Không có yêu cầu nào</p>
                     <p className="text-slate-600 text-sm mt-1">Thử thay đổi bộ lọc trạng thái</p>
                 </div>
             ) : (
@@ -252,7 +252,7 @@ const AdminOrders: React.FC = () => {
                                 className={`group relative rounded-2xl border overflow-hidden transition-all duration-300 backdrop-blur-sm
                                     ${isExpanded
                                         ? `bg-gradient-to-r ${config.gradient} ${config.border} shadow-lg`
-                                        : 'bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/50 hover:border-slate-600/40'
+                                        : 'bg-white/30 border-slate-100 hover:bg-blue-50/30 hover:border-slate-300/40'
                                     }`}>
 
                                 {/* Status accent line on left */}
@@ -265,8 +265,8 @@ const AdminOrders: React.FC = () => {
                                         {/* Left: Order info */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 flex-wrap">
-                                                <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg">
-                                                    #{order.id}
+                                                <span className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                                                    Yêu cầu số #{order.id}
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase ${config.bg} border ${config.border}`}
                                                     style={{ color: config.color }}>
@@ -276,15 +276,20 @@ const AdminOrders: React.FC = () => {
                                                     style={{ color: payInfo.color, backgroundColor: payInfo.bg }}>
                                                     {payInfo.text}
                                                 </span>
+                                                {order.payment_method === 'CREDIT' && (
+                                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-amber-200 to-amber-400 text-amber-900 shadow-sm shadow-amber-500/20 border border-amber-300">
+                                                        🏦 ĐƠN CÔNG NỢ
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="mt-2.5 flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-xs text-white font-bold">
-                                                        {order.shipping_name?.charAt(0)?.toUpperCase() || '?'}
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm text-white font-bold shadow-md shadow-blue-500/20">
+                                                        {order.shipping_name === '-' ? 'N' : (order.shipping_name?.charAt(0)?.toUpperCase() || '?')}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-white">{order.shipping_name}</p>
-                                                        <p className="text-xs text-slate-500">{order.shipping_phone}</p>
+                                                        <p className="text-sm font-medium text-blue-900">{order.shipping_name === '-' ? 'Xuất trực tiếp' : order.shipping_name}</p>
+                                                        <p className="text-xs text-slate-500">{order.shipping_phone === '-' ? 'Nội bộ' : order.shipping_phone}</p>
                                                     </div>
                                                 </div>
                                                 {order.user_email && (
@@ -297,8 +302,8 @@ const AdminOrders: React.FC = () => {
 
                                         {/* Right: Price + Actions */}
                                         <div className="flex flex-col items-end gap-2 shrink-0">
-                                            <p className="text-lg font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                                                {formatCurrency(order.total_amount)}
+                                            <p className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                                {formatCurrency(Number(order.total_amount) + Number((order as any).vat_amount || 0) + Number((order as any).shipping_fee || 0))}
                                             </p>
                                             <span className="text-[11px] text-slate-500">{formatDate(order.created_at)}</span>
 
@@ -308,7 +313,7 @@ const AdminOrders: React.FC = () => {
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleAction(order.id, nextAction.action); }}
                                                         disabled={actionLoading === `${order.id}-${nextAction.action}`}
-                                                        className={`px-3.5 py-1.5 bg-gradient-to-r ${nextAction.className} text-white rounded-lg text-xs font-semibold shadow-lg
+                                                        className={`px-3.5 py-1.5 bg-gradient-to-r ${nextAction.className} text-blue-900 rounded-lg text-xs font-semibold shadow-lg
                                                             transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100`}>
                                                         {actionLoading === `${order.id}-${nextAction.action}`
                                                             ? <span className="inline-block animate-spin">⏳</span>
@@ -333,9 +338,9 @@ const AdminOrders: React.FC = () => {
 
                                 {/* Expanded detail */}
                                 {isExpanded && selectedOrder && (
-                                    <div className="border-t border-slate-700/30 bg-slate-900/30 backdrop-blur-sm">
+                                    <div className="border-t border-blue-100 bg-blue-50/30 backdrop-blur-sm">
                                         {detailLoading ? (
-                                            <div className="text-center py-8 text-slate-400">
+                                            <div className="text-center py-8 text-slate-600">
                                                 <span className="inline-block animate-spin text-lg">⏳</span>
                                                 <p className="text-sm mt-2">Đang tải chi tiết...</p>
                                             </div>
@@ -343,53 +348,71 @@ const AdminOrders: React.FC = () => {
                                             <div className="p-5">
                                                 {/* Info grid */}
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                                                    <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/30">
-                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">📍 Địa chỉ giao hàng</p>
-                                                        <p className="text-sm text-slate-200 leading-relaxed">{selectedOrder.shipping_address}</p>
+                                                    <div className="bg-white rounded-xl p-3.5 border border-blue-100 shadow-sm">
+                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1.5 flex items-center gap-1.5">📍 Địa chỉ / Phòng ban</p>
+                                                        <p className="text-sm text-slate-700 font-medium leading-relaxed">{selectedOrder.shipping_address === '-' ? 'Nội bộ' : selectedOrder.shipping_address}</p>
                                                     </div>
-                                                    <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/30">
-                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">💳 Thanh toán</p>
-                                                        <p className="text-sm text-slate-200">{orderService.getPaymentMethodText(selectedOrder.payment_method)}</p>
+                                                    <div className="bg-white rounded-xl p-3.5 border border-blue-100 shadow-sm">
+                                                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1.5 flex items-center gap-1.5">💳 Thanh toán</p>
+                                                        <p className="text-sm text-slate-700 font-medium">{orderService.getPaymentMethodText(selectedOrder.payment_method)}</p>
                                                     </div>
                                                     {selectedOrder.notes && (
-                                                        <div className="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/30">
-                                                            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">📝 Ghi chú</p>
-                                                            <p className="text-sm text-slate-200 italic">{selectedOrder.notes}</p>
+                                                        <div className="bg-white rounded-xl p-3.5 border border-blue-100 shadow-sm">
+                                                            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1.5 flex items-center gap-1.5">📝 Ghi chú</p>
+                                                            <p className="text-sm text-slate-700 font-medium italic">{selectedOrder.notes}</p>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Products */}
                                                 <div>
-                                                    <h4 className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-3 flex items-center gap-2">
+                                                    <h4 className="text-xs uppercase tracking-wider text-slate-600 font-semibold mb-3 flex items-center gap-2">
                                                         <span className="w-5 h-0.5 bg-indigo-500/50 rounded-full"></span>
-                                                        Sản phẩm ({selectedOrder.items.length})
+                                                        Hàng hóa ({selectedOrder.items.length})
                                                     </h4>
                                                     <div className="space-y-2">
                                                         {selectedOrder.items.map(item => (
-                                                            <div key={item.id} className="flex items-center justify-between bg-slate-800/30 hover:bg-slate-800/50 p-3 rounded-xl border border-slate-700/20 transition-colors">
+                                                            <div key={item.id} className="flex items-center justify-between bg-white/30 hover:bg-blue-50/30 p-3 rounded-xl border border-slate-200/20 transition-colors">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/20">
+                                                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-blue-200">
                                                                         <span className="text-xs">📦</span>
                                                                     </div>
                                                                     <div>
-                                                                        <p className="text-sm font-medium text-white">{item.product_name}</p>
+                                                                        <p className="text-sm font-medium text-blue-900">{item.product_name}</p>
                                                                         {item.variant_sku && <p className="text-[11px] text-slate-500 font-mono">SKU: {item.variant_sku}</p>}
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-xs text-slate-400">×{item.quantity}</p>
-                                                                    <p className="text-sm font-semibold text-indigo-300">{formatCurrency(item.unit_price * item.quantity)}</p>
+                                                                    <p className="text-xs text-slate-600">×{item.quantity}</p>
+                                                                    <p className="text-sm font-semibold text-blue-600">{formatCurrency(item.unit_price * item.quantity)}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    {/* Total */}
-                                                    <div className="mt-3 pt-3 border-t border-slate-700/30 flex items-center justify-between">
-                                                        <span className="text-sm text-slate-400 font-medium">Tổng cộng</span>
-                                                        <span className="text-lg font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                                                            {formatCurrency(selectedOrder.total_amount)}
-                                                        </span>
+                                                    {/* Total breakdown */}
+                                                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-1.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs text-slate-500">Tạm tính</span>
+                                                            <span className="text-sm font-medium text-slate-700">{formatCurrency(selectedOrder.total_amount)}</span>
+                                                        </div>
+                                                        {Number((selectedOrder as any).vat_amount) > 0 && (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-slate-500">Thuế VAT</span>
+                                                                <span className="text-sm font-medium text-orange-600">+{formatCurrency((selectedOrder as any).vat_amount)}</span>
+                                                            </div>
+                                                        )}
+                                                        {Number((selectedOrder as any).shipping_fee) > 0 && (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-slate-500">Phí vận chuyển</span>
+                                                                <span className="text-sm font-medium text-orange-600">+{formatCurrency((selectedOrder as any).shipping_fee)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-slate-200">
+                                                            <span className="text-sm text-slate-600 font-semibold">Tổng cộng</span>
+                                                            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                                                {formatCurrency(Number(selectedOrder.total_amount) + Number((selectedOrder as any).vat_amount || 0) + Number((selectedOrder as any).shipping_fee || 0))}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -404,7 +427,7 @@ const AdminOrders: React.FC = () => {
                     {totalPages > 1 && (
                         <div className="flex items-center justify-center gap-3 pt-6">
                             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                                className="px-4 py-2.5 rounded-xl bg-slate-800/50 text-slate-300 text-sm disabled:opacity-30 hover:bg-slate-700/50 border border-slate-700/30 transition-all hover:border-slate-600/50">
+                                className="px-4 py-2.5 rounded-xl bg-blue-50/30 text-slate-700 font-medium text-sm disabled:opacity-30 hover:bg-slate-100 border border-slate-100 transition-all hover:border-slate-300/50">
                                 ← Trước
                             </button>
                             <div className="flex items-center gap-1">
@@ -417,8 +440,8 @@ const AdminOrders: React.FC = () => {
                                         <button key={pageNum} onClick={() => setPage(pageNum)}
                                             className={`w-9 h-9 rounded-lg text-sm font-medium transition-all
                                                 ${page === pageNum
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                                                    : 'text-slate-600 hover:text-blue-900 hover:bg-slate-100'
                                                 }`}>
                                             {pageNum}
                                         </button>
@@ -426,7 +449,7 @@ const AdminOrders: React.FC = () => {
                                 })}
                             </div>
                             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                                className="px-4 py-2.5 rounded-xl bg-slate-800/50 text-slate-300 text-sm disabled:opacity-30 hover:bg-slate-700/50 border border-slate-700/30 transition-all hover:border-slate-600/50">
+                                className="px-4 py-2.5 rounded-xl bg-blue-50/30 text-slate-700 font-medium text-sm disabled:opacity-30 hover:bg-slate-100 border border-slate-100 transition-all hover:border-slate-300/50">
                                 Tiếp →
                             </button>
                         </div>

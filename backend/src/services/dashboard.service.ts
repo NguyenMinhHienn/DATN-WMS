@@ -42,6 +42,34 @@ class DashboardService {
         }
         return result;
     }
+
+    /**
+     * Lấy chi tiết đơn hàng trong tháng (bao gồm online + nội bộ)
+     */
+    async getMonthlyDetail(year: number, month: number): Promise<any> {
+        return dashboardRepository.getMonthlyDetail(year, month);
+    }
+
+    /**
+     * Lấy chi tiết items của 1 đơn hàng
+     */
+    async getOrderItems(orderId: number, orderType: string): Promise<any[]> {
+        return dashboardRepository.getOrderItems(orderId, orderType);
+    }
+
+    /**
+     * Phân bố sản phẩm theo danh mục
+     */
+    async getCategoryDistribution() {
+        return dashboardRepository.getCategoryDistribution();
+    }
+
+    /**
+     * Top 5 sản phẩm bán chạy nhất
+     */
+    async getTopProducts() {
+        return dashboardRepository.getTopProducts();
+    }
 }
 
 export const dashboardService = new DashboardService();

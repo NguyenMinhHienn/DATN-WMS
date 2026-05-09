@@ -1,5 +1,5 @@
 import pool from '../config/database';
-import { Product, CreateProductDto, UpdateProductDto, PaginatedResult, Category, Unit } from '../types';
+import { Product, CreateProductDto, UpdateProductDto, PaginatedResult, Category, Unit, CreateCategoryDto, UpdateCategoryDto } from '../types';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export class ProductRepository {
@@ -205,6 +205,64 @@ export class ProductRepository {
       ORDER BY sort_order, name
     `);
         return rows as Category[];
+    }
+
+    async createCategory(dto: CreateCategoryDto): Promise<number> {
+        const [result] = await pool.query<ResultSetHeader>(`
+      INSERT INTO categories (name, code, description, parent_id, image_url, sort_order, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+            dto.name,
+            dto.code,
+            dto.description || null,
+            dto.parent_id || null,
+            dto.image_url || null,
+            dto.sort_order || 0,
+            dto.is_active !== undefined ? (dto.is_active ? 1 : 0) : 1
+        ]);
+        return result.insertId;
+    }
+
+    async updateCategory(id: number, dto: UpdateCategoryDto): Promise<boolean> {
+        const updateFields: string[] = [];
+        const values: any[] = [];
+        const fieldMap: Record<string, string> = {
+            name: 'name', code: 'code', description: 'description',
+            parent_id: 'parent_id', image_url: 'image_url',
+            sort_order: 'sort_order', is_active: 'is_active'
+        };
+
+        for (const [key, column] of Object.entries(fieldMap)) {
+            if ((dto as any)[key] !== undefined) {
+                updateFields.push(`${column} = ?`);
+                values.push(key === 'is_active' ? ((dto as any)[key] ? 1 : 0) : (dto as any)[key]);
+            }
+        }
+
+        if (updateFields.length === 0) return false;
+
+        values.push(id);
+        const [result] = await pool.query<ResultSetHeader>(`
+            UPDATE categories SET ${updateFields.join(', ')} WHERE id = ? AND deleted_at IS NULL
+        `, values);
+
+        return result.affectedRows > 0;
+    }
+
+    async deleteCategory(id: number): Promise<boolean> {
+        // Validation check constraint: count products
+        const [rows] = await pool.query<RowDataPacket[]>(`
+            SELECT COUNT(*) as prod_count FROM products WHERE category_id = ? AND deleted_at IS NULL
+        `, [id]);
+
+        if (rows[0].prod_count > 0) {
+            throw new Error('CATEGORY_HAS_PRODUCTS');
+        }
+
+        const [result] = await pool.query<ResultSetHeader>(`
+      UPDATE categories SET deleted_at = NOW() WHERE id = ?
+    `, [id]);
+        return result.affectedRows > 0;
     }
 
     async getUnits(): Promise<Unit[]> {
